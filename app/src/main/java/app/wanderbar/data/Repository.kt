@@ -71,6 +71,9 @@ class Repository(private val db: WanderbarDatabase) {
                 address = place.address.trim(),
                 mapsUrl = place.mapsUrl.trim(),
                 hoursRaw = place.hoursRaw.trim(),
+                lat = place.lat,
+                lng = place.lng,
+                googlePlaceId = place.googlePlaceId,
             ),
         )
     }

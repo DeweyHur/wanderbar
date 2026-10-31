@@ -56,7 +56,8 @@ object Hours {
     private val timeRegex = Regex("$TIME$DASH$TIME", RegexOption.IGNORE_CASE)
 
     fun parse(raw: String?): WeeklyHours? {
-        val text = raw?.trim()?.lowercase().orEmpty()
+        // Google formats times with narrow/no-break spaces ("9:00\u202fAM").
+        val text = raw?.replace(Regex("[\u00a0\u2007\u2009\u202f]"), " ")?.trim()?.lowercase().orEmpty()
         if (text.isEmpty()) return null
 
         val result = linkedMapOf<DayOfWeek, MutableList<MinuteRange>>()
@@ -130,6 +131,30 @@ object Hours {
     }
 
     fun status(raw: String?, now: LocalDateTime): HoursStatus = status(parse(raw), now)
+
+    /**
+     * Inverse of [parse]: a compact string the user can read and edit, e.g.
+     * "Mon 11:00-14:00 17:00-22:00; Tue 11:00-22:00". Days without ranges are omitted (closed).
+     */
+    fun format(hours: WeeklyHours): String {
+        val allDay = MinuteRange(0, 24 * 60)
+        if (DayOfWeek.entries.all { hours.days[it] == listOf(allDay) }) return "24h"
+        return DayOfWeek.entries
+            .mapNotNull { day ->
+                val ranges = hours.days[day].orEmpty()
+                if (ranges.isEmpty()) null
+                else ENGLISH_DAY[day] + " " + ranges.joinToString(" ") { "${hhmm(it.start)}-${hhmm(it.end)}" }
+            }
+            .joinToString("; ")
+    }
+
+    private val ENGLISH_DAY = mapOf(
+        DayOfWeek.MONDAY to "Mon", DayOfWeek.TUESDAY to "Tue", DayOfWeek.WEDNESDAY to "Wed",
+        DayOfWeek.THURSDAY to "Thu", DayOfWeek.FRIDAY to "Fri", DayOfWeek.SATURDAY to "Sat",
+        DayOfWeek.SUNDAY to "Sun",
+    )
+
+    private fun hhmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 
     private fun minutesToTime(min: Int): LocalTime = LocalTime.of((min / 60) % 24, min % 60)
 

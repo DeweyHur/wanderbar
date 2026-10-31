@@ -37,6 +37,10 @@ data class PlaceEntity(
     /** Free-form opening hours, parsed by [app.wanderbar.domain.Hours]. */
     val hoursRaw: String = "",
     val orderIndex: Int = 0,
+    /** Coordinates, when the place came from Google search. Needed for the map. */
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @ColumnInfo(defaultValue = "") val googlePlaceId: String = "",
     @ColumnInfo(name = "status") val statusName: String = PlaceStatus.PENDING.name,
 )
 
@@ -53,3 +57,5 @@ data class PlanSummary(
     val finished: Int,
     val currentName: String?,
 )
+
+val PlaceEntity.hasLocation: Boolean get() = lat != null && lng != null

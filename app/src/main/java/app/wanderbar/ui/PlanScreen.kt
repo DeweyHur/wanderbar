@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.SkipNext
@@ -87,6 +88,7 @@ fun PlanScreen(
     onBack: () -> Unit,
     onOpenPlace: (Long) -> Unit,
     onAddDetailed: () -> Unit,
+    onOpenMap: () -> Unit,
 ) {
     val plan by remember(planId) { repository.observePlan(planId) }.collectAsStateWithLifecycle(initialValue = null)
     val places by remember(planId) { repository.observePlaces(planId) }.collectAsStateWithLifecycle(initialValue = null)
@@ -127,6 +129,7 @@ fun PlanScreen(
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로") }
                 },
                 actions = {
+                    IconButton(onClick = onOpenMap) { Icon(Icons.Default.Map, contentDescription = "지도") }
                     IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.MoreVert, contentDescription = "메뉴") }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(text = { Text("이름 바꾸기") }, onClick = { menuOpen = false; renameOpen = true })

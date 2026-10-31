@@ -22,6 +22,15 @@ https://github.com/DeweyHur/wanderbar/releases/download/latest/wanderbar.apk
 
 서명 키(`app/debug.keystore`)가 고정이라 새 빌드를 받으면 기존 앱 위에 업데이트로 설치된다.
 
+## 구글 지도 · 장소 검색 (v0.2)
+
+- 플랜 화면 오른쪽 위 지도 아이콘: 위치가 있는 장소를 순서대로 번호 마커와 선으로 표시. 파랑 = 진행 중, 주황 = 예정, 초록 = 완료.
+- 장소 편집 맨 위 "구글에서 장소 검색": 고르면 이름, 주소, 영업시간, 지도 위치, 구글맵 링크가 채워진다.
+  쉼표로 빠르게 넣은 "카페" 같은 장소는 편집을 열면 그 이름으로 바로 검색된다.
+- 키: Google Cloud에서 Maps SDK for Android + Places API (New)를 켠 API 키.
+  Android 앱 제한(패키지 `app.wanderbar`, SHA-1 `AB:14:EB:1F:31:AE:B4:94:9B:46:3F:AC:CA:55:77:A2:35:18:C7:64`)을 꼭 건다.
+  CI는 GitHub Secret `MAPS_API_KEY`, 로컬 빌드는 `local.properties`의 `MAPS_API_KEY=...` 를 읽는다. 키가 없으면 검색과 지도만 꺼진다.
+
 ## 빌드
 
 1. Android Studio(최신 안정판)에서 이 폴더를 연다. Gradle Sync가 끝나길 기다린다. (JDK 17, 스튜디오 내장 JDK면 충분)

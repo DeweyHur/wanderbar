@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import app.wanderbar.data.Repository
 import app.wanderbar.domain.SharedPlace
 import app.wanderbar.domain.SharedText
+import app.wanderbar.ui.MapScreen
 import app.wanderbar.ui.PlaceDetailScreen
 import app.wanderbar.ui.PlaceEditScreen
 import app.wanderbar.ui.PlanScreen
@@ -60,10 +61,12 @@ private object Routes {
     const val PLANS = "plans"
     const val PLAN = "plan/{planId}"
     const val PLACE = "place/{placeId}"
+    const val MAP = "map/{planId}"
     const val EDIT = "edit/{planId}?placeId={placeId}&shared={shared}"
 
     fun plan(id: Long) = "plan/$id"
     fun place(id: Long) = "place/$id"
+    fun map(planId: Long) = "map/$planId"
     fun edit(planId: Long, placeId: Long? = null, shared: Boolean = false) =
         "edit/$planId?placeId=${placeId ?: -1L}&shared=$shared"
 }
@@ -106,6 +109,18 @@ private fun WanderbarNav(repository: Repository, pendingShare: MutableState<Shar
                 onBack = { nav.popBackStack() },
                 onOpenPlace = { nav.navigate(Routes.place(it)) },
                 onAddDetailed = { nav.navigate(Routes.edit(planId)) },
+                onOpenMap = { nav.navigate(Routes.map(planId)) },
+            )
+        }
+        composable(
+            Routes.MAP,
+            arguments = listOf(navArgument("planId") { type = NavType.LongType }),
+        ) { entry ->
+            MapScreen(
+                repository = repository,
+                planId = requireNotNull(entry.arguments).getLong("planId"),
+                onBack = { nav.popBackStack() },
+                onOpenPlace = { nav.navigate(Routes.place(it)) },
             )
         }
         composable(

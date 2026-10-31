@@ -74,4 +74,18 @@ class HoursTest {
         assertEquals(listOf(MinuteRange(480, 1020)), h.days[DayOfWeek.FRIDAY])
         assertEquals(listOf(MinuteRange(600, 900)), h.days[DayOfWeek.SUNDAY])
     }
+
+    @Test fun googleStyleSpaces() {
+        val h = Hours.parse("Monday: 9:00\u202fAM\u2009\u2013\u20095:00\u202fPM")!!
+        assertEquals(listOf(MinuteRange(540, 1020)), h.days[DayOfWeek.MONDAY])
+    }
+
+    @Test fun formatRoundTrips() {
+        val raw = "Mon-Fri 11:00-14:00 17:00-22:00; Fri-Sat 6pm-2am; Sun closed"
+        val h = Hours.parse(raw)!!
+        val formatted = Hours.format(h)
+        assertEquals(h.days.filterValues { it.isNotEmpty() }, Hours.parse(formatted)!!.days)
+        assertEquals("24h", Hours.format(Hours.parse("24h")!!))
+        assertEquals("Mon 17:00-24:00", Hours.format(WeeklyHours(mapOf(DayOfWeek.MONDAY to listOf(MinuteRange(1020, 1440))))))
+    }
 }

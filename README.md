@@ -14,6 +14,14 @@
 | M5 영업시간 상태 (열림 / 곧 닫힘 / 닫힘, 닫힌 곳 경고) | 구현 (영업시간은 직접 입력) |
 | M6 AI | 미착수 |
 
+## 폰에 설치 (가장 쉬운 길)
+
+`main`에 푸시하면 GitHub Actions가 테스트하고 APK를 만들어 아래 고정 링크에 올린다. 폰 브라우저로 열면 바로 받아진다 (로그인 불필요).
+
+https://github.com/DeweyHur/wanderbar/releases/download/latest/wanderbar.apk
+
+서명 키(`app/debug.keystore`)가 고정이라 새 빌드를 받으면 기존 앱 위에 업데이트로 설치된다.
+
 ## 빌드
 
 1. Android Studio(최신 안정판)에서 이 폴더를 연다. Gradle Sync가 끝나길 기다린다. (JDK 17, 스튜디오 내장 JDK면 충분)

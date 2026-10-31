@@ -13,8 +13,20 @@ android {
         applicationId = "app.wanderbar"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // CI run number, so every GitHub Actions build installs as an update.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1.0"
+    }
+
+    // Fixed debug key (committed) so CI builds can be installed over each other.
+    // Personal sideload only; not a release/store key.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {

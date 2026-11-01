@@ -1,6 +1,16 @@
 package app.wanderbar.ui
 
 import androidx.compose.foundation.clickable
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.rememberCoroutineScope
+import app.wanderbar.data.PlacesSearch
+import app.wanderbar.data.Suggestion
+import app.wanderbar.data.hasLocation
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -114,10 +124,54 @@ fun PlanScreen(
         }
     }
 
+    // Google-Maps-style search in the bottom bar. Commas switch to plain multi-add ("카페, 공원").
+    val search = remember { PlacesSearch.get(context) }
+    val scope = rememberCoroutineScope()
+    var suggestions by remember { mutableStateOf<List<Suggestion>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    val multiMode = quick.contains(',') || quick.contains('\n')
+    LaunchedEffect(quick) {
+        if (search == null || quick.isBlank() || multiMode) {
+            suggestions = emptyList()
+            return@LaunchedEffect
+        }
+        delay(250)
+        searching = true
+        val anchor = order.lastOrNull { it.hasLocation }?.let { LatLng(it.lat!!, it.lng!!) }
+        suggestions = try {
+            search.suggest(quick, anchor).take(5)
+        } catch (e: Exception) {
+            Toast.makeText(context, "검색 실패: ${e.message ?: e.javaClass.simpleName}", Toast.LENGTH_SHORT).show()
+            emptyList()
+        }
+        searching = false
+    }
+
+    fun pick(s: Suggestion) {
+        val client = search ?: return
+        scope.launch {
+            searching = true
+            try {
+                val d = client.details(s.placeId)
+                repository.addPlaces(planId, listOf(d.toEntity(planId, s.primary)))
+                Toast.makeText(context, "추가: ${d.name.ifBlank { s.primary }}", Toast.LENGTH_SHORT).show()
+                quick = ""
+                suggestions = emptyList()
+            } catch (e: Exception) {
+                Toast.makeText(context, "장소 정보를 못 가져왔어요: ${e.message ?: e.javaClass.simpleName}", Toast.LENGTH_SHORT).show()
+            }
+            searching = false
+        }
+    }
+
     fun submitQuick() {
-        if (quick.isNotBlank()) {
-            repository.addQuick(planId, quick)
-            quick = ""
+        when {
+            quick.isBlank() -> Unit
+            !multiMode && suggestions.isNotEmpty() -> pick(suggestions.first())
+            else -> {
+                repository.addQuick(planId, quick)
+                quick = ""
+            }
         }
     }
 
@@ -141,8 +195,12 @@ fun PlanScreen(
         },
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
+                Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
+                if (suggestions.isNotEmpty()) {
+                    SuggestionList(suggestions, onPick = { pick(it) }, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp))
+                }
                 Row(
-                    Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
@@ -150,12 +208,17 @@ fun PlanScreen(
                         onValueChange = { quick = it },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
-                        placeholder = { Text("카페, 공원, 저녁 재즈바") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        },
+                        placeholder = { Text(if (search != null) "장소 검색 · 쉼표로 여러 곳" else "카페, 공원, 저녁 재즈바") },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitQuick() }),
                     )
                     IconButton(onClick = { submitQuick() }) { Icon(Icons.Default.Add, contentDescription = "쉼표로 여러 곳 추가") }
                     IconButton(onClick = onAddDetailed) { Icon(Icons.Default.EditNote, contentDescription = "자세히 추가") }
+                }
                 }
             }
         },

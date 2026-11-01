@@ -200,29 +200,14 @@ fun PlaceEditScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (suggestions.isNotEmpty()) {
-                    Card(Modifier.fillMaxWidth()) {
-                        suggestions.forEachIndexed { i, s ->
-                            if (i > 0) HorizontalDivider()
-                            Row(
-                                Modifier.fillMaxWidth().clickable { pick(s) }.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(s.primary, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    if (s.secondary.isNotBlank()) {
-                                        Text(
-                                            s.secondary,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    SuggestionList(suggestions, onPick = { pick(it) })
+                }
+                val la = lat
+                val ln = lng
+                if (la != null && ln != null) {
+                    PlaceMiniMap(la, ln, name)
+                    if (address.isNotBlank()) {
+                        Text(address, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             } else {

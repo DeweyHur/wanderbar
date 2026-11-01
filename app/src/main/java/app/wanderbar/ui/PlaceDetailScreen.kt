@@ -106,6 +106,9 @@ fun PlaceDetailScreen(
                 Text(place.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 if (place.address.isNotBlank()) Text(place.address, style = MaterialTheme.typography.bodyLarge)
                 HoursChip(hours)
+                if (place.lat != null && place.lng != null) {
+                    PlaceMiniMap(place.lat, place.lng, place.name)
+                }
                 if (place.hoursRaw.isNotBlank()) {
                     Text("영업시간: ${place.hoursRaw}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

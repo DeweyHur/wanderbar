@@ -28,14 +28,35 @@ object Links {
     }
 
     /**
-     * Text handed to the Tesla app via ACTION_SEND.
-     * Mirrors the format Google Maps itself shares ("Name\nAddress\nURL"), which is the
-     * case the Tesla app is known to accept. Verified per M3 on the real car.
+     * Text handed to the Tesla app via ACTION_SEND, in the given [format].
+     * Returns null when the format can't be built for this place (e.g. no coordinates).
      */
-    fun teslaShareText(name: String, address: String?, mapsUrl: String?): String {
-        val url = mapsUrl?.trim()?.takeIf { it.isNotEmpty() } ?: googleSearch(name, address)
-        return listOf(name.trim(), address?.trim().orEmpty(), url)
-            .filter { it.isNotEmpty() }
-            .joinToString("\n")
+    fun teslaShareText(
+        format: TeslaFormat,
+        name: String,
+        address: String?,
+        mapsUrl: String?,
+        lat: Double? = null,
+        lng: Double? = null,
+    ): String? {
+        val n = name.trim()
+        val a = address?.trim().orEmpty()
+        val url = mapsUrl?.trim().orEmpty()
+        return when (format) {
+            TeslaFormat.ADDRESS -> a.ifEmpty { n }.ifEmpty { null }
+            TeslaFormat.NAME_ADDRESS -> query(n, a).ifEmpty { null }
+            TeslaFormat.COORDS -> if (lat != null && lng != null) "%.6f,%.6f".format(java.util.Locale.US, lat, lng) else null
+            TeslaFormat.LINK -> url.ifEmpty { googleSearch(n, a) }
+            TeslaFormat.FULL -> listOf(n, a, url.ifEmpty { googleSearch(n, a) }).filter { it.isNotEmpty() }.joinToString("\n")
+        }
     }
+}
+
+/** Ways to phrase a destination for the Tesla app. Which one the app accepts is verified on the car (M3). */
+enum class TeslaFormat(val label: String) {
+    ADDRESS("주소만"),
+    NAME_ADDRESS("이름, 주소 (한 줄)"),
+    COORDS("좌표 (위도,경도)"),
+    LINK("구글맵 링크만"),
+    FULL("이름 / 주소 / 링크 (구글맵 공유 모양)"),
 }

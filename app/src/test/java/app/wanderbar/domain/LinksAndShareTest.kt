@@ -20,14 +20,18 @@ class LinksAndShareTest {
         )
     }
 
-    @Test fun teslaTextPrefersSharedLink() {
-        assertEquals(
-            "Blue Bottle\n315 Linden St\nhttps://maps.app.goo.gl/abc",
-            Links.teslaShareText("Blue Bottle", "315 Linden St", "https://maps.app.goo.gl/abc"),
-        )
+    @Test fun teslaFormats() {
+        val name = "Blue Bottle"; val addr = "315 Linden St"; val url = "https://maps.app.goo.gl/abc"
+        assertEquals("315 Linden St", Links.teslaShareText(TeslaFormat.ADDRESS, name, addr, url))
+        assertEquals("Park", Links.teslaShareText(TeslaFormat.ADDRESS, "Park", "", null))
+        assertEquals("Blue Bottle, 315 Linden St", Links.teslaShareText(TeslaFormat.NAME_ADDRESS, name, addr, url))
+        assertNull(Links.teslaShareText(TeslaFormat.COORDS, name, addr, url))
+        assertEquals("37.774900,-122.419400", Links.teslaShareText(TeslaFormat.COORDS, name, addr, url, 37.7749, -122.4194))
+        assertEquals(url, Links.teslaShareText(TeslaFormat.LINK, name, addr, url))
+        assertEquals("Blue Bottle\n315 Linden St\n$url", Links.teslaShareText(TeslaFormat.FULL, name, addr, url))
         assertEquals(
             "Park\nhttps://www.google.com/maps/search/?api=1&query=Park",
-            Links.teslaShareText("Park", null, null),
+            Links.teslaShareText(TeslaFormat.FULL, "Park", null, null),
         )
     }
 

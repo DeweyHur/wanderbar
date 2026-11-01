@@ -1,6 +1,12 @@
 package app.wanderbar.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import app.wanderbar.domain.TeslaFormat
+import app.wanderbar.data.PlaceEntity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Card
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -114,7 +120,7 @@ fun PlaceDetailScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("테슬라로 보내기", style = MaterialTheme.typography.titleMedium)
                 }
-                LinkButton(Icons.Default.Share, "다른 앱으로 공유") { TeslaShare.shareAnywhere(context, place) }
+                LinkButton(Icons.Default.Share, "다른 앱으로 공유") { TeslaShare.shareAnywhere(context, TeslaShare.shareText(context, place)) }
                 LinkButton(Icons.Default.Directions, "구글맵 길찾기") {
                     openUrl(context, Links.googleDirections(place.name, place.address))
                 }
@@ -149,13 +155,7 @@ fun PlaceDetailScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Text("테슬라로 보낼 내용", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    TeslaShare.shareText(place),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                TeslaFormatTester(place)
             }
         }
     }
@@ -184,5 +184,53 @@ private fun LinkButton(icon: ImageVector, text: String, onClick: () -> Unit) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(text, modifier = Modifier.weight(1f))
+    }
+}
+
+
+/**
+ * Send the same place in each format and keep the one the Tesla app accepts as the default.
+ * Used for M3 verification on the car.
+ */
+@Composable
+private fun TeslaFormatTester(place: PlaceEntity) {
+    val context = LocalContext.current
+    var preferred by remember { mutableStateOf(TeslaShare.preferredFormat(context)) }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("테슬라 전송 형식 테스트", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "각각 보내 보고, 차에 목적지가 뜨는 형식을 기본으로 고르세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TeslaFormat.entries.forEach { format ->
+                val text = TeslaShare.shareText(place, format)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = preferred == format,
+                        onClick = {
+                            preferred = format
+                            TeslaShare.setPreferredFormat(context, format)
+                        },
+                        enabled = text != null,
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(format.label, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text ?: "이 장소엔 없음",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    TextButton(onClick = { text?.let { TeslaShare.sendText(context, it) } }, enabled = text != null) {
+                        Text("보내기")
+                    }
+                }
+            }
+        }
     }
 }

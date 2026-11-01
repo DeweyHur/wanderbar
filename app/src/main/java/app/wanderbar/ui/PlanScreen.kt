@@ -115,6 +115,8 @@ fun PlanScreen(
     var dragging by remember { mutableStateOf(false) }
     LaunchedEffect(places) { if (!dragging) places?.let { order = it } }
 
+    val route = rememberPlanRoute(places)
+
     val listState = rememberLazyListState()
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         val fromIdx = order.indexOfFirst { it.id == from.key }
@@ -247,9 +249,11 @@ fun PlanScreen(
                     else -> FinishedCard(onRestart = { repository.restart(planId) })
                 }
                 Spacer(Modifier.height(8.dp))
+                RouteSummaryCard(route, Modifier.padding(bottom = 8.dp))
             }
             items(order, key = { it.id }) { place ->
                 ReorderableItem(reorderState, key = place.id) { isDragging ->
+                    Column {
                     PlaceRow(
                         place = place,
                         number = order.indexOf(place) + 1,
@@ -272,6 +276,17 @@ fun PlanScreen(
                             )
                         },
                     )
+                    if (!dragging) {
+                        route.legFrom(place.id)?.let { leg ->
+                            Text(
+                                "↓ ${leg.label()}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 24.dp, top = 6.dp),
+                            )
+                        }
+                    }
+                    }
                 }
             }
         }

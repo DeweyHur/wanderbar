@@ -2,6 +2,8 @@ package app.wanderbar.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -83,6 +85,9 @@ private fun PlanMap(places: List<PlaceEntity>, onOpenPlace: (Long) -> Unit) {
     val missing = numbered.size - located.size
     val points = located.map { LatLng(it.second.lat!!, it.second.lng!!) }
 
+    val route = rememberPlanRoute(places)
+    val legs = route.result?.legs
+
     val camera = rememberCameraPositionState()
     var mapLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(mapLoaded, points) {
@@ -102,8 +107,20 @@ private fun PlanMap(places: List<PlaceEntity>, onOpenPlace: (Long) -> Unit) {
             uiSettings = MapUiSettings(zoomControlsEnabled = false, mapToolbarEnabled = false),
             onMapLoaded = { mapLoaded = true },
         ) {
-            if (points.size > 1) {
-                Polyline(points = points, color = Color(0xFF1F3A34), width = 10f)
+            if (legs != null) {
+                // Real driving route; legs already driven are greyed out.
+                legs.forEachIndexed { i, leg ->
+                    val arrived = route.stops.getOrNull(i + 1)?.status == PlaceStatus.DONE
+                    if (leg.path.size > 1) {
+                        Polyline(
+                            points = leg.path,
+                            color = if (arrived) Color(0x88808080) else Color(0xFF1F6FEB),
+                            width = 12f,
+                        )
+                    }
+                }
+            } else if (points.size > 1) {
+                Polyline(points = points, color = Color(0x881F3A34), width = 6f)
             }
             located.forEach { (number, place) ->
                 val hue = when (place.status) {
@@ -125,8 +142,13 @@ private fun PlanMap(places: List<PlaceEntity>, onOpenPlace: (Long) -> Unit) {
             }
         }
 
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
+        if (legs != null || route.loading || route.error != null) {
+            RouteLegsCard(route, numberOf = { id -> numbered.firstOrNull { it.second.id == id }?.first })
+            Spacer(Modifier.height(8.dp))
+        }
         if (located.isEmpty() || missing > 0) {
-            Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
+            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(
                         if (located.isEmpty()) "지도에 표시할 위치가 아직 없어요" else "위치 없는 장소 ${missing}곳",
@@ -148,6 +170,7 @@ private fun PlanMap(places: List<PlaceEntity>, onOpenPlace: (Long) -> Unit) {
                 }
             }
         }
+        }
     }
 }
 
@@ -155,5 +178,37 @@ private fun PlanMap(places: List<PlaceEntity>, onOpenPlace: (Long) -> Unit) {
 private fun Centered(text: String) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun RouteLegsCard(route: PlanRoute, numberOf: (Long) -> Int?) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+        Column(Modifier.padding(12.dp)) {
+            RouteSummaryCard(route)
+            val legs = route.result?.legs
+            if (legs != null) {
+                Text(
+                    if (expanded) "구간 접기 ▲" else "구간별 보기 ▼",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                if (expanded) {
+                    legs.forEachIndexed { i, leg ->
+                        val from = route.stops.getOrNull(i)
+                        val to = route.stops.getOrNull(i + 1)
+                        if (from != null && to != null) {
+                            Text(
+                                "${numberOf(from.id) ?: "?"} → ${numberOf(to.id) ?: "?"}  ${to.name} · ${leg.label()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -60,6 +60,10 @@ const config: ExpoConfig = {
       },
     ],
     ["@react-native-google-signin/google-signin", { iosUrlScheme }],
+    // R8 in release builds strips classes that are created by name at startup (WorkManager's Room database,
+    // pulled in by react-native-maps), which crashed the app on launch. This is a small private app, so
+    // release builds are not minified. The emulator smoke test in CI guards against this coming back.
+    ["expo-build-properties", { android: { enableMinifyInReleaseBuilds: false, enableShrinkResourcesInReleaseBuilds: false } }],
     // iOS uses Apple Maps (no key); Android uses Google Maps.
     ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey }],
   ],

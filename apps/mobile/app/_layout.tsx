@@ -1,3 +1,5 @@
+// Crash reporting first, so errors while the rest of the app loads are reported too.
+import "@/core/crashReporter";
 import "@/core/i18n";
 import { Stack, router, usePathname } from "expo-router";
 import { useEffect } from "react";

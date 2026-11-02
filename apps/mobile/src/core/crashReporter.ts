@@ -1,6 +1,6 @@
 /**
  * Sends uncaught JS errors (including the ones that crash the app on launch) to the API, where they show
- * up in the server logs as "[client-error]". Installed by index.js before anything else is loaded, so it
+ * up in the server logs as "[client-error]". Imported first by app/_layout.tsx, so it
  * imports nothing from the app.
  */
 import { Platform } from "react-native";

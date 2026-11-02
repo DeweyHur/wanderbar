@@ -1,62 +1,62 @@
 import { Redirect } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TextInput } from "react-native";
+import { useEffect, useState } from "react";
 import { SignIn } from "@/components/SignIn";
-import { Body, Button, ErrorText, Loading, Screen, Title, errorMessage, useColors } from "@/components/ui";
+import { Button, ErrorText, Loading, Screen, errorMessage } from "@/components/ui";
 import { api, type GroupSummary } from "@/lib/api";
+import { loadLastGroup } from "@/lib/lastGroup";
 import { useSession } from "@/lib/session";
+
+const PERSONAL_GROUP_NAME = "내 기록";
 
 export default function Home() {
   const { state } = useSession();
   if (state.status === "loading") return <Loading />;
   if (state.status === "signedOut") return <SignIn />;
-  // MVP shows one group; the data model already allows several.
-  const group = state.groups[0];
-  if (group) return <Redirect href={{ pathname: "/group/[id]", params: { id: group.id } }} />;
-  return <CreateGroup />;
+  if (state.groups.length === 0) return <CreatePersonalGroup />;
+  return <OpenGroup groups={state.groups} />;
 }
 
-function CreateGroup() {
+/** Opens the group used last time (several groups are possible once someone is invited elsewhere). */
+function OpenGroup({ groups }: { groups: GroupSummary[] }) {
+  const [id, setId] = useState<string | null>(null);
+  useEffect(() => {
+    loadLastGroup().then((last) => setId(groups.some((g) => g.id === last) ? last! : groups[0].id));
+  }, [groups]);
+  if (!id) return <Loading />;
+  return <Redirect href={{ pathname: "/group/[id]", params: { id } }} />;
+}
+
+/**
+ * Works solo from the first sign-in: a personal group is created automatically,
+ * and inviting others is optional. (Someone who arrives through an invite link joins
+ * that group instead and never sees this.)
+ */
+function CreatePersonalGroup() {
   const { refresh, signOut } = useSession();
-  const c = useColors();
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await api<GroupSummary>("/api/groups", { body: { name: PERSONAL_GROUP_NAME } });
+        if (!cancelled) await refresh();
+      } catch (e) {
+        if (!cancelled) setError(errorMessage(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt, refresh]);
+
+  if (!error) return <Loading />;
   return (
     <Screen>
-      <Title>그룹 만들기</Title>
-      <Body muted>함께 기록할 사람들의 그룹을 만들어요. 초대 링크를 받았다면 그 링크를 눌러 들어오면 돼요.</Body>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="예: 맛집 탐방대"
-        placeholderTextColor={c.muted}
-        maxLength={60}
-        style={[styles.input, { color: c.text, backgroundColor: c.card, borderColor: c.border }]}
-      />
-      <Button
-        label="만들기"
-        busy={busy}
-        disabled={!name.trim()}
-        onPress={async () => {
-          setBusy(true);
-          setError("");
-          try {
-            await api<GroupSummary>("/api/groups", { body: { name } });
-            await refresh();
-          } catch (e) {
-            setError(errorMessage(e));
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
       <ErrorText>{error}</ErrorText>
+      <Button label="다시 시도" onPress={() => { setError(""); setAttempt((n) => n + 1); }} />
       <Button kind="plain" label="로그아웃" onPress={signOut} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  input: { fontSize: 17, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
-});

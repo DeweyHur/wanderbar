@@ -1,13 +1,15 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Share, StyleSheet, Text, View } from "react-native";
 import { Body, Button, ErrorText, Loading, Screen, errorMessage, useColors } from "@/components/ui";
 import { api, type GroupDetail } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import { saveLastGroup } from "@/lib/lastGroup";
 
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { signOut } = useSession();
+  const { state, signOut } = useSession();
+  const otherGroups = state.status === "signedIn" ? state.groups.filter((g) => g.id !== id) : [];
   const c = useColors();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [error, setError] = useState("");
@@ -24,7 +26,8 @@ export default function GroupScreen() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    saveLastGroup(id);
+  }, [load, id]);
 
   if (!group) return error ? <Screen><ErrorText>{error}</ErrorText></Screen> : <Loading />;
 
@@ -43,7 +46,11 @@ export default function GroupScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: group.name }} />
-      <Body muted>멤버 {group.members.length}명</Body>
+      <Body muted>
+        {group.members.length === 1
+          ? "지금은 혼자 쓰는 중이에요. 기록은 나만 볼 수 있고, 원하면 언제든 초대할 수 있어요."
+          : `멤버 ${group.members.length}명`}
+      </Body>
       <FlatList
         data={group.members}
         keyExtractor={(m) => m.id}
@@ -57,7 +64,17 @@ export default function GroupScreen() {
         )}
         contentContainerStyle={{ gap: 8 }}
       />
-      {group.myRole === "owner" && <Button label="초대 링크 보내기" busy={inviting} onPress={invite} />}
+      {group.myRole === "owner" && (
+        <Button kind={group.members.length === 1 ? "plain" : "primary"} label="초대 링크 보내기" busy={inviting} onPress={invite} />
+      )}
+      {otherGroups.map((g) => (
+        <Button
+          key={g.id}
+          kind="plain"
+          label={`${g.name}(으)로 바꾸기`}
+          onPress={() => router.replace({ pathname: "/group/[id]", params: { id: g.id } })}
+        />
+      ))}
       <ErrorText>{error}</ErrorText>
       <Button kind="plain" label="로그아웃" onPress={signOut} />
     </Screen>

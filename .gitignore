@@ -23,3 +23,6 @@ dist/
 /apps/mobile/ios/
 /apps/mobile/android/
 next-env.d.ts
+
+# Neon API key for CLI use (never commit)
+.neon-api-key

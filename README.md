@@ -24,10 +24,12 @@ legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라
 
 ## 처음 설정 (한 번만)
 
-### 1. Neon
-1. Neon에서 프로젝트를 만들고 **Pooled connection** 문자열을 복사한다.
-2. `apps/api/.env.local`을 만든다 (`.env.example` 참고): `DATABASE_URL=...`
-3. 테이블 생성: `npm run db:migrate -w apps/api`
+### 1. Neon (완료)
+- 조직 Digitz, 프로젝트 `wanderbar` (`late-sky-25700084`), 리전 AWS us-east-1, Postgres 18
+- 연결 주소(Pooled)는 `apps/api/.env.local`의 `DATABASE_URL` (커밋 안 됨)
+- 테이블 생성·갱신: `npm run db:migrate -w apps/api` — Neon HTTPS 드라이버로 적용하므로 HTTP만 열린 환경에서도 된다.
+  프록시 뒤에서는 `NODE_USE_ENV_PROXY=1`을 붙인다.
+- CLI: `NEON_API_KEY=$(cat .neon-api-key) neon ...` (`.neon-api-key`는 커밋 안 됨)
 
 ### 2. 구글 로그인 (Google Cloud Console → API 및 서비스 → 사용자 인증 정보)
 기존 Maps 키가 있는 같은 프로젝트를 써도 된다. OAuth 동의 화면을 "외부 / 테스트"로 두고 그룹원 이메일을 테스트 사용자로 넣는다.

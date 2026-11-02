@@ -1,7 +1,9 @@
 import type { ExpoConfig } from "expo/config";
 
 // Reversed iOS OAuth client ID, e.g. com.googleusercontent.apps.1234-abcd (Google Cloud → Credentials → iOS client).
-const iosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME ?? "com.googleusercontent.apps.REPLACE_ME";
+const iosUrlScheme =
+  process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME ??
+  "com.googleusercontent.apps.REPLACE_ME";
 
 // CI sets GITHUB_RUN_NUMBER so every APK installs as an update over the previous one.
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
@@ -37,7 +39,24 @@ const config: ExpoConfig = {
     bundler: "metro",
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router", "expo-localization", ["@react-native-google-signin/google-signin", { iosUrlScheme }]],
+  plugins: [
+    "expo-router",
+    "expo-localization",
+    [
+      "expo-share-intent",
+      {
+        // Links and text only (Yelp and Google Maps share a URL, often with a line of text).
+        iosActivationRules: {
+          NSExtensionActivationSupportsWebURLWithMaxCount: 1,
+          NSExtensionActivationSupportsWebPageWithMaxCount: 1,
+          NSExtensionActivationSupportsText: true,
+        },
+        androidIntentFilters: ["text/*"],
+        iosShareExtensionName: "wanderbar",
+      },
+    ],
+    ["@react-native-google-signin/google-signin", { iosUrlScheme }],
+  ],
   experiments: { typedRoutes: true },
 };
 

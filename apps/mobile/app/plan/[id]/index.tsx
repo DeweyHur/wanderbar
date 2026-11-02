@@ -99,7 +99,7 @@ export default function PlanScreen() {
             <Chip label={t("food:route.done")} onPress={() => flow({ action: "complete", stopId: current.id })} />
             <Chip label={t("food:route.skip")} onPress={() => flow({ action: "postpone", stopId: current.id })} />
             <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(current.name, current.address))} />
-            <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(Links.yelpSearch(current.name, current.address))} />
+            <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(current.yelpUrl || Links.yelpSearch(current.name, current.address))} />
           </View>
         </Card>
       ) : plan.stops.length > 0 ? (

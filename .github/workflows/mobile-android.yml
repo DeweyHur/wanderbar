@@ -3,7 +3,7 @@ name: Mobile Android APK
 on:
   push:
     branches: [main]
-    paths: ["apps/mobile/**", "package-lock.json", ".github/workflows/mobile-android.yml"]
+    paths: ["apps/mobile/**", "packages/**", "package-lock.json", ".github/workflows/mobile-android.yml"]
   workflow_dispatch:
 
 permissions:

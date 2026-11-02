@@ -95,7 +95,8 @@ export default function GroupHome() {
         </>
       )}
       <ErrorText>{error}</ErrorText>
-      <View style={{ flexDirection: "row" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Chip label={t("food:share.title")} onPress={() => router.push("/share")} />
         <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
       </View>
     </ScrollView>

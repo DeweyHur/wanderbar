@@ -89,5 +89,19 @@
     "minutes": "{{m}}분",
     "hours": "{{h}}시간",
     "hoursMinutes": "{{h}}시간 {{m}}분"
+  },
+  "share": {
+    "title": "링크로 추가",
+    "paste": "구글맵이나 옐프 공유 내용을 붙여 넣으세요",
+    "pasteHint": "폰에서는 옐프·구글맵에서 공유를 누르고 wanderbar를 고르면 바로 들어와요.",
+    "addTo": "동선에 추가",
+    "newRoute": "새 동선",
+    "added": "추가했어요",
+    "from": {
+      "gmaps": "구글맵에서 받음",
+      "yelp": "옐프에서 받음",
+      "other": "공유받은 내용"
+    },
+    "noGroup": "먼저 로그인하고 그룹을 열어 주세요."
   }
 }

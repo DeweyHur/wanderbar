@@ -8,6 +8,7 @@ export type Stop = {
   memo: string;
   address: string;
   mapsUrl: string;
+  yelpUrl: string;
   hoursRaw: string;
   lat: number | null;
   lng: number | null;
@@ -17,7 +18,7 @@ export type Stop = {
 };
 export type Plan = { id: string; groupId: string; title: string; createdAt: string; stops: Stop[] };
 export type PlanSummary = { id: string; title: string; createdAt: string; total: number; finished: number; currentName: string | null };
-export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId">>;
+export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId">>;
 export type FlowAction =
   | { action: "complete" | "postpone" | "drop" | "setCurrent" | "restore"; stopId: string }
   | { action: "move"; from: number; to: number }

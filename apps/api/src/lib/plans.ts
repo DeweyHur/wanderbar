@@ -7,7 +7,7 @@ import { requireMember } from "./groups";
 
 export type Stop = typeof planStops.$inferSelect;
 export type StopFields = Partial<
-  Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">
+  Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">
 >;
 
 /** Plans are personal in the MVP: visible only to their owner, who must still be a group member. */

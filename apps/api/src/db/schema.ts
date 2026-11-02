@@ -120,6 +120,8 @@ export const planStops = pgTable(
     address: text("address").notNull().default(""),
     /** A Google Maps link pasted or shared in (e.g. maps.app.goo.gl/...). */
     mapsUrl: text("maps_url").notNull().default(""),
+    /** A Yelp link shared in from the Yelp app. */
+    yelpUrl: text("yelp_url").notNull().default(""),
     /** Free-form opening hours, parsed by @wanderbar/route parseHours. */
     hoursRaw: text("hours_raw").notNull().default(""),
     lat: doublePrecision("lat"),

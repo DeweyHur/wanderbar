@@ -6,6 +6,7 @@ export const StopFieldsSchema = z.object({
   memo: z.string().max(2000).optional(),
   address: z.string().max(500).optional(),
   mapsUrl: z.string().max(2000).optional(),
+  yelpUrl: z.string().max(2000).optional(),
   hoursRaw: z.string().max(1000).optional(),
   lat: z.number().min(-90).max(90).nullable().optional(),
   lng: z.number().min(-180).max(180).nullable().optional(),

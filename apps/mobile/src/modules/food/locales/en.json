@@ -89,5 +89,19 @@
     "minutes": "{{m}} min",
     "hours": "{{h}} h",
     "hoursMinutes": "{{h}} h {{m}} min"
+  },
+  "share": {
+    "title": "Add from a link",
+    "paste": "Paste a Google Maps or Yelp share",
+    "pasteHint": "On a phone you can also tap Share in Yelp or Google Maps and pick wanderbar.",
+    "addTo": "Add to a route",
+    "newRoute": "New route",
+    "added": "Added",
+    "from": {
+      "gmaps": "From Google Maps",
+      "yelp": "From Yelp",
+      "other": "Shared text"
+    },
+    "noGroup": "Sign in and open a group first."
   }
 }

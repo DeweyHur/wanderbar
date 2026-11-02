@@ -81,7 +81,7 @@ export default function StopScreen() {
         {(stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
         <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address))} />
         <Chip label="Google Maps" onPress={() => Linking.openURL(dest.mapsUrl || Links.googleSearch(dest.name, dest.address))} />
-        <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(Links.yelpSearch(dest.name, dest.address))} />
+        <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(dest.yelpUrl || Links.yelpSearch(dest.name, dest.address))} />
       </View>
 
       <Field label={t("food:stop.name")} value={form.name} onChangeText={set("name")} />

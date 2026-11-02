@@ -1,0 +1,1 @@
+ALTER TABLE "plan_stops" ADD COLUMN "yelp_url" text DEFAULT '' NOT NULL;

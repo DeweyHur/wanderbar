@@ -53,8 +53,6 @@ jobs:
         working-directory: apps/mobile/android
         run: ./gradlew --no-daemon assembleRelease
 
-      # The APK embeds the Android Google key, so it is not published (releases/artifacts) while the
-      # repository is public. Distribution: see README.
 
       # Smoke test on an emulator: install, launch, receive a share; fails (with the crash as an annotation) if
       # the app dies. The APK never leaves this job.
@@ -65,6 +63,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Emulator smoke test
+        id: smoke
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -80,3 +79,20 @@ jobs:
           name: android-smoke
           path: android-smoke/
           if-no-files-found: ignore
+
+      # Hand the tested APK to the owner through a DRAFT release: drafts are visible only to people with
+      # write access, so the APK (which embeds the Android map key) stays out of public view.
+      - name: Update the private draft release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk wanderbar-mobile.apk
+          for id in $(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft and ((.name // "") | startswith("wanderbar mobile"))) | .id'); do
+            gh api -X DELETE repos/${{ github.repository }}/releases/$id
+          done
+          gh release create "mobile-build-$GITHUB_RUN_NUMBER" wanderbar-mobile.apk \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "wanderbar mobile (build #$GITHUB_RUN_NUMBER, draft)" \
+            --notes "Release build of ${GITHUB_SHA::7}, passed the emulator smoke test. Draft: only visible to the repo owner."

@@ -31,7 +31,13 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
   },
-  plugins: ["expo-router", ["@react-native-google-signin/google-signin", { iosUrlScheme }]],
+  web: {
+    // One HTML page; the API's Next.js app serves it for every non-API path (see apps/api/next.config.ts).
+    output: "single",
+    bundler: "metro",
+    favicon: "./assets/favicon.png",
+  },
+  plugins: ["expo-router", "expo-localization", ["@react-native-google-signin/google-signin", { iosUrlScheme }]],
   experiments: { typedRoutes: true },
 };
 

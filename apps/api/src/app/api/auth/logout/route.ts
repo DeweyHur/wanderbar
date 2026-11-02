@@ -1,7 +1,7 @@
 import { signOut } from "@/lib/auth";
-import { authed, json } from "@/lib/http";
+import { authed, clearedSessionCookie, json } from "@/lib/http";
 
 export const POST = authed(async (_req, { db, token }) => {
   await signOut(db, token);
-  return json({ ok: true });
+  return json({ ok: true }, 200, { "set-cookie": clearedSessionCookie });
 });

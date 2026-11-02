@@ -1,18 +1,24 @@
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { Link, Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Share, StyleSheet, Text, View } from "react-native";
-import { Body, Button, ErrorText, Loading, Screen, errorMessage, useColors } from "@/components/ui";
-import { api, type GroupDetail } from "@/lib/api";
-import { useSession } from "@/lib/session";
-import { saveLastGroup } from "@/lib/lastGroup";
+import { useTranslation } from "react-i18next";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Body, Button, ErrorText, Loading, Screen, useColors } from "@/components/ui";
+import { api, type GroupDetail } from "@/core/api";
+import { errorText } from "@/core/errors";
+import { saveLastGroup } from "@/core/lastGroup";
+import { getModule } from "@/core/modules/registry";
+import { shareText } from "@/core/platform/share";
+import { useSession } from "@/core/session";
 
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { state, signOut } = useSession();
+  const { t } = useTranslation();
+  const { state } = useSession();
   const otherGroups = state.status === "signedIn" ? state.groups.filter((g) => g.id !== id) : [];
   const c = useColors();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [inviting, setInviting] = useState(false);
 
   const load = useCallback(async () => {
@@ -20,24 +26,45 @@ export default function GroupScreen() {
       setGroup(await api<GroupDetail>(`/api/groups/${id}`));
       setError("");
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorText(t, e));
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     load();
     saveLastGroup(id);
   }, [load, id]);
 
-  if (!group) return error ? <Screen><ErrorText>{error}</ErrorText></Screen> : <Loading />;
+  const settingsButton = () => (
+    <Link href="/settings" asChild>
+      <Pressable accessibilityRole="button" hitSlop={10}>
+        <Text style={{ color: c.accent, fontSize: 16 }}>{t("common.settings")}</Text>
+      </Pressable>
+    </Link>
+  );
+
+  if (!group)
+    return error ? (
+      <Screen>
+        <Stack.Screen options={{ headerRight: settingsButton }} />
+        <ErrorText>{error}</ErrorText>
+      </Screen>
+    ) : (
+      <Loading />
+    );
+
+  const mod = getModule(group.module);
+  const solo = group.members.length === 1;
 
   const invite = async () => {
     setInviting(true);
+    setNotice("");
     try {
       const { url } = await api<{ url: string }>(`/api/groups/${group.id}/invites`, { method: "POST" });
-      await Share.share({ message: `"${group.name}" 그룹에 초대해요. 7일 안에 열어 주세요.\n${url}` });
+      const how = await shareText(t("group.inviteMessage", { name: group.name, url }));
+      if (how === "copied") setNotice(t("group.inviteCopied"));
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorText(t, e));
     } finally {
       setInviting(false);
     }
@@ -45,12 +72,9 @@ export default function GroupScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: group.name }} />
-      <Body muted>
-        {group.members.length === 1
-          ? "지금은 혼자 쓰는 중이에요. 기록은 나만 볼 수 있고, 원하면 언제든 초대할 수 있어요."
-          : `멤버 ${group.members.length}명`}
-      </Body>
+      <Stack.Screen options={{ title: group.name, headerRight: settingsButton }} />
+      <Body muted>{mod ? t(`${mod.namespace}:name`) : t("group.moduleUnavailable")}</Body>
+      <Body muted>{solo ? t("group.solo") : t("group.members", { count: group.members.length })}</Body>
       <FlatList
         data={group.members}
         keyExtractor={(m) => m.id}
@@ -59,24 +83,24 @@ export default function GroupScreen() {
         renderItem={({ item }) => (
           <View style={[styles.row, { backgroundColor: c.card, borderColor: c.border }]}>
             <Text style={[styles.name, { color: c.text }]}>{item.name ?? item.email}</Text>
-            {item.role === "owner" && <Text style={{ color: c.accent }}>그룹장</Text>}
+            {item.role !== "member" && <Text style={{ color: c.accent }}>{t(`group.role.${item.role}`)}</Text>}
           </View>
         )}
         contentContainerStyle={{ gap: 8 }}
       />
       {group.myRole === "owner" && (
-        <Button kind={group.members.length === 1 ? "plain" : "primary"} label="초대 링크 보내기" busy={inviting} onPress={invite} />
+        <Button kind={solo ? "plain" : "primary"} label={t("group.invite")} busy={inviting} onPress={invite} />
       )}
+      {notice ? <Body muted>{notice}</Body> : null}
       {otherGroups.map((g) => (
         <Button
           key={g.id}
           kind="plain"
-          label={`${g.name}(으)로 바꾸기`}
+          label={t("group.switchTo", { name: g.name })}
           onPress={() => router.replace({ pathname: "/group/[id]", params: { id: g.id } })}
         />
       ))}
       <ErrorText>{error}</ErrorText>
-      <Button kind="plain" label="로그아웃" onPress={signOut} />
     </Screen>
   );
 }

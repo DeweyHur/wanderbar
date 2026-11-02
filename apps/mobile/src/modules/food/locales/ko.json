@@ -1,0 +1,14 @@
+{
+  "name": "맛집·동선",
+  "category": {
+    "korean": "한식",
+    "japanese": "일식",
+    "chinese": "중식",
+    "ramen": "라멘",
+    "mexican": "멕시칸",
+    "cafe": "카페",
+    "dessert": "디저트",
+    "bar": "바",
+    "other": "기타"
+  }
+}

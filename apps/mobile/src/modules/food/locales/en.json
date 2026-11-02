@@ -1,0 +1,14 @@
+{
+  "name": "Food & day route",
+  "category": {
+    "korean": "Korean",
+    "japanese": "Japanese",
+    "chinese": "Chinese",
+    "ramen": "Ramen",
+    "mexican": "Mexican",
+    "cafe": "Cafe",
+    "dessert": "Dessert",
+    "bar": "Bar",
+    "other": "Other"
+  }
+}

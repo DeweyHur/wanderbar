@@ -6,7 +6,9 @@ const id = () =>
     .$defaultFn(() => crypto.randomUUID());
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
-export const memberRole = pgEnum("member_role", ["owner", "member"]);
+export const memberRole = pgEnum("member_role", ["owner", "host", "member"]);
+/** Which module a group runs (food & day route first, board game night later). */
+export const groupModule = pgEnum("group_module", ["food", "boardgame"]);
 
 export const users = pgTable("users", {
   id: id(),
@@ -14,6 +16,8 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   name: text("name"),
   image: text("image"),
+  /** UI language chosen in the app's settings; null = follow the device. */
+  locale: text("locale"),
   createdAt: createdAt(),
 });
 
@@ -34,6 +38,11 @@ export const sessions = pgTable(
 export const groups = pgTable("groups", {
   id: id(),
   name: text("name").notNull(),
+  module: groupModule("module").notNull().default("food"),
+  /** Locale for group-level text (invite previews) and new members' first default. */
+  defaultLocale: text("default_locale").notNull().default("en"),
+  timezone: text("timezone").notNull().default("UTC"),
+  currency: text("currency").notNull().default("USD"),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id),

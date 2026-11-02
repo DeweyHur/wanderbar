@@ -8,6 +8,13 @@
       "when": 1793590104140,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793636209898,
+      "tag": "0001_groups_module_locale",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,14 @@
+import { getLocales } from "expo-localization";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SignIn } from "@/components/SignIn";
-import { Button, ErrorText, Loading, Screen, errorMessage } from "@/components/ui";
-import { api, type GroupSummary } from "@/lib/api";
-import { loadLastGroup } from "@/lib/lastGroup";
-import { useSession } from "@/lib/session";
-
-const PERSONAL_GROUP_NAME = "내 기록";
+import { Button, ErrorText, Loading, Screen } from "@/components/ui";
+import { api, type GroupSummary } from "@/core/api";
+import { errorText } from "@/core/errors";
+import { isLanguage } from "@/core/i18n";
+import { loadLastGroup } from "@/core/lastGroup";
+import { useSession } from "@/core/session";
 
 export default function Home() {
   const { state } = useSession();
@@ -20,43 +22,60 @@ export default function Home() {
 function OpenGroup({ groups }: { groups: GroupSummary[] }) {
   const [id, setId] = useState<string | null>(null);
   useEffect(() => {
-    loadLastGroup().then((last) => setId(groups.some((g) => g.id === last) ? last! : groups[0].id));
+    loadLastGroup().then((last) => setId(last && groups.some((g) => g.id === last) ? last : groups[0].id));
   }, [groups]);
   if (!id) return <Loading />;
   return <Redirect href={{ pathname: "/group/[id]", params: { id } }} />;
 }
 
 /**
- * Works solo from the first sign-in: a personal group is created automatically,
- * and inviting others is optional. (Someone who arrives through an invite link joins
- * that group instead and never sees this.)
+ * Works solo from the first sign-in: a personal food group is created automatically in the user's
+ * language, time zone and currency; inviting others is optional. (Someone who arrives through an
+ * invite link joins that group instead and never sees this.)
  */
 function CreatePersonalGroup() {
+  const { t, i18n } = useTranslation();
   const { refresh, signOut } = useSession();
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    const locale = getLocales()[0];
+    const body = {
+      name: t("group.personalName"),
+      module: "food",
+      defaultLocale: isLanguage(i18n.language) ? i18n.language : "en",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      currency: locale?.currencyCode ?? "USD",
+    };
     (async () => {
       try {
-        await api<GroupSummary>("/api/groups", { body: { name: PERSONAL_GROUP_NAME } });
+        await api<GroupSummary>("/api/groups", { body });
         if (!cancelled) await refresh();
       } catch (e) {
-        if (!cancelled) setError(errorMessage(e));
+        if (!cancelled) setError(errorText(t, e));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [attempt, refresh]);
+    // Run once per attempt; language changes mid-flight shouldn't create a second group.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt]);
 
   if (!error) return <Loading />;
   return (
     <Screen>
       <ErrorText>{error}</ErrorText>
-      <Button label="다시 시도" onPress={() => { setError(""); setAttempt((n) => n + 1); }} />
-      <Button kind="plain" label="로그아웃" onPress={signOut} />
+      <Button
+        label={t("common.retry")}
+        onPress={() => {
+          setError("");
+          setAttempt((n) => n + 1);
+        }}
+      />
+      <Button kind="plain" label={t("common.signOut")} onPress={signOut} />
     </Screen>
   );
 }

@@ -3,12 +3,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:web && next build",
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "build:web": "cd ../mobile && expo export --platform web --output-dir ../api/public",
+    "build:api": "next build"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

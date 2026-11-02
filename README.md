@@ -3,11 +3,17 @@
 우리끼리 **메뉴 단위로** 맛집을 기록·공유하고, 담아 둔 곳으로 **하루 동선**을 짜서 다음 목적지를 **테슬라**로 보내는 아이폰·안드로이드 앱.
 기획: claude.ai 프로젝트의 `claude/food-share-spec.md` (기존 `wanderbar-spec.md`를 합친 문서).
 
+- 웹: https://wanderbar-api.vercel.app (API와 같은 주소. 앱을 안 깔아도 브라우저로 쓴다)
+
 ## 구조
 
 ```
-apps/api/         Next.js API (Vercel) + Drizzle + Neon Postgres
-apps/mobile/      Expo (React Native) 앱, expo-router
+apps/api/         Next.js API (Vercel) + Drizzle + Neon Postgres. 빌드 때 Expo 웹 앱을 public/에 넣어 같이 서빙
+apps/mobile/      Expo (React Native) 앱·웹, expo-router
+  src/core/         그룹·인증·API·i18n 공통 코드
+  src/core/platform/  기기마다 다른 부분: *.ts = 앱(iOS·안드로이드), *.web.ts(x) = 웹
+  src/modules/food/   맛집·동선 모듈 (ModuleDefinition, 번역)
+  src/locales/      공통 번역 en / ko
 legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라잡을 때까지 계속 사용
 ```
 
@@ -45,9 +51,15 @@ legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라
 
 Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew signingReport` (debug). TestFlight·배포용 키를 쓰면 그 SHA-1도 추가.
 
+### 2-1. 웹 로그인
+구글 콘솔의 **웹 클라이언트** → Authorized JavaScript origins에 추가:
+`https://wanderbar-api.vercel.app` (로컬 개발용 `http://localhost:3000`도 원하면)
+
 ### 3. API 서버
 - 로컬: `npm run api:dev` → `http://<맥 IP>:3000` (폰과 같은 와이파이)
-- Vercel: 새 프로젝트, Root Directory `apps/api`, 환경변수 `DATABASE_URL`, `GOOGLE_CLIENT_IDS`, `PUBLIC_BASE_URL`
+- Vercel 프로젝트 `wanderbar-api`, Root Directory `apps/api`. 환경변수 `DATABASE_URL`(Secret), `GOOGLE_CLIENT_IDS`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`(웹 빌드용)
+- `npm run build -w apps/api` = Expo 웹 export(`public/`) + `next build`. API가 아닌 경로는 모두 웹 앱의 `index.html`로 간다
+- 웹은 httpOnly 쿠키 세션(`SameSite=Lax`) + 쓰기 요청마다 `x-wanderbar-client: web` 헤더 검사(CSRF), 앱은 Bearer 토큰
 
 ### 4. 앱
 1. `apps/mobile/.env.local` (`.env.example` 참고): API 주소와 구글 클라이언트 ID
@@ -72,16 +84,16 @@ Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew sign
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| POST | `/api/auth/google` | `{ idToken }` → 세션 토큰 + 내 정보 + 내 그룹 |
+| POST | `/api/auth/google` | `{ idToken, client: "app" \| "web" }` → 앱: 세션 토큰 / 웹: 쿠키 + 내 정보 + 내 그룹 |
 | POST | `/api/auth/logout` | 세션 종료 |
-| GET | `/api/me` | 내 정보 + 내 그룹 |
-| POST | `/api/groups` | `{ name }` 그룹 만들기 (만든 사람이 그룹장) |
+| GET / PATCH | `/api/me` | 내 정보 + 내 그룹 / `{ locale }` 언어 저장 (null = 기기 언어) |
+| POST | `/api/groups` | `{ name, module, defaultLocale, timezone, currency }` 그룹 만들기 (만든 사람이 그룹장) |
 | GET | `/api/groups/:id` | 그룹 + 멤버 |
 | POST / DELETE | `/api/groups/:id/invites` | 초대 링크 만들기(7일) / 전부 취소 — 그룹장만 |
 | GET | `/api/invites/:token` | 초대 미리보기 (그룹 이름) |
 | POST | `/api/invites/:token/accept` | 참여 |
 
-세션 토큰과 초대 토큰은 DB에 해시로만 저장한다. 모든 페이지와 응답에 `X-Robots-Tag: noindex`.
+에러는 문장이 아니라 코드(`invite.expired` 등)로 돌려주고 앱이 번역한다. 세션 토큰과 초대 토큰은 DB에 해시로만 저장한다. 모든 페이지와 응답에 `X-Robots-Tag: noindex`.
 
 ## 개발
 
@@ -90,6 +102,7 @@ npm install                    # 루트에서 한 번
 npm run api:test               # API 테스트 (PGlite 메모리 Postgres에 실제 마이그레이션 적용)
 npm run typecheck -w apps/api
 npm run typecheck -w apps/mobile
+npm run check:i18n -w apps/mobile # en/ko 번역 키 일치 검사
 npm run db:generate -w apps/api   # 스키마 바꾼 뒤 마이그레이션 SQL 생성
 ```
 

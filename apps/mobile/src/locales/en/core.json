@@ -1,0 +1,70 @@
+{
+  "appName": "wanderbar",
+  "tagline": "A private log for your people: rate dishes, not just restaurants, and plan the day from places you saved.",
+  "signIn": {
+    "google": "Continue with Google",
+    "inviteFirst": "Sign in with Google to accept the group invite."
+  },
+  "common": {
+    "retry": "Try again",
+    "signOut": "Sign out",
+    "settings": "Settings"
+  },
+  "group": {
+    "personalName": "My log",
+    "title": "Group",
+    "solo": "It's just you for now. Your records are private, and you can invite people anytime.",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "role": {
+      "owner": "Owner",
+      "host": "Host",
+      "member": "Member"
+    },
+    "invite": "Send invite link",
+    "inviteMessage": "Join \"{{name}}\" on wanderbar. The link works for 7 days.\n{{url}}",
+    "inviteCopied": "Invite link copied",
+    "switchTo": "Switch to {{name}}",
+    "moduleUnavailable": "This group's module isn't available in this version yet."
+  },
+  "invite": {
+    "title": "Group invite",
+    "alreadyMember": "You're already a member of this group.",
+    "joinPrompt": "Join this group? Records in a group are visible only to its members.",
+    "join": "Join",
+    "goToGroup": "Go to group"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageSystem": "Device language",
+    "signedInAs": "Signed in as {{email}}"
+  },
+  "errors": {
+    "unknown": "Something went wrong",
+    "network": "Can't reach the server",
+    "config": {
+      "api_url_missing": "The app's server address isn't set (EXPO_PUBLIC_API_URL)"
+    },
+    "auth": {
+      "required": "Please sign in",
+      "invalid_google_token": "Google sign-in couldn't be verified",
+      "email_unverified": "Your Google account email isn't verified",
+      "no_id_token": "Google didn't return a sign-in token (check the web client ID)"
+    },
+    "group": {
+      "not_found": "Group not found",
+      "name_required": "Enter a group name"
+    },
+    "invite": {
+      "not_found": "Invite link not found",
+      "expired": "This invite link has expired",
+      "owner_only": "Only the group owner can manage invite links"
+    },
+    "not_found": "Not found",
+    "forbidden": "Not allowed",
+    "csrf": "Request blocked for security. Reload the page and try again.",
+    "bad_request": "Invalid request",
+    "server_error": "Server error"
+  }
+}

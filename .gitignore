@@ -26,3 +26,6 @@ next-env.d.ts
 
 # Neon API key for CLI use (never commit)
 .neon-api-key
+
+# Expo web export, built during the API build
+/apps/api/public/

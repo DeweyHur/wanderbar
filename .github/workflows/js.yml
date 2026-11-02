@@ -24,3 +24,5 @@ jobs:
         run: npm run typecheck -w apps/api
       - name: Mobile typecheck
         run: npm run typecheck -w apps/mobile
+      - name: Translation keys match (en/ko)
+        run: npm run check:i18n -w apps/mobile

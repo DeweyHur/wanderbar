@@ -2,7 +2,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 import type { Db } from "../db/client";
 import { sessions, users } from "../db/schema";
-import { HttpError } from "./errors";
+import { unauthorized } from "./errors";
 import { hashToken, newToken } from "./tokens";
 
 const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
@@ -32,10 +32,10 @@ export async function verifyGoogleIdToken(
   try {
     ({ payload } = await jwtVerify(idToken, keySet, { issuer: GOOGLE_ISSUERS, audience: opts.audiences }));
   } catch {
-    throw new HttpError(401, "구글 로그인 토큰이 유효하지 않아요");
+    throw unauthorized("auth.invalid_google_token");
   }
   if (typeof payload.sub !== "string" || typeof payload.email !== "string" || payload.email_verified === false) {
-    throw new HttpError(401, "구글 계정 이메일을 확인할 수 없어요");
+    throw unauthorized("auth.email_unverified");
   }
   return {
     sub: payload.sub,
@@ -76,8 +76,11 @@ export async function signOut(db: Db, token: string) {
   await db.delete(sessions).where(eq(sessions.tokenHash, hashToken(token)));
 }
 
-export function bearerToken(req: Request): string | null {
-  const h = req.headers.get("authorization") ?? "";
-  const m = /^Bearer\s+(.+)$/i.exec(h);
-  return m ? m[1].trim() : null;
+
+export const SUPPORTED_LOCALES = ["en", "ko"] as const;
+
+/** null = follow the device language. */
+export async function setUserLocale(db: Db, userId: string, locale: string | null) {
+  const [user] = await db.update(users).set({ locale }).where(eq(users.id, userId)).returning();
+  return user;
 }

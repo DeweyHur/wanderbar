@@ -71,7 +71,6 @@ export function Loading() {
   );
 }
 
-export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 20, gap: 14 },

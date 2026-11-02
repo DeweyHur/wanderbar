@@ -1,15 +1,19 @@
+import "@/core/i18n";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SessionProvider } from "@/lib/session";
+import { useTranslation } from "react-i18next";
+import { SessionProvider } from "@/core/session";
 
 export default function RootLayout() {
+  const { t } = useTranslation();
   return (
     <SessionProvider>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="group/[id]" options={{ title: "그룹" }} />
-        <Stack.Screen name="invite/[token]" options={{ title: "그룹 초대" }} />
+        <Stack.Screen name="index" options={{ headerShown: false, title: t("appName") }} />
+        <Stack.Screen name="group/[id]" options={{ title: t("group.title") }} />
+        <Stack.Screen name="invite/[token]" options={{ title: t("invite.title") }} />
+        <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
       </Stack>
     </SessionProvider>
   );

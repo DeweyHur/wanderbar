@@ -1,7 +1,7 @@
 *.iml
 .gradle/
-/local.properties
-/.idea/
+local.properties
+.idea/
 .DS_Store
 build/
 /captures
@@ -9,3 +9,17 @@ build/
 .cxx
 *.apk
 /build-apk/
+
+# JS
+node_modules/
+.expo/
+dist/
+.next/
+.vercel/
+*.tsbuildinfo
+.env
+.env.local
+.env*.local
+/apps/mobile/ios/
+/apps/mobile/android/
+next-env.d.ts

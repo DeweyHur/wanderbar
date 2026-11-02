@@ -1,0 +1,10 @@
+{
+  "name": "wanderbar",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "api:dev": "npm run dev -w apps/api",
+    "api:test": "npm test -w apps/api",
+    "mobile:start": "npm run start -w apps/mobile"
+  }
+}

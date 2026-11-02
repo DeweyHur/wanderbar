@@ -1,103 +1,91 @@
 # wanderbar
 
-하루 동선을 "카페 → 공원 → 저녁 재즈바"처럼 순서만 정해 두고, 지금 목적지를 한 번에 테슬라로 보내는 안드로이드 앱.
-기획: claude.ai 프로젝트의 `wanderbar-spec.md`.
-
-## 현재 상태 (v0.1.0)
-
-| 마일스톤 | 상태 |
-|---|---|
-| M1 목록 앱 골격 (플랜/장소 CRUD, 드래그 순서 변경, Room 로컬 저장) | 구현 |
-| M2 링크 (구글맵 길찾기, 옐프 검색, 상세 화면) | 구현 |
-| M3 테슬라 전송 검증 | **코드 구현, 실차 검증 필요** (아래 체크리스트) |
-| M4 현재 목적지 흐름 (완료, 건너뛰기, 다음 자동 지정) | 구현 |
-| M5 영업시간 상태 (열림 / 곧 닫힘 / 닫힘, 닫힌 곳 경고) | 구현 (영업시간은 직접 입력) |
-| M6 AI | 미착수 |
-
-## 폰에 설치 (가장 쉬운 길)
-
-`main`에 푸시하면 GitHub Actions가 테스트하고 APK를 만들어 아래 고정 링크에 올린다. 폰 브라우저로 열면 바로 받아진다 (로그인 불필요).
-
-https://github.com/DeweyHur/wanderbar/releases/download/latest/wanderbar.apk
-
-서명 키(`app/debug.keystore`)가 고정이라 새 빌드를 받으면 기존 앱 위에 업데이트로 설치된다.
-
-## 구글 지도 · 장소 검색 (v0.2)
-
-- 플랜 화면 오른쪽 위 지도 아이콘: 위치가 있는 장소를 순서대로 번호 마커와 선으로 표시. 파랑 = 진행 중, 주황 = 예정, 초록 = 완료.
-- 장소 편집 맨 위 "구글에서 장소 검색": 고르면 이름, 주소, 영업시간, 지도 위치, 구글맵 링크가 채워진다.
-  쉼표로 빠르게 넣은 "카페" 같은 장소는 편집을 열면 그 이름으로 바로 검색된다.
-- 키: Google Cloud에서 Maps SDK for Android + Places API (New)를 켠 API 키.
-  Android 앱 제한(패키지 `app.wanderbar`, SHA-1 `AB:14:EB:1F:31:AE:B4:94:9B:46:3F:AC:CA:55:77:A2:35:18:C7:64`)을 꼭 건다.
-  CI는 GitHub Secret `MAPS_API_KEY`, 로컬 빌드는 `local.properties`의 `MAPS_API_KEY=...` 를 읽는다. 키가 없으면 검색과 지도만 꺼진다.
-
-## 빌드
-
-1. Android Studio(최신 안정판)에서 이 폴더를 연다. Gradle Sync가 끝나길 기다린다. (JDK 17, 스튜디오 내장 JDK면 충분)
-2. Flip 6에서 개발자 옵션 → USB 디버깅을 켜고 연결한다.
-3. Run ▶ (`app` 구성).
-
-명령줄: `./gradlew installDebug`, 단위 테스트: `./gradlew test`
-
-> 이 코드는 Android SDK가 없는 환경에서 작성됐다. 도메인 로직(동선 흐름, 영업시간 파서, 링크, 공유 텍스트 파싱)은
-> 단위 테스트 27개로 검증했지만, Compose/Room 코드는 첫 Sync·빌드에서 처음 컴파일된다. 에러가 나면 메시지를 그대로 붙여 주면 된다.
-
-## 사용법
-
-- **플랜 만들기**: 첫 화면 "새 플랜". 기본 이름은 "11월 1일 동선" 같은 오늘 날짜.
-- **장소 넣기** (세 가지)
-  - 아래 입력칸에 `카페, 공원, 저녁 재즈바` → 쉼표로 나눠 한 번에 추가.
-  - 구글맵 앱에서 장소 → 공유 → **wanderbar** → 넣을 플랜 선택 → 이름/주소/링크가 채워진 편집 화면.
-  - 연필 아이콘으로 자세히 추가 (구글맵 공유 내용을 링크 칸에 통째로 붙여 넣어도 채워짐).
-- **순서**: 오른쪽 ≡ 손잡이를 끌어 바꾼다.
-- **지금 목적지 카드**: 테슬라로 보내기 / 길찾기 / 옐프 / 완료 / 건너뛰기.
-  - 완료: 다음 예정 장소가 자동으로 "진행 중".
-  - 건너뛰기: 지금 장소를 목록 맨 뒤로 미루고 다음으로.
-  - 장소 상세의 "이번엔 안 가기": 흐리게 남겨 두고 제외 (되돌리기 가능). "지금 여기로": 순서 무시하고 바로 목적지로.
-- **영업시간** 입력 예: `09:00-22:00` · `월-금 11:00-14:00 17:00-22:00, 토 12-23, 일 휴무` · `Mon-Fri 9-18; Sat closed` · `Fri-Sat 6pm-2am` · `24h`.
-  닫혀 있으면 목적지 카드에 경고와 "다음으로" 버튼이 뜬다. 30초마다 갱신.
-
-## M3: 테슬라 전송 실차 검증 체크리스트
-
-전송 방식: `ACTION_SEND`, `text/plain`, 패키지 `com.teslamotors.tesla` 지정. 테슬라 앱이 없거나 못 받으면 시스템 공유 메뉴로 넘어간다.
-보내는 텍스트는 구글맵이 공유할 때와 같은 모양이다 (장소 상세 맨 아래 "테슬라로 보낼 내용"에 그대로 보임).
-
-```
-장소 이름
-주소
-https://maps.app.goo.gl/...   ← 공유 링크가 없으면 https://www.google.com/maps/search/?api=1&query=...
-```
-
-1. 패키지명 확인: `adb shell pm list packages | grep -i tesla` → `com.teslamotors.tesla` 가 아니면 `ui/Intents.kt`의 `TESLA_PACKAGE`와 `AndroidManifest.xml`의 `<queries>`를 고친다.
-2. 차량이 깨어 있고 인터넷(LTE/와이파이)에 연결된 상태에서 아래를 각각 해 본다.
-
-| # | 장소 만드는 법 | 테슬라 앱 반응 | 차 화면에 목적지 | 메모 |
-|---|---|---|---|---|
-| A | 구글맵에서 wanderbar로 공유 (maps.app.goo.gl 링크 포함) | | | |
-| B | 이름 + 주소 직접 입력 (링크 없음) | | | |
-| C | 이름만 (예: "Blue Bottle Coffee") | | | |
-| D | 상세 → "다른 앱으로 공유" → 테슬라 선택 | | | |
-
-3. 결과에 따라
-   - A만 되면: 장소 추가 기본 흐름을 "구글맵에서 공유"로 유도하고, 링크 없는 장소는 경고.
-   - 다 안 되면: 기획서 9절의 대안 (구글 캘린더 이벤트 경유, Fleet API) 검토.
-
-## 열린 질문에 대한 v0.1 기본 결정 (바꿔도 됨)
-
-- 플랜은 여러 개 저장 (날짜별로 쌓임). 하나만 쓰고 싶으면 그냥 하나만 쓰면 된다.
-- 영업시간은 직접 입력. 구글 Places API(키 필요)는 2차.
-- 구글맵 공유 링크에서 이름/주소는 공유 텍스트를 파싱해서 자동 채움. 링크만 있으면 이름은 직접 입력.
-- 저장소 이름 `wanderbar`, 본인 사용 전제(패키지 `app.wanderbar`, 스토어 배포 설정 없음).
+우리끼리 **메뉴 단위로** 맛집을 기록·공유하고, 담아 둔 곳으로 **하루 동선**을 짜서 다음 목적지를 **테슬라**로 보내는 아이폰·안드로이드 앱.
+기획: claude.ai 프로젝트의 `claude/food-share-spec.md` (기존 `wanderbar-spec.md`를 합친 문서).
 
 ## 구조
 
 ```
-app/src/main/java/app/wanderbar/
-  domain/   순수 Kotlin (안드로이드 의존 없음, 단위 테스트 대상)
-    PlanFlow.kt     완료/건너뛰기/안 가기/지금 여기로/순서 변경 — "진행 중"은 항상 최대 1곳
-    Hours.kt        자유 형식 영업시간 파서 + 열림/곧 닫힘/닫힘 판정 (자정 넘는 영업 포함)
-    Links.kt        구글맵 길찾기·검색, 옐프 검색, 테슬라로 보낼 텍스트
-    SharedText.kt   구글맵 공유 텍스트 → 이름/주소/링크
-  data/     Room (plans, places), Repository (쓰기는 앱 스코프 + Mutex로 직렬화)
-  ui/       Compose 화면: 플랜 목록, 플랜(지금 목적지 카드 + 드래그 목록), 장소 상세, 장소 편집
+apps/api/         Next.js API (Vercel) + Drizzle + Neon Postgres
+apps/mobile/      Expo (React Native) 앱, expo-router
+legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라잡을 때까지 계속 사용
 ```
+
+## 진행 상황
+
+| 마일스톤 | 상태 |
+|---|---|
+| M1 뼈대: Expo + API + Neon + 구글 로그인 + 그룹·초대 링크 | **코드 완료, 키 설정 후 실기기 확인 필요** (아래 설정) |
+| M2 공유 수신(옐프·구글맵 → 앱)·테슬라 전송 검증 | 다음 |
+| M3~ | 기획서 참고 |
+
+기존 Kotlin 앱은 그대로 쓸 수 있다. APK: https://github.com/DeweyHur/wanderbar/releases/download/latest/wanderbar.apk
+(CI는 `legacy-android/`가 바뀔 때만 다시 빌드한다.) 새 앱은 패키지가 `app.wanderbar.mobile`이라 기존 앱과 함께 설치된다.
+
+## 처음 설정 (한 번만)
+
+### 1. Neon
+1. Neon에서 프로젝트를 만들고 **Pooled connection** 문자열을 복사한다.
+2. `apps/api/.env.local`을 만든다 (`.env.example` 참고): `DATABASE_URL=...`
+3. 테이블 생성: `npm run db:migrate -w apps/api`
+
+### 2. 구글 로그인 (Google Cloud Console → API 및 서비스 → 사용자 인증 정보)
+기존 Maps 키가 있는 같은 프로젝트를 써도 된다. OAuth 동의 화면을 "외부 / 테스트"로 두고 그룹원 이메일을 테스트 사용자로 넣는다.
+
+| 클라이언트 유형 | 값 | 어디에 쓰나 |
+|---|---|---|
+| 웹 애플리케이션 | (설정 없음) | 서버 `GOOGLE_CLIENT_IDS`, 앱 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` |
+| iOS | 번들 ID `app.wanderbar.mobile` | 앱 `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`(역순 ID) |
+| Android | 패키지 `app.wanderbar.mobile` + 서명 SHA-1 | 코드에는 안 넣지만 있어야 로그인된다 |
+
+Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew signingReport` (debug). TestFlight·배포용 키를 쓰면 그 SHA-1도 추가.
+
+### 3. API 서버
+- 로컬: `npm run api:dev` → `http://<맥 IP>:3000` (폰과 같은 와이파이)
+- Vercel: 새 프로젝트, Root Directory `apps/api`, 환경변수 `DATABASE_URL`, `GOOGLE_CLIENT_IDS`, `PUBLIC_BASE_URL`
+
+### 4. 앱
+1. `apps/mobile/.env.local` (`.env.example` 참고): API 주소와 구글 클라이언트 ID
+2. 개발 빌드 (구글 로그인은 Expo Go에서 안 된다)
+   - 아이폰: `cd apps/mobile && npx expo run:ios --device`
+   - 안드로이드(Flip 6, USB 디버깅): `npx expo run:android --device`
+3. 이후 JS만 바뀌면 `npm run mobile:start`로 바로 반영된다. 네이티브 설정(플러그인, 클라이언트 ID)이 바뀌면 다시 빌드.
+
+## M1 확인 체크리스트
+
+| # | 할 일 | 아이폰 | Flip 6 |
+|---|---|---|---|
+| 1 | 구글로 로그인 → 그룹 만들기 화면 | | |
+| 2 | 그룹 만들기 → 멤버 1명(그룹장) | | |
+| 3 | "초대 링크 보내기" → 메시지로 다른 사람에게 보냄 | | |
+| 4 | 받은 사람이 링크 열기 → "앱에서 열기" → 로그인 → 참여하기 → 멤버 2명 | | |
+| 5 | 앱을 껐다 켜도 로그인 유지 | | |
+
+## API
+
+모든 응답은 JSON, 인증은 `Authorization: Bearer <세션 토큰>`. 그룹 데이터는 멤버가 아니면 404.
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| POST | `/api/auth/google` | `{ idToken }` → 세션 토큰 + 내 정보 + 내 그룹 |
+| POST | `/api/auth/logout` | 세션 종료 |
+| GET | `/api/me` | 내 정보 + 내 그룹 |
+| POST | `/api/groups` | `{ name }` 그룹 만들기 (만든 사람이 그룹장) |
+| GET | `/api/groups/:id` | 그룹 + 멤버 |
+| POST / DELETE | `/api/groups/:id/invites` | 초대 링크 만들기(7일) / 전부 취소 — 그룹장만 |
+| GET | `/api/invites/:token` | 초대 미리보기 (그룹 이름) |
+| POST | `/api/invites/:token/accept` | 참여 |
+
+세션 토큰과 초대 토큰은 DB에 해시로만 저장한다. 모든 페이지와 응답에 `X-Robots-Tag: noindex`.
+
+## 개발
+
+```
+npm install                    # 루트에서 한 번
+npm run api:test               # API 테스트 (PGlite 메모리 Postgres에 실제 마이그레이션 적용)
+npm run typecheck -w apps/api
+npm run typecheck -w apps/mobile
+npm run db:generate -w apps/api   # 스키마 바꾼 뒤 마이그레이션 SQL 생성
+```
+
+Expo 패키지는 `npx expo install`로 넣는 게 원칙이지만, 버전 조회 서버에 못 닿는 환경에서는 `node_modules/expo/bundledNativeModules.json`의 버전으로 `npm install -w apps/mobile`을 쓴다.

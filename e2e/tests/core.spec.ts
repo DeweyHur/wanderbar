@@ -25,14 +25,14 @@ test("language: switch to Korean and back; the choice is saved on the account", 
   await openHome(page);
   await page.getByText("Settings", { exact: true }).click();
   await page.getByRole("button", { name: "한국어" }).click();
-  await expect(page.getByText("언어")).toBeVisible();
+  await expect(page.getByText("언어", { exact: true })).toBeVisible();
   expect((await me(page.request)).user).toMatchObject({ locale: "ko" });
   await page.goBack();
   await expect(page.getByRole("button", { name: "새 동선" })).toBeVisible();
 
   await page.getByText("설정", { exact: true }).click();
   await page.getByRole("button", { name: "English" }).click();
-  await expect(page.getByText("Language")).toBeVisible();
+  await expect(page.getByText("Language", { exact: true })).toBeVisible();
 });
 
 test("security: cookie writes need the client header, and the test login is the only shortcut", async ({ page }) => {

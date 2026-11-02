@@ -105,7 +105,7 @@ export default function StopScreen() {
       )}
       <Field label={t("food:stop.name")} value={form.name} onChangeText={set("name")} />
       <Field label={t("food:stop.address")} value={form.address} onChangeText={set("address")} />
-      <Field label={t("food:stop.mapsUrl")} value={form.mapsUrl} onChangeText={onMapsUrl} hint={t("food:stop.mapsUrlHint")} />
+      <Field label={t("food:stop.mapsUrl")} value={form.mapsUrl} onChangeText={onMapsUrl} hint={t("food:stop.mapsUrlHint")} multiline />
       <Field label={t("food:stop.hours")} value={form.hoursRaw} onChangeText={set("hoursRaw")} hint={t("food:stop.hoursHint")} multiline />
       <HoursBadge hoursRaw={form.hoursRaw} now={now} />
       <Field label={t("food:stop.memo")} value={form.memo} onChangeText={set("memo")} multiline />

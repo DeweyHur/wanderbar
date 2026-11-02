@@ -1,0 +1,42 @@
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
+
+export const WEB = { "x-wanderbar-client": "web" };
+
+/** Signs a fresh test user in (test-only endpoint) and opens the app. */
+export async function signIn(page: Page, name: string) {
+  const email = `${name.toLowerCase().replace(/\W+/g, "")}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@test.dev`;
+  const res = await page.request.post("/api/auth/test-login", { headers: WEB, data: { email, name } });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  await page.goto("/");
+  return email;
+}
+
+export async function me(request: APIRequestContext) {
+  const res = await request.get("/api/me");
+  expect(res.ok()).toBeTruthy();
+  return (await res.json()) as { user: { id: string; email: string }; groups: { id: string; name: string; module: string; role: string }[] };
+}
+
+/** Waits until the personal group exists and the group home is open; returns its id. */
+export async function openHome(page: Page) {
+  await expect(page.getByRole("button", { name: "New route" })).toBeVisible();
+  const { groups } = await me(page.request);
+  expect(groups).toHaveLength(1);
+  return groups[0].id;
+}
+
+/** New route from the group home; leaves the route screen open. */
+export async function newRoute(page: Page) {
+  await page.getByRole("button", { name: "New route" }).click();
+  await expect(page.getByPlaceholder("Cafe, park, jazz bar")).toBeVisible();
+}
+
+export async function quickAdd(page: Page, text: string) {
+  const input = page.getByPlaceholder("Cafe, park, jazz bar");
+  await input.fill(text);
+  await input.press("Enter");
+  await expect(input).toHaveValue("");
+}
+
+export const current = (page: Page) => page.getByTestId("current-card");
+export const row = (page: Page, i: number) => page.getByTestId(`stop-row-${i}`);

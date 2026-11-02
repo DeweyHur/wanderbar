@@ -29,3 +29,7 @@ next-env.d.ts
 
 # Expo web export, built during the API build
 /apps/api/public/
+
+# Playwright
+/e2e/test-results/
+/e2e/playwright-report/

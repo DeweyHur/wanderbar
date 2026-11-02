@@ -61,7 +61,7 @@ export function authed<P = Record<string, never>>(
       const session = sessionToken(req);
       if (!session) throw unauthorized();
       if (!csrfOk(req, session.via)) throw forbidden("csrf");
-      const db = getDb();
+      const db = await getDb();
       const user = await userFromToken(db, session.token);
       if (!user) throw unauthorized();
       return await handler(req, { db, user, token: session.token, via: session.via, params: await route.params });

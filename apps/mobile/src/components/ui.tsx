@@ -102,6 +102,7 @@ export function Field({
     <View style={{ gap: 6 }}>
       {label ? <Text style={{ color: c.muted, fontSize: 14, fontWeight: "600" }}>{label}</Text> : null}
       <TextInput
+        accessibilityLabel={label ?? placeholder}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -127,10 +128,11 @@ export function Field({
   );
 }
 
-export function Card({ children, highlight }: { children: ReactNode; highlight?: boolean }) {
+export function Card({ children, highlight, testID }: { children: ReactNode; highlight?: boolean; testID?: string }) {
   const c = useColors();
   return (
     <View
+      testID={testID}
       style={{
         backgroundColor: c.card,
         borderColor: highlight ? c.accent : c.border,

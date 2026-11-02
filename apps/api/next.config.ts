@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   transpilePackages: ["@wanderbar/route"],
+  // Only loaded for end-to-end tests (DATABASE_URL=pglite:...); kept out of the server bundle.
+  serverExternalPackages: ["@electric-sql/pglite"],
   // Private app: keep every page and API response out of search engines.
   async headers() {
     return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }];

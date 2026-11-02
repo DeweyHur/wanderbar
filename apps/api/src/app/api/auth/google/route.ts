@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const { idToken, client } = Body.parse(await req.json());
     if (client === "web" && req.headers.get(CLIENT_HEADER) !== "web") return json({ error: "csrf" }, 403);
     const profile = await verifyGoogleIdToken(idToken, { audiences: googleAudiences() });
-    const db = getDb();
+    const db = await getDb();
     const { token, expiresAt, user } = await signIn(db, profile);
     const body = { expiresAt, user, groups: await myGroups(db, user.id) };
     return client === "web"

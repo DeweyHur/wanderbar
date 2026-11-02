@@ -1,0 +1,13 @@
+{
+  "name": "@wanderbar/e2e",
+  "private": true,
+  "description": "End-to-end tests: the real web app + API, on an in-memory database, driven by Playwright.",
+  "scripts": {
+    "test": "playwright test",
+    "server": "npm run build -w @wanderbar/api && npm run start -w @wanderbar/api -- -p 3100"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.6"
+  }
+}

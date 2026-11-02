@@ -96,7 +96,7 @@ export default function PlanScreen() {
       />
 
       {current ? (
-        <Card highlight>
+        <Card highlight testID="current-card">
           <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{t("food:route.current")}</Text>
           <Pressable onPress={() => openStop(current)}>
             <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{current.name}</Text>
@@ -147,6 +147,7 @@ export default function PlanScreen() {
         return (
           <Pressable key={s.id} onPress={() => openStop(s)}>
             <View
+              testID={`stop-row-${i}`}
               style={{
                 flexDirection: "row",
                 alignItems: "center",

@@ -10,5 +10,84 @@
     "dessert": "Dessert",
     "bar": "Bar",
     "other": "Other"
+  },
+  "route": {
+    "title": "Day routes",
+    "new": "New route",
+    "defaultTitle": "{{date}} route",
+    "empty": "No routes yet. Make one and add places in the order you want to go.",
+    "progress": "{{finished}}/{{total}} done",
+    "now": "Now: {{name}}",
+    "current": "Heading to",
+    "nothingCurrent": "All done for this route.",
+    "restart": "Start over",
+    "deleteRoute": "Delete route",
+    "rename": "Rename",
+    "addPlaceholder": "Cafe, park, jazz bar",
+    "add": "Add",
+    "sendTesla": "Send to Tesla",
+    "directions": "Directions",
+    "yelp": "Yelp",
+    "done": "Done",
+    "skip": "Skip",
+    "next": "Next",
+    "goHere": "Go here now",
+    "drop": "Not this time",
+    "restore": "Bring back",
+    "deleteStop": "Remove from route",
+    "copyAddress": "Copy address",
+    "copied": "Copied",
+    "teslaNoApp": "Couldn't open the Tesla app, so the share menu opened instead",
+    "status": {
+      "pending": "Upcoming",
+      "current": "Now",
+      "done": "Done",
+      "skipped": "Not this time"
+    },
+    "closedWarning": "This place looks closed right now.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "members": "Members & invite",
+    "confirmDeleteRoute": "Delete this route and all its places?",
+    "confirmDeleteStop": "Remove this place from the route?"
+  },
+  "hours": {
+    "open": "Open · until {{time}}",
+    "open24": "Open 24 hours",
+    "closingSoon": "Closing soon · {{minutes}} min left",
+    "closed": "Closed",
+    "closedOpensAt": "Closed · opens {{time}}"
+  },
+  "stop": {
+    "edit": "Edit place",
+    "name": "Name",
+    "address": "Address",
+    "mapsUrl": "Google Maps link",
+    "mapsUrlHint": "Paste a Google Maps share here; name and address fill in automatically.",
+    "hours": "Opening hours",
+    "hoursHint": "e.g. Mon-Fri 9:00-18:00; Sat 10-14; Sun closed",
+    "memo": "Memo",
+    "save": "Save",
+    "saved": "Saved"
+  },
+  "tesla": {
+    "tester": "Tesla format tester",
+    "testerHint": "The Tesla app accepts some text formats and not others. Send each one, see which shows up as the car's destination, then save it.",
+    "send": "Send",
+    "useThis": "Use this",
+    "inUse": "In use",
+    "unavailable": "Not available for this place",
+    "format": {
+      "address": "Address only",
+      "nameAddress": "Name, address (one line)",
+      "coords": "Coordinates",
+      "link": "Google Maps link only",
+      "full": "Name / address / link (Google Maps share)"
+    }
+  },
+  "duration": {
+    "minutes": "{{m}} min",
+    "hours": "{{h}} h",
+    "hoursMinutes": "{{h}} h {{m}} min"
   }
 }

@@ -10,5 +10,84 @@
     "dessert": "디저트",
     "bar": "바",
     "other": "기타"
+  },
+  "route": {
+    "title": "동선",
+    "new": "새 동선",
+    "defaultTitle": "{{date}} 동선",
+    "empty": "아직 동선이 없어요. 하나 만들고 갈 순서대로 장소를 넣어 보세요.",
+    "progress": "{{total}}곳 중 {{finished}}곳 마침",
+    "now": "지금: {{name}}",
+    "current": "지금 목적지",
+    "nothingCurrent": "이 동선은 다 끝났어요.",
+    "restart": "처음부터 다시",
+    "deleteRoute": "동선 삭제",
+    "rename": "이름 바꾸기",
+    "addPlaceholder": "카페, 공원, 저녁 재즈바",
+    "add": "추가",
+    "sendTesla": "테슬라로 보내기",
+    "directions": "길찾기",
+    "yelp": "옐프",
+    "done": "완료",
+    "skip": "건너뛰기",
+    "next": "다음으로",
+    "goHere": "지금 여기로",
+    "drop": "이번엔 안 가기",
+    "restore": "되돌리기",
+    "deleteStop": "동선에서 빼기",
+    "copyAddress": "주소 복사",
+    "copied": "복사했어요",
+    "teslaNoApp": "테슬라 앱을 열 수 없어서 공유 메뉴를 열었어요",
+    "status": {
+      "pending": "예정",
+      "current": "진행 중",
+      "done": "완료",
+      "skipped": "안 가기"
+    },
+    "closedWarning": "지금은 닫혀 있는 것 같아요.",
+    "moveUp": "위로",
+    "moveDown": "아래로",
+    "members": "멤버·초대",
+    "confirmDeleteRoute": "이 동선과 안의 장소를 모두 지울까요?",
+    "confirmDeleteStop": "이 장소를 동선에서 뺄까요?"
+  },
+  "hours": {
+    "open": "영업 중 · {{time}}까지",
+    "open24": "24시간 영업",
+    "closingSoon": "곧 닫힘 · {{minutes}}분 남음",
+    "closed": "닫힘",
+    "closedOpensAt": "닫힘 · {{time}}에 열림"
+  },
+  "stop": {
+    "edit": "장소 편집",
+    "name": "이름",
+    "address": "주소",
+    "mapsUrl": "구글맵 링크",
+    "mapsUrlHint": "구글맵 공유 내용을 통째로 붙여 넣으면 이름과 주소가 채워져요.",
+    "hours": "영업시간",
+    "hoursHint": "예: 월-금 11:00-14:00 17:00-22:00, 토 12-23, 일 휴무",
+    "memo": "메모",
+    "save": "저장",
+    "saved": "저장했어요"
+  },
+  "tesla": {
+    "tester": "테슬라 형식 테스터",
+    "testerHint": "테슬라 앱은 받는 텍스트 형식이 정해져 있어요. 하나씩 보내 보고 차 화면에 목적지로 뜨는 형식을 저장하세요.",
+    "send": "보내기",
+    "useThis": "이걸로 쓰기",
+    "inUse": "사용 중",
+    "unavailable": "이 장소로는 만들 수 없어요",
+    "format": {
+      "address": "주소만",
+      "nameAddress": "이름, 주소 (한 줄)",
+      "coords": "좌표 (위도,경도)",
+      "link": "구글맵 링크만",
+      "full": "이름 / 주소 / 링크 (구글맵 공유 모양)"
+    }
+  },
+  "duration": {
+    "minutes": "{{m}}분",
+    "hours": "{{h}}시간",
+    "hoursMinutes": "{{h}}시간 {{m}}분"
   }
 }

@@ -8,7 +8,9 @@
   "common": {
     "retry": "Try again",
     "signOut": "Sign out",
-    "settings": "Settings"
+    "settings": "Settings",
+    "cancel": "Cancel",
+    "delete": "Delete"
   },
   "group": {
     "personalName": "My log",

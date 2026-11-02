@@ -8,7 +8,9 @@
   "common": {
     "retry": "다시 시도",
     "signOut": "로그아웃",
-    "settings": "설정"
+    "settings": "설정",
+    "cancel": "취소",
+    "delete": "삭제"
   },
   "group": {
     "personalName": "내 기록",

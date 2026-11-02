@@ -4,6 +4,7 @@ import type { Db } from "../db/client";
 import { planStops, plans, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
 import { requireMember } from "./groups";
+import { restaurantsInGroup } from "./restaurants";
 
 export type Stop = typeof planStops.$inferSelect;
 export type StopFields = Partial<
@@ -92,9 +93,12 @@ export async function deletePlan(db: Db, planId: string, userId: string) {
 
 /** Adds stops at the end, in order. The first stop of an empty plan becomes current. */
 export async function addStops(db: Db, planId: string, userId: string, fields: StopFields[]) {
-  await ownPlan(db, planId, userId);
+  const plan = await ownPlan(db, planId, userId);
   const clean = fields.map((f) => ({ ...f, name: (f.name ?? "").trim() })).filter((f) => f.name);
   if (!clean.length) throw badRequest("plan.stop_name_required");
+  const itemIds = [...new Set(clean.map((f) => f.itemId).filter((x): x is string => !!x))];
+  const ok = await restaurantsInGroup(db, plan.groupId, itemIds);
+  if (ok.length !== itemIds.length) throw notFound("restaurant.not_found");
   let stops = await stopsOf(db, planId);
   for (const f of clean) {
     const [row] = await db
@@ -108,7 +112,8 @@ export async function addStops(db: Db, planId: string, userId: string, fields: S
 }
 
 export async function updateStop(db: Db, stopId: string, userId: string, fields: StopFields) {
-  await ownStop(db, stopId, userId);
+  const { plan } = await ownStop(db, stopId, userId);
+  if (fields.itemId && !(await restaurantsInGroup(db, plan.groupId, [fields.itemId])).length) throw notFound("restaurant.not_found");
   if (fields.name !== undefined && !fields.name.trim()) throw badRequest("plan.stop_name_required");
   const [stop] = await db
     .update(planStops)

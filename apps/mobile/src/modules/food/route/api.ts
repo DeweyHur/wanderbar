@@ -13,12 +13,14 @@ export type Stop = {
   lat: number | null;
   lng: number | null;
   googlePlaceId: string;
+  /** The saved restaurant this stop is, if any. */
+  itemId: string | null;
   orderIndex: number;
   status: StopStatus;
 };
 export type Plan = { id: string; groupId: string; title: string; createdAt: string; stops: Stop[] };
 export type PlanSummary = { id: string; title: string; createdAt: string; total: number; finished: number; currentName: string | null };
-export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId">>;
+export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">>;
 export type FlowAction =
   | { action: "complete" | "postpone" | "drop" | "setCurrent" | "restore"; stopId: string }
   | { action: "move"; from: number; to: number }

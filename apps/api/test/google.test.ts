@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { autocomplete, computeRoute, googleFakeEnabled, placeDetails, type Fetch } from "@/lib/google";
+import { autocomplete, computeRoute, findPlaceId, googleFakeEnabled, placeDetails, type Fetch } from "@/lib/google";
 
 const calls: { url: string; init: RequestInit }[] = [];
 const fakeFetch = (body: unknown, status = 200): Fetch =>
@@ -35,6 +35,7 @@ describe("server-side Google", () => {
       location: { latitude: 37.77, longitude: -122.42 },
       googleMapsUri: "https://maps.google.com/?cid=9",
       regularOpeningHours: { periods: [{ open: { day: 5, hour: 18 }, close: { day: 6, hour: 2 } }] },
+      primaryType: "concert_hall",
     });
     expect(await placeDetails("p9", "session-123", f)).toEqual({
       googlePlaceId: "p9",
@@ -44,9 +45,10 @@ describe("server-side Google", () => {
       lng: -122.42,
       mapsUrl: "https://maps.google.com/?cid=9",
       hoursRaw: "Fri 18:00-02:00",
+      primaryType: "concert_hall",
     });
     expect(calls[0].url).toContain("/places/p9?sessionToken=session-123");
-    expect(header(0, "X-Goog-FieldMask")).toBe("id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours");
+    expect(header(0, "X-Goog-FieldMask")).toBe("id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType");
   });
 
   it("routes sum the legs", async () => {
@@ -54,6 +56,16 @@ describe("server-side Google", () => {
     const r = await computeRoute([{ lat: 1, lng: 1 }, { lat: 2, lng: 2 }, { lat: 3, lng: 3 }], f);
     expect(r).toEqual({ seconds: 720, meters: 3500, legs: [{ seconds: 600, meters: 3000, polyline: "abc" }, { seconds: 120, meters: 500, polyline: "" }] });
     expect(JSON.parse(calls[0].init.body as string).intermediates).toHaveLength(1);
+  });
+
+  it("finds a place id for 'name, address' asking for ids only", async () => {
+    const f = fakeFetch({ places: [{ id: "p42" }] });
+    expect(await findPlaceId("Mensho Tokyo, 672 Geary St", { lat: 37.7, lng: -122.4 }, f)).toBe("p42");
+    expect(calls[0].url).toBe("https://places.googleapis.com/v1/places:searchText");
+    expect(header(0, "X-Goog-FieldMask")).toBe("places.id");
+    expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ textQuery: "Mensho Tokyo, 672 Geary St", pageSize: 1 });
+    expect(await findPlaceId("nowhere", null, fakeFetch({}))).toBeNull();
+    expect(await findPlaceId("  ", null, fakeFetch({}))).toBeNull();
   });
 
   it("no key: 503 google.unavailable; Google errors: 502", async () => {

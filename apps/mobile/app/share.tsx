@@ -8,12 +8,13 @@ import { errorText } from "@/core/errors";
 import { loadLastGroup } from "@/core/lastGroup";
 import { useIncomingShare } from "@/core/platform/shareIntent";
 import { useSession } from "@/core/session";
+import { restaurantApi } from "@/modules/food/restaurants/api";
 import { routeApi, type PlanSummary } from "@/modules/food/route/api";
 import { parseSharedPlace, type ParsedPlace } from "@wanderbar/route";
 
 /**
  * Where shares from Yelp / Google Maps land (and the paste screen on the web).
- * Milestone 2 adds the place to a day route; saving it as a restaurant/wishlist comes with milestone 3.
+ * Save the place as one of the group's restaurants, or put it straight into a day route.
  */
 export default function ShareScreen() {
   const { t, i18n } = useTranslation();
@@ -74,6 +75,25 @@ export default function ShareScreen() {
     }
   };
 
+  const saveRestaurant = async () => {
+    if (!place?.name.trim() || !groupId) return;
+    setBusy("restaurant");
+    setError("");
+    try {
+      const { restaurant, created } = await restaurantApi.create(groupId, {
+        name: place.name.trim(),
+        address: place.address,
+        mapsUrl: place.mapsUrl,
+        yelpUrl: place.yelpUrl,
+      });
+      incoming.clear();
+      router.replace({ pathname: "/restaurant/[id]", params: { id: restaurant.id, ...(created ? {} : { existing: "1" }) } });
+    } catch (e) {
+      setError(errorText(t, e));
+      setBusy(null);
+    }
+  };
+
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("food:share.title") }} />
@@ -90,6 +110,12 @@ export default function ShareScreen() {
           </Text>
         </Card>
       )}
+      {place && groupId && (
+        <View style={{ gap: 6 }}>
+          <Button label={t("food:restaurant.saveRestaurant")} busy={busy === "restaurant"} disabled={!!busy || !place.name.trim()} onPress={saveRestaurant} />
+          <Body muted>{t("food:restaurant.saveRestaurantHint")}</Body>
+        </View>
+      )}
       {place && groupId && plans && (
         <View style={{ gap: 8 }}>
           <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:share.addTo")}</Text>
@@ -101,7 +127,7 @@ export default function ShareScreen() {
               </Card>
             </Pressable>
           ))}
-          <Button label={t("food:share.newRoute")} busy={busy === "new"} disabled={!place.name.trim()} onPress={() => addTo(null)} />
+          <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} disabled={!place.name.trim()} onPress={() => addTo(null)} />
         </View>
       )}
       {groups && groups.length === 0 && <Body muted>{t("food:share.noGroup")}</Body>}

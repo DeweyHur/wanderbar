@@ -1,0 +1,64 @@
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable, Text, View } from "react-native";
+import { Body, Button, Card, ErrorText, useColors } from "@/components/ui";
+import { errorText } from "@/core/errors";
+import { routeApi, type PlanSummary } from "../route/api";
+import type { Restaurant } from "./api";
+
+/** Pick one of my routes in this group (or start a new one) and put the restaurant at its end. */
+export function AddToRoute({ restaurant }: { restaurant: Restaurant }) {
+  const { t, i18n } = useTranslation();
+  const c = useColors();
+  const [plans, setPlans] = useState<PlanSummary[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    routeApi.list(restaurant.groupId).then(setPlans).catch((e) => setError(errorText(t, e)));
+  }, [restaurant.groupId, t]);
+
+  const add = async (planId: string | null) => {
+    setBusy(planId ?? "new");
+    setError("");
+    try {
+      const date = new Intl.DateTimeFormat(i18n.language, { month: "long", day: "numeric" }).format(new Date());
+      const id = planId ?? (await routeApi.create(restaurant.groupId, t("food:route.defaultTitle", { date }))).id;
+      await routeApi.addStops(id, [
+        {
+          name: restaurant.name,
+          address: restaurant.address,
+          mapsUrl: restaurant.mapsUrl,
+          yelpUrl: restaurant.yelpUrl,
+          hoursRaw: restaurant.hoursRaw,
+          lat: restaurant.lat,
+          lng: restaurant.lng,
+          googlePlaceId: restaurant.googlePlaceId,
+          itemId: restaurant.id,
+        },
+      ]);
+      router.push({ pathname: "/plan/[id]", params: { id } });
+    } catch (e) {
+      setError(errorText(t, e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <View style={{ gap: 8 }} testID="add-to-route">
+      <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:share.addTo")}</Text>
+      {plans?.map((p) => (
+        <Pressable key={p.id} accessibilityRole="button" disabled={!!busy} onPress={() => add(p.id)}>
+          <Card>
+            <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{p.title}</Text>
+            <Body muted>{t("food:route.progress", { finished: p.finished, total: p.total })}</Body>
+          </Card>
+        </Pressable>
+      ))}
+      <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} onPress={() => add(null)} />
+      <ErrorText>{error}</ErrorText>
+    </View>
+  );
+}

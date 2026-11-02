@@ -9,7 +9,17 @@ import { HttpError } from "./errors";
 export type Fetch = typeof fetch;
 
 export type Suggestion = { placeId: string; primary: string; secondary: string };
-export type PlaceDetails = { googlePlaceId: string; name: string; address: string; lat: number | null; lng: number | null; mapsUrl: string; hoursRaw: string };
+export type PlaceDetails = {
+  googlePlaceId: string;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  mapsUrl: string;
+  hoursRaw: string;
+  /** Google's main type, e.g. "ramen_restaurant" (used to guess a category). */
+  primaryType: string;
+};
 export type RouteLeg = { seconds: number; meters: number; polyline: string };
 export type RouteResult = { legs: RouteLeg[]; seconds: number; meters: number };
 export type LatLng = { lat: number; lng: number };
@@ -68,9 +78,10 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     location?: { latitude: number; longitude: number };
     googleMapsUri?: string;
     regularOpeningHours?: { periods?: GooglePeriod[] };
+    primaryType?: string;
   }>(f, `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${q}`, {
     method: "GET",
-    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours",
+    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType",
   });
   return {
     googlePlaceId: placeId,
@@ -80,7 +91,26 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     lng: data.location?.longitude ?? null,
     mapsUrl: data.googleMapsUri ?? "",
     hoursRaw: googlePeriodsToHoursRaw(data.regularOpeningHours?.periods),
+    primaryType: data.primaryType ?? "",
   };
+}
+
+/**
+ * The Google place for "name, address" (a Yelp share, a typed-in restaurant), or null.
+ * Asks only for ids, the cheapest Text Search tier; details come from placeDetails.
+ */
+export async function findPlaceId(query: string, near: LatLng | null, f: Fetch = fetch): Promise<string | null> {
+  const q = query.trim();
+  if (!q) return null;
+  if (googleFakeEnabled()) return fake.find(q);
+  const body: Record<string, unknown> = { textQuery: q, pageSize: 1 };
+  if (near) body.locationBias = { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 50000 } };
+  const data = await call<{ places?: { id: string }[] }>(f, "https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    fieldMask: "places.id",
+    body: JSON.stringify(body),
+  });
+  return data.places?.[0]?.id ?? null;
 }
 
 const parseSeconds = (s?: string) => Math.trunc(Number((s ?? "0").replace(/s$/, "")) || 0);
@@ -116,10 +146,16 @@ export async function computeRoute(points: LatLng[], f: Fetch = fetch): Promise<
 
 /** Deterministic stand-ins used by the end-to-end tests. */
 const FAKE_PLACES: PlaceDetails[] = [
-  { googlePlaceId: "fake-blue-bottle", name: "Blue Bottle Coffee", address: "315 Linden St, San Francisco, CA 94102", lat: 37.7764, lng: -122.4231, mapsUrl: "https://maps.google.com/?cid=1", hoursRaw: "24h" },
-  { googlePlaceId: "fake-ggp", name: "Golden Gate Park", address: "San Francisco, CA", lat: 37.7694, lng: -122.4862, mapsUrl: "https://maps.google.com/?cid=2", hoursRaw: "24h" },
-  { googlePlaceId: "fake-sfjazz", name: "SFJAZZ Center", address: "201 Franklin St, San Francisco, CA 94102", lat: 37.7763, lng: -122.4213, mapsUrl: "https://maps.google.com/?cid=3", hoursRaw: "Mon-Sun 17:00-23:00" },
+  { googlePlaceId: "fake-blue-bottle", name: "Blue Bottle Coffee", address: "315 Linden St, San Francisco, CA 94102", lat: 37.7764, lng: -122.4231, mapsUrl: "https://maps.google.com/?cid=1", hoursRaw: "24h", primaryType: "coffee_shop" },
+  { googlePlaceId: "fake-ggp", name: "Golden Gate Park", address: "San Francisco, CA", lat: 37.7694, lng: -122.4862, mapsUrl: "https://maps.google.com/?cid=2", hoursRaw: "24h", primaryType: "park" },
+  { googlePlaceId: "fake-sfjazz", name: "SFJAZZ Center", address: "201 Franklin St, San Francisco, CA 94102", lat: 37.7763, lng: -122.4213, mapsUrl: "https://maps.google.com/?cid=3", hoursRaw: "Mon-Sun 17:00-23:00", primaryType: "concert_hall" },
+  { googlePlaceId: "fake-mensho", name: "Mensho Tokyo", address: "672 Geary St, San Francisco, CA 94102", lat: 37.7866, lng: -122.4146, mapsUrl: "https://maps.google.com/?cid=4", hoursRaw: "Mon-Sun 11:30-22:00", primaryType: "ramen_restaurant" },
 ];
+/** What the fake short-link server answers (yelp.to / maps.app.goo.gl → canonical). */
+export const FAKE_SHORT_LINKS: Record<string, string> = {
+  "https://yelp.to/mensho": "https://www.yelp.com/biz/mensho-tokyo-san-francisco?utm_source=ishare",
+  "https://maps.app.goo.gl/mensho": "https://www.google.com/maps/place/Mensho+Tokyo/@37.7866,-122.4146,17z",
+};
 const fake = {
   autocomplete: (input: string): Suggestion[] =>
     FAKE_PLACES.filter((p) => p.name.toLowerCase().includes(input.trim().toLowerCase())).map((p) => ({
@@ -127,6 +163,10 @@ const fake = {
       primary: p.name,
       secondary: p.address,
     })),
+  find: (q: string): string | null => {
+    const s = q.toLowerCase();
+    return FAKE_PLACES.find((p) => s.includes(p.name.toLowerCase()))?.googlePlaceId ?? null;
+  },
   details: (id: string): PlaceDetails => {
     const p = FAKE_PLACES.find((x) => x.googlePlaceId === id);
     if (!p) throw new HttpError(404, "not_found");

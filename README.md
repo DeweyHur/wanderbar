@@ -14,21 +14,26 @@ apps/mobile/      Expo (React Native) 앱·웹, expo-router
   src/core/platform/  기기마다 다른 부분: *.ts = 앱(iOS·안드로이드), *.web.ts(x) = 웹
   src/modules/food/   맛집·동선 모듈 (ModuleDefinition, 번역)
   src/locales/      공통 번역 en / ko
-legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라잡을 때까지 계속 사용
+packages/route/   앱과 API가 같이 쓰는 순수 로직 (동선 흐름, 영업시간, 공유 파싱, 가게 키·카테고리·가격)
+e2e/              Playwright 테스트 (데스크톱·폰 화면). 기본은 가짜 구글 응답, E2E_LIVE_GOOGLE=1이면 실제 구글
 ```
+
+기존 Kotlin 앱(v0.2)은 2026-11-02에 저장소에서 지웠다. 코드는 태그 `kotlin-v0.2`에 남아 있다.
 
 ## 진행 상황
 
 | 마일스톤 | 상태 |
 |---|---|
-| M1 뼈대: Expo + API + Neon + 구글 로그인 + 그룹·초대 링크 | **코드 완료, 키 설정 후 실기기 확인 필요** (아래 설정) |
-| M2 공유 수신(옐프·구글맵 → 앱)·테슬라 전송 검증 | 다음 |
-| M3~ | 기획서 참고 |
+| M1 뼈대: Expo + API + Neon + 구글 로그인 + 그룹·초대 링크, en/ko | 완료 |
+| M2 공유 수신(옐프·구글맵 → 앱)·테슬라 전송 + 기존 wanderbar 동선 기능 이식 (기획서 M4 포함) | 완료. 구글 장소 검색·운전 시간은 서버 키로 서버에서 호출 |
+| M3 가게와 메뉴: 공유로 가게 저장, 중복 판정(옐프 별칭·구글 장소), 구글 연결·영업시간, 가게·메뉴·가격 CRUD, 동선에 추가 | 완료 |
+| M5 사진 업로드 (R2, 촬영 시각) | 다음. Cloudflare R2 버킷·키 필요 |
+| M6 방문 기록과 평점 → M7 위시리스트와 추천 | 기획서 참고 |
 
 APK는 안드로이드용 구글 키가 들어가므로, 저장소가 공개인 동안은 GitHub 릴리스·아티팩트로 올리지 않는다
 (2026-11-02에 기존 공개 APK와 릴리스를 모두 삭제). CI는 릴리스 APK를 빌드해 에뮬레이터에서 실행·공유 받기를 확인한 뒤, **초안(draft) 릴리스**로 올린다.
 초안은 저장소에 쓰기 권한이 있는 사람(주인)에게만 보인다: 폰에서 GitHub 로그인 → 저장소 → Releases → 최신 초안 → `wanderbar-mobile.apk`.
-새 앱은 패키지가 `app.wanderbar.mobile`이라 기존 앱(`app.wanderbar`)과 함께 설치된다.
+새 앱의 패키지는 `app.wanderbar.mobile`. 지도 표시용 앱 키는 이 패키지와 서명으로 제한하고 Maps SDK for Android만 열어 둔다.
 
 ## 처음 설정 (한 번만)
 

@@ -1,4 +1,4 @@
-import { doublePrecision, index, integer, pgEnum, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const id = () =>
   text("id")
@@ -83,6 +83,87 @@ export const invites = pgTable(
   (t) => [index("invites_group_idx").on(t.groupId)],
 );
 
+// ---- Core: items (what a group rates) and their links ----
+
+/** Restaurant and menu for the food module; the board game module adds "game" later. */
+export const itemType = pgEnum("item_type", ["restaurant", "menu"]);
+export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other"]);
+
+export const items = pgTable(
+  "items",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    module: groupModule("module").notNull(),
+    type: itemType("type").notNull(),
+    /** A menu's restaurant. */
+    parentId: text("parent_id").references((): AnyPgColumn => items.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** A category id defined by the module (e.g. "korean"), translated on screen; never display text. */
+    category: text("category"),
+    memo: text("memo").notNull().default(""),
+    extra: jsonb("extra").$type<Record<string, unknown>>().notNull().default({}),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("items_group_type_idx").on(t.groupId, t.type), index("items_parent_idx").on(t.parentId)],
+);
+
+export const externalLinks = pgTable(
+  "external_links",
+  {
+    id: id(),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    kind: linkKind("kind").notNull(),
+    url: text("url").notNull(),
+    label: text("label"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("external_links_item_kind_url_uq").on(t.itemId, t.kind, t.url)],
+);
+
+/** Restaurant fields used for search and duplicate checks. One row per restaurant item. */
+export const restaurantDetails = pgTable(
+  "restaurant_details",
+  {
+    itemId: text("item_id")
+      .primaryKey()
+      .references(() => items.id, { onDelete: "cascade" }),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    /** yelp.com/biz/<alias>: the duplicate key for Yelp shares. */
+    yelpAlias: text("yelp_alias"),
+    /** Google Places place id: the duplicate key for Google shares and the source of opening hours. */
+    googlePlaceKey: text("google_place_key"),
+    address: text("address").notNull().default(""),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    hoursRaw: text("hours_raw").notNull().default(""),
+    hoursFetchedAt: timestamp("hours_fetched_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("restaurant_details_group_yelp_uq").on(t.groupId, t.yelpAlias),
+    uniqueIndex("restaurant_details_group_google_uq").on(t.groupId, t.googlePlaceKey),
+  ],
+);
+
+export const menuDetails = pgTable("menu_details", {
+  itemId: text("item_id")
+    .primaryKey()
+    .references(() => items.id, { onDelete: "cascade" }),
+  /** Latest known price in minor units of the currency (cents; whole won for KRW). */
+  priceMinor: integer("price_minor"),
+  currency: text("currency").notNull().default("USD"),
+});
+
 // ---- Food module: day route (ported from the wanderbar app) ----
 
 export const stopStatus = pgEnum("stop_status", ["pending", "current", "done", "skipped"]);
@@ -114,7 +195,7 @@ export const planStops = pgTable(
       .notNull()
       .references(() => plans.id, { onDelete: "cascade" }),
     /** Set when the stop is a saved restaurant (milestone 3); null for any other place. */
-    itemId: text("item_id"),
+    itemId: text("item_id").references(() => items.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     memo: text("memo").notNull().default(""),
     address: text("address").notNull().default(""),

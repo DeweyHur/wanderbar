@@ -11,4 +11,6 @@ export const StopFieldsSchema = z.object({
   lat: z.number().min(-90).max(90).nullable().optional(),
   lng: z.number().min(-180).max(180).nullable().optional(),
   googlePlaceId: z.string().max(300).optional(),
+  /** A saved restaurant of the same group. */
+  itemId: z.string().max(100).nullable().optional(),
 });

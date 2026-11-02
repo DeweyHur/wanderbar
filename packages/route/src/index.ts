@@ -5,3 +5,4 @@ export * from "./sharedText";
 export * from "./routeMath";
 export * from "./sharedPlace";
 export * from "./googleHours";
+export * from "./restaurant";

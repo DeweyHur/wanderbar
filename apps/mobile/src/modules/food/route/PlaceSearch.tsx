@@ -11,6 +11,7 @@ export function PlaceSearch({
   value,
   onChangeText,
   onPick,
+  onPickSuggestion,
   onSubmit,
   near,
   label,
@@ -19,7 +20,9 @@ export function PlaceSearch({
 }: {
   value: string;
   onChangeText: (s: string) => void;
-  onPick: (p: PlaceDetails) => void;
+  onPick?: (p: PlaceDetails) => void;
+  /** Instead of onPick: just the suggestion, when the server fetches the details (pass it takeSession()). */
+  onPickSuggestion?: (s: Suggestion) => void;
   /** Enter: receives the top suggestion if there is one (and the text has no commas). */
   onSubmit?: (top: Suggestion | null) => void;
   near?: { lat: number; lng: number } | null;
@@ -46,7 +49,8 @@ export function PlaceSearch({
 
   const pick = async (s: Suggestion) => {
     setItems([]);
-    onPick(await placeDetails(s.placeId));
+    if (onPickSuggestion) return onPickSuggestion(s);
+    onPick?.(await placeDetails(s.placeId));
   };
 
   return (

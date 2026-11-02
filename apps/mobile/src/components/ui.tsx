@@ -148,15 +148,17 @@ export function Card({ children, highlight, testID }: { children: ReactNode; hig
 }
 
 /** Small secondary action in a row of actions. */
-export function Chip({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+export function Chip({ label, onPress, disabled, selected }: { label: string; onPress: () => void; disabled?: boolean; selected?: boolean }) {
   const c = useColors();
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => ({
-        borderColor: c.border,
+        borderColor: selected ? c.accent : c.border,
+        backgroundColor: selected ? c.accent : "transparent",
         borderWidth: 1,
         borderRadius: 999,
         paddingHorizontal: 14,
@@ -164,7 +166,7 @@ export function Chip({ label, onPress, disabled }: { label: string; onPress: () 
         opacity: pressed || disabled ? 0.5 : 1,
       })}
     >
-      <Text style={{ color: c.text, fontSize: 15 }} numberOfLines={1}>
+      <Text style={{ color: selected ? "#fff" : c.text, fontSize: 15 }} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>

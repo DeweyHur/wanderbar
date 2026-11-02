@@ -54,6 +54,14 @@ export default function RootLayout() {
             options={{ title: t("food:stop.edit") }}
           />
           <Stack.Screen
+            name="restaurant/new"
+            options={{ title: t("food:restaurant.add") }}
+          />
+          <Stack.Screen
+            name="restaurant/[id]"
+            options={{ title: t("food:restaurant.title") }}
+          />
+          <Stack.Screen
             name="invite/[token]"
             options={{ title: t("invite.title") }}
           />

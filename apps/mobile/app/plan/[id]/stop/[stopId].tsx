@@ -88,6 +88,7 @@ export default function StopScreen() {
         <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address))} />
         <Chip label="Google Maps" onPress={() => Linking.openURL(dest.mapsUrl || Links.googleSearch(dest.name, dest.address))} />
         <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(dest.yelpUrl || Links.yelpSearch(dest.name, dest.address))} />
+        {stop.itemId && <Chip label={t("food:restaurant.openRestaurant")} onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: stop.itemId! } })} />}
       </View>
 
       {googleAvailable && (

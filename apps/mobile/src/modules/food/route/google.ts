@@ -42,6 +42,13 @@ export async function suggestPlaces(input: string, near?: { lat: number; lng: nu
   return r.suggestions;
 }
 
+/** Ends the current search session and hands its token to a server call that fetches the details itself. */
+export function takeSession(): string {
+  const s = session;
+  session = newSession();
+  return s;
+}
+
 export async function placeDetails(placeId: string): Promise<PlaceDetails> {
   const d = await api<PlaceDetails>(`/api/places/${encodeURIComponent(placeId)}?sessionToken=${session}`);
   session = newSession();

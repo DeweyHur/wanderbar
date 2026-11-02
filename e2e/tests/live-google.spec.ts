@@ -25,3 +25,25 @@ test("live: autocomplete, place details and drive time from real Google", async 
   // A real drive time between the two (a few minutes apart in the Mission).
   await expect(page.getByText(/^Drive \d+ min · [\d.]+ ?k?m/)).toBeVisible({ timeout: 15_000 });
 });
+
+test("live: a typed restaurant is found on Google (text search) with hours and a category", async ({ page }) => {
+  test.skip(!process.env.GOOGLE_SERVER_KEY, "needs GOOGLE_SERVER_KEY");
+  await signIn(page, "Live Saver");
+  const groupId = await openHome(page);
+  const res = await page.request.post(`/api/groups/${groupId}/restaurants`, {
+    headers: { "x-wanderbar-client": "web" },
+    data: { name: "Tartine Bakery", address: "600 Guerrero St, San Francisco" },
+  });
+  expect(res.status()).toBe(201);
+  const { restaurant } = await res.json();
+  expect(restaurant.googlePlaceId).not.toBe("");
+  expect(restaurant.category).toBe("bakery");
+  expect(restaurant.hoursRaw).not.toBe("");
+  expect(restaurant.mapsUrl).toMatch(/^https:\/\/maps\.google\.com\//);
+  // The same place typed differently is the same restaurant.
+  const again = await page.request.post(`/api/groups/${groupId}/restaurants`, {
+    headers: { "x-wanderbar-client": "web" },
+    data: { name: "tartine", address: "Guerrero St San Francisco" },
+  });
+  expect((await again.json()).restaurant.id).toBe(restaurant.id);
+});

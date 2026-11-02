@@ -67,6 +67,29 @@
     "forbidden": "Not allowed",
     "csrf": "Request blocked for security. Reload the page and try again.",
     "bad_request": "Invalid request",
-    "server_error": "Server error"
+    "server_error": "Server error",
+    "restaurant": {
+      "not_found": "Restaurant not found",
+      "name_required": "Enter the restaurant's name",
+      "category_invalid": "Unknown category",
+      "duplicate": "Another restaurant in this group already has that link or Google place",
+      "delete_forbidden": "Only whoever added it or the group owner can delete it",
+      "google_not_found": "Couldn't find it on Google. Try Search Google and pick it."
+    },
+    "menu": {
+      "not_found": "Menu not found",
+      "name_required": "Enter the menu name",
+      "price_invalid": "Check the price"
+    },
+    "google": {
+      "unavailable": "Google search isn't set up on the server",
+      "failed": "Google didn't answer. Try again in a moment."
+    },
+    "plan": {
+      "not_found": "Route not found",
+      "stop_not_found": "Place not found",
+      "title_required": "Enter a route name",
+      "stop_name_required": "Enter a place name"
+    }
   }
 }

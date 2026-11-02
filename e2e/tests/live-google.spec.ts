@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { addInput, current, newRoute, openHome, row, signIn } from "./helpers";
 
 // Real Google Places/Routes through our API, with the same server key production uses.
-// Run with: E2E_LIVE_GOOGLE=1 GOOGLE_SERVER_KEY=... npx playwright test --project=phone
+// Run with: E2E_LIVE_GOOGLE=1 GOOGLE_SERVER_KEY=... npx playwright test (behind an HTTP proxy, also NODE_USE_ENV_PROXY=1)
 test("live: autocomplete, place details and drive time from real Google", async ({ page }) => {
   test.skip(!process.env.GOOGLE_SERVER_KEY, "needs GOOGLE_SERVER_KEY");
   await signIn(page, "Live");
@@ -18,7 +18,7 @@ test("live: autocomplete, place details and drive time from real Google", async 
   await expect(current(page)).toContainText("Guerrero St");
 
   await addInput(page).fill("Dolores Park San Francisco");
-  const park = page.getByText("Dolores Park", { exact: true }).first();
+  const park = page.getByText("Mission Dolores Park", { exact: true }).first();
   await expect(park).toBeVisible({ timeout: 15_000 });
   await park.click();
   await expect(row(page, 1)).toContainText("Dolores Park");

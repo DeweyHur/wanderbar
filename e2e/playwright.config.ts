@@ -3,9 +3,13 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 3100;
 // PW_CHANNEL=chrome uses an installed Chrome instead of Playwright's own Chromium.
 const channel = process.env.PW_CHANNEL || undefined;
+// E2E_LIVE_GOOGLE=1 (with GOOGLE_SERVER_KEY set) talks to the real Google Places/Routes instead of canned answers.
+const live = process.env.E2E_LIVE_GOOGLE === "1";
 
 export default defineConfig({
   testDir: "tests",
+  // The live suite only runs when asked for; the canned suite doesn't run against real Google.
+  ...(live ? { testMatch: /live-.*\.spec\.ts/ } : { testIgnore: /live-.*\.spec\.ts/ }),
   timeout: 60_000,
   expect: { timeout: 10_000 },
   // One server with one in-memory database; tests use their own users, so order doesn't matter.
@@ -28,7 +32,8 @@ export default defineConfig({
       DATABASE_URL: "pglite:memory",
       E2E_TEST_LOGIN: "1",
       // Canned Google Places/Routes answers (server-side; never reaches Google).
-      E2E_FAKE_GOOGLE: "1",
+      E2E_FAKE_GOOGLE: live ? "0" : "1",
+      ...(live ? { GOOGLE_SERVER_KEY: process.env.GOOGLE_SERVER_KEY ?? "" } : {}),
       GOOGLE_CLIENT_IDS: "e2e.apps.googleusercontent.com",
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "e2e.apps.googleusercontent.com",
       NEXT_TELEMETRY_DISABLED: "1",

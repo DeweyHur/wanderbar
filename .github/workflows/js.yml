@@ -3,9 +3,9 @@ name: API & mobile checks
 on:
   push:
     branches: [main]
-    paths: ["apps/**", "packages/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
+    paths: ["apps/**", "packages/**", "e2e/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
   pull_request:
-    paths: ["apps/**", "packages/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
+    paths: ["apps/**", "packages/**", "e2e/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
   workflow_dispatch:
 
 jobs:
@@ -28,3 +28,30 @@ jobs:
         run: npm run typecheck -w apps/mobile
       - name: Translation keys match (en/ko)
         run: npm run check:i18n -w apps/mobile
+
+  e2e:
+    # The real web app + API (same build as Vercel) on an in-memory database, driven by Playwright
+    # on desktop and phone viewports. Google sign-in is replaced by a test-only login that can't be
+    # enabled on Vercel or against a real database.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: End-to-end tests
+        run: npm run e2e
+        env:
+          CI: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: ignore

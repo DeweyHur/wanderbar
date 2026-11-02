@@ -88,7 +88,7 @@ export default function PlanScreen() {
         options={{
           title: plan.title,
           headerRight: () => (
-            <Pressable accessibilityRole="button" hitSlop={10} onPress={() => router.push({ pathname: "/plan/[id]/map", params: { id: plan.id } })}>
+            <Pressable accessibilityRole="button" hitSlop={10} style={{ paddingHorizontal: 12, paddingVertical: 6 }} onPress={() => router.push({ pathname: "/plan/[id]/map", params: { id: plan.id } })}>
               <Text style={{ color: c.accent, fontSize: 16 }}>{t("food:route.map")}</Text>
             </Pressable>
           ),

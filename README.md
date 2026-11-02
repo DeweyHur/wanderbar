@@ -95,6 +95,20 @@ Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew sign
 
 에러는 문장이 아니라 코드(`invite.expired` 등)로 돌려주고 앱이 번역한다. 세션 토큰과 초대 토큰은 DB에 해시로만 저장한다. 모든 페이지와 응답에 `X-Robots-Tag: noindex`.
 
+## E2E (Playwright)
+
+배포되는 것과 같은 빌드(Expo 웹 export + Next.js API)를 로컬에서 띄우고, 메모리 Postgres(PGlite, `DATABASE_URL=pglite:memory`)에서
+데스크톱·폰 화면 크기로 브라우저 테스트를 돌린다. 구글 로그인 대신 테스트 전용 로그인(`/api/auth/test-login`)을 쓴다.
+이 로그인은 `E2E_TEST_LOGIN=1` **이고** 메모리 DB일 때만 켜지며, Vercel에서는 무조건 꺼진다(단위 테스트로 고정).
+
+```
+npx playwright install chromium   # 처음 한 번 (e2e/에서)
+npm run e2e                       # 빌드 + 서버 + 테스트. 이미 빌드했으면 E2E_SKIP_BUILD=1
+```
+
+시나리오: 로그아웃 화면, 첫 로그인 개인 그룹, 언어 전환, CSRF, 동선 전체 흐름(추가·완료·건너뛰기·순서·안 가기·되돌리기·다시 시작),
+장소 편집과 영업시간 배지, 구글맵 공유 붙여넣기, 링크로 추가(구글맵·옐프), 초대와 동선 비공개. GitHub Actions에서 매 푸시마다 돈다.
+
 ## 개발
 
 ```

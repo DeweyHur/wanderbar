@@ -38,7 +38,7 @@ export default function GroupHome() {
         title: group?.name ?? "",
         headerRight: () => (
           <Link href="/settings" asChild>
-            <Pressable accessibilityRole="button" hitSlop={10}>
+            <Pressable accessibilityRole="button" hitSlop={10} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
               <Text style={{ color: c.accent, fontSize: 16 }}>{t("common.settings")}</Text>
             </Pressable>
           </Link>

@@ -19,6 +19,9 @@ legacy-android/   기존 Kotlin 앱 v0.2 (태그 kotlin-v0.2). 새 앱이 따라
 | M2 공유 수신(옐프·구글맵 → 앱)·테슬라 전송 검증 | 다음 |
 | M3~ | 기획서 참고 |
 
+새 앱(안드로이드) APK: https://github.com/DeweyHur/wanderbar/releases/download/mobile-latest/wanderbar-mobile.apk
+(`apps/mobile`이 바뀌어 `main`에 푸시되면 GitHub Actions가 릴리스 빌드를 만들어 이 링크를 갱신한다. 빌드 번호 = Actions 실행 번호라 위에 덮어 설치된다.)
+
 기존 Kotlin 앱은 그대로 쓸 수 있다. APK: https://github.com/DeweyHur/wanderbar/releases/download/latest/wanderbar.apk
 (CI는 `legacy-android/`가 바뀔 때만 다시 빌드한다.) 새 앱은 패키지가 `app.wanderbar.mobile`이라 기존 앱과 함께 설치된다.
 

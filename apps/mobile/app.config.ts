@@ -3,6 +3,9 @@ import type { ExpoConfig } from "expo/config";
 // Reversed iOS OAuth client ID, e.g. com.googleusercontent.apps.1234-abcd (Google Cloud → Credentials → iOS client).
 const iosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME ?? "com.googleusercontent.apps.REPLACE_ME";
 
+// CI sets GITHUB_RUN_NUMBER so every APK installs as an update over the previous one.
+const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
+
 const config: ExpoConfig = {
   name: "wanderbar",
   slug: "wanderbar",
@@ -14,10 +17,12 @@ const config: ExpoConfig = {
   ios: {
     // Different from the legacy Kotlin app (app.wanderbar) so both can be installed during the move.
     bundleIdentifier: "app.wanderbar.mobile",
+    buildNumber: String(buildNumber),
     supportsTablet: false,
   },
   android: {
     package: "app.wanderbar.mobile",
+    versionCode: buildNumber,
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./assets/android-icon-foreground.png",

@@ -1,0 +1,69 @@
+name: Mobile Android APK
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**", "package-lock.json", ".github/workflows/mobile-android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-android
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Public values baked into the JS bundle (not secrets).
+      EXPO_PUBLIC_API_URL: https://wanderbar-api.vercel.app
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 380806659421-rq02568pp8sulkud63v18aes4hqt535t.apps.googleusercontent.com
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 380806659421-3mm0vt3bm7dilljkrc5eogg220oak45o.apps.googleusercontent.com
+      EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME: com.googleusercontent.apps.380806659421-3mm0vt3bm7dilljkrc5eogg220oak45o
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: npm ci
+
+      - name: Generate native Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      # Release build = JS bundled inside, no dev server needed. The Expo template signs release
+      # with its debug keystore (SHA-1 5E:8F:16:...:F6:25), the one registered for Google sign-in.
+      - name: Build release APK
+        working-directory: apps/mobile/android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wanderbar-mobile-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+
+      - name: Publish to "mobile-latest" release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk wanderbar-mobile.apk
+          gh release delete mobile-latest --yes --cleanup-tag || true
+          gh release create mobile-latest wanderbar-mobile.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "wanderbar mobile (build #$GITHUB_RUN_NUMBER)" \
+            --notes "Expo app, release build of ${GITHUB_SHA::7}. Install: https://github.com/${{ github.repository }}/releases/download/mobile-latest/wanderbar-mobile.apk"

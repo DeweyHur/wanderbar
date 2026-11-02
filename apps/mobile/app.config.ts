@@ -6,6 +6,10 @@ const iosUrlScheme =
   "com.googleusercontent.apps.REPLACE_ME";
 
 // CI sets GITHUB_RUN_NUMBER so every APK installs as an update over the previous one.
+// Google key for Maps SDK, Places (New) and Routes on Android. Android-restricted (package + signing SHA-1),
+// injected at build time from the MAPS_API_KEY GitHub secret; empty = search/map/drive times are off.
+const androidMapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY ?? "";
+
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
 
 const config: ExpoConfig = {
@@ -56,6 +60,8 @@ const config: ExpoConfig = {
       },
     ],
     ["@react-native-google-signin/google-signin", { iosUrlScheme }],
+    // iOS uses Apple Maps (no key); Android uses Google Maps.
+    ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey }],
   ],
   experiments: { typedRoutes: true },
 };

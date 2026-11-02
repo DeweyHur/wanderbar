@@ -9,7 +9,9 @@ import { confirm } from "@/core/platform/confirm";
 import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Stop } from "@/modules/food/route/api";
+import { googleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
+import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 
 /** Place detail + edit, status actions, and the Tesla format tester (as in the old app). */
 export default function StopScreen() {
@@ -20,6 +22,8 @@ export default function StopScreen() {
   const tesla = useTeslaFormat();
   const [stop, setStop] = useState<Stop | null>(null);
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });
+  const [geo, setGeo] = useState<{ lat: number | null; lng: number | null; googlePlaceId: string } | null>(null);
+  const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
@@ -51,7 +55,8 @@ export default function StopScreen() {
     setSaving(true);
     setError("");
     try {
-      setStop(await routeApi.updateStop(stop.id, form));
+      setStop(await routeApi.updateStop(stop.id, { ...form, ...(geo ?? {}) }));
+      setGeo(null);
       setNotice(t("food:stop.saved"));
     } catch (e) {
       setError(errorText(t, e));
@@ -70,7 +75,7 @@ export default function StopScreen() {
     }
   };
 
-  const dest = { ...stop, ...form };
+  const dest = { ...stop, ...form, ...(geo ?? {}) };
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: stop.name }} />
@@ -84,6 +89,20 @@ export default function StopScreen() {
         <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(dest.yelpUrl || Links.yelpSearch(dest.name, dest.address))} />
       </View>
 
+      {googleAvailable && (
+        <PlaceSearch
+          label={t("food:stop.searchGoogle")}
+          hint={t("food:stop.searchGoogleHint")}
+          value={search}
+          onChangeText={setSearch}
+          near={stop.lat != null && stop.lng != null ? { lat: stop.lat, lng: stop.lng } : null}
+          onPick={(d) => {
+            setSearch("");
+            setForm((f) => ({ ...f, name: d.name || f.name, address: d.address, mapsUrl: d.mapsUrl, hoursRaw: d.hoursRaw || f.hoursRaw }));
+            setGeo({ lat: d.lat, lng: d.lng, googlePlaceId: d.googlePlaceId });
+          }}
+        />
+      )}
       <Field label={t("food:stop.name")} value={form.name} onChangeText={set("name")} />
       <Field label={t("food:stop.address")} value={form.address} onChangeText={set("address")} />
       <Field label={t("food:stop.mapsUrl")} value={form.mapsUrl} onChangeText={onMapsUrl} hint={t("food:stop.mapsUrlHint")} />

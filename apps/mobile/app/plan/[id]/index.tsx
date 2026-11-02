@@ -1,15 +1,19 @@
-import { hoursStatusFromText, Links, parseSharedText, teslaShareTextWithFallback } from "@wanderbar/route";
+import { formatDistance, hoursStatusFromText, Links, parseSharedText, teslaShareTextWithFallback } from "@wanderbar/route";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
+import { Body, Button, Card, Chip, ErrorText, Loading, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { copyText } from "@/core/platform/clipboard";
 import { confirm } from "@/core/platform/confirm";
 import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Plan, type Stop } from "@/modules/food/route/api";
+import { formatDuration } from "@/modules/food/route/format";
+import { googleAvailable, type PlaceDetails } from "@/modules/food/route/google";
+import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
+import { useRoute } from "@/modules/food/route/useRoute";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
@@ -24,6 +28,7 @@ export default function PlanScreen() {
   const [notice, setNotice] = useState("");
   const [quick, setQuick] = useState("");
   const [adding, setAdding] = useState(false);
+  const route = useRoute(plan?.stops ?? []);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,11 +72,28 @@ export default function PlanScreen() {
     setAdding(false);
   };
 
+  /** Picked from Google search: name, address, hours, location and the Maps link in one go. */
+  const addPicked = async (d: PlaceDetails) => {
+    setQuick("");
+    await run(() => routeApi.addStops(plan.id, [{ ...d, name: d.name || d.address }]));
+  };
+  const lastLocated = [...plan.stops].reverse().find((s) => s.lat != null && s.lng != null);
+  const near = lastLocated ? { lat: lastLocated.lat!, lng: lastLocated.lng! } : null;
+
   const closedNow = current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
 
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: plan.title }} />
+      <Stack.Screen
+        options={{
+          title: plan.title,
+          headerRight: () => (
+            <Pressable accessibilityRole="button" hitSlop={10} onPress={() => router.push({ pathname: "/plan/[id]/map", params: { id: plan.id } })}>
+              <Text style={{ color: c.accent, fontSize: 16 }}>{t("food:route.map")}</Text>
+            </Pressable>
+          ),
+        }}
+      />
 
       {current ? (
         <Card highlight>
@@ -109,6 +131,14 @@ export default function PlanScreen() {
         </Card>
       ) : null}
 
+      {route.result && (
+        <Body muted>
+          {t("food:route.driveTotal", { time: formatDuration(t, route.result.seconds), distance: formatDistance(route.result.meters) })}
+          {route.remainingSeconds > 0 && route.remainingSeconds < route.result.seconds
+            ? ` · ${t("food:route.remaining", { time: formatDuration(t, route.remainingSeconds) })}`
+            : ""}
+        </Body>
+      )}
       {notice ? <Body muted>{notice}</Body> : null}
       <ErrorText>{error}</ErrorText>
 
@@ -142,6 +172,11 @@ export default function PlanScreen() {
                 ) : (
                   <HoursBadge hoursRaw={s.hoursRaw} now={now} />
                 )}
+                {!dim && route.legTo.get(s.id) && (
+                  <Text style={{ color: c.muted, fontSize: 13 }}>
+                    {t("food:route.legFromPrev", { time: formatDuration(t, route.legTo.get(s.id)!.seconds) })}
+                  </Text>
+                )}
               </View>
               <View style={{ flexDirection: "row", gap: 4 }}>
                 <Pressable accessibilityLabel={t("food:route.moveUp")} hitSlop={6} disabled={i === 0} onPress={() => flow({ action: "move", from: i, to: i - 1 })}>
@@ -161,7 +196,14 @@ export default function PlanScreen() {
         );
       })}
 
-      <Field value={quick} onChangeText={setQuick} placeholder={t("food:route.addPlaceholder")} onSubmitEditing={add} />
+      <PlaceSearch
+        value={quick}
+        onChangeText={setQuick}
+        onPick={(d) => addPicked(d).catch((e) => setError(errorText(t, e)))}
+        onSubmit={() => add()}
+        near={near}
+        placeholder={googleAvailable ? t("food:route.searchPlaceholder") : t("food:route.addPlaceholder")}
+      />
       <Button kind="plain" label={t("food:route.add")} busy={adding} disabled={!quick.trim()} onPress={add} />
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>

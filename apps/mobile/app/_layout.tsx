@@ -44,6 +44,10 @@ export default function RootLayout() {
             options={{ title: t("food:route.title") }}
           />
           <Stack.Screen
+            name="plan/[id]/map"
+            options={{ title: t("food:route.map") }}
+          />
+          <Stack.Screen
             name="plan/[id]/stop/[stopId]"
             options={{ title: t("food:stop.edit") }}
           />

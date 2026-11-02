@@ -49,7 +49,14 @@
     "moveDown": "Move down",
     "members": "Members & invite",
     "confirmDeleteRoute": "Delete this route and all its places?",
-    "confirmDeleteStop": "Remove this place from the route?"
+    "confirmDeleteStop": "Remove this place from the route?",
+    "map": "Map",
+    "driveTotal": "Drive {{time}} · {{distance}}",
+    "remaining": "{{time}} of driving left",
+    "legFromPrev": "{{time}} from the previous stop",
+    "openInGoogleMaps": "Open the route in Google Maps",
+    "mapNoPlaces": "Places need a location to show on the map (pick them from Google search).",
+    "searchPlaceholder": "Search a place, or type cafe, park, jazz bar"
   },
   "hours": {
     "open": "Open · until {{time}}",
@@ -68,7 +75,9 @@
     "hoursHint": "e.g. Mon-Fri 9:00-18:00; Sat 10-14; Sun closed",
     "memo": "Memo",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "searchGoogle": "Search Google",
+    "searchGoogleHint": "Picking a result fills name, address, hours, location and the Google Maps link."
   },
   "tesla": {
     "tester": "Tesla format tester",

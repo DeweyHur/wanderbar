@@ -49,7 +49,14 @@
     "moveDown": "아래로",
     "members": "멤버·초대",
     "confirmDeleteRoute": "이 동선과 안의 장소를 모두 지울까요?",
-    "confirmDeleteStop": "이 장소를 동선에서 뺄까요?"
+    "confirmDeleteStop": "이 장소를 동선에서 뺄까요?",
+    "map": "지도",
+    "driveTotal": "운전 {{time}} · {{distance}}",
+    "remaining": "남은 운전 {{time}}",
+    "legFromPrev": "이전 장소에서 {{time}}",
+    "openInGoogleMaps": "구글맵에서 경로 열기",
+    "mapNoPlaces": "지도에 보이려면 장소에 위치가 있어야 해요 (구글 검색으로 고르면 채워져요).",
+    "searchPlaceholder": "장소 검색, 또는 카페, 공원, 재즈바"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",
@@ -68,7 +75,9 @@
     "hoursHint": "예: 월-금 11:00-14:00 17:00-22:00, 토 12-23, 일 휴무",
     "memo": "메모",
     "save": "저장",
-    "saved": "저장했어요"
+    "saved": "저장했어요",
+    "searchGoogle": "구글에서 장소 검색",
+    "searchGoogleHint": "결과를 고르면 이름, 주소, 영업시간, 위치, 구글맵 링크가 채워져요."
   },
   "tesla": {
     "tester": "테슬라 형식 테스터",

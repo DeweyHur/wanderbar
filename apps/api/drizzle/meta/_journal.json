@@ -15,6 +15,13 @@
       "when": 1793636209898,
       "tag": "0001_groups_module_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793639352867,
+      "tag": "0002_plans",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,14 @@
 {
   "name": "wanderbar",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "api:dev": "npm run dev -w apps/api",
     "api:test": "npm test -w apps/api",
-    "mobile:start": "npm run start -w apps/mobile"
+    "mobile:start": "npm run start -w apps/mobile",
+    "route:test": "npm test -w packages/route"
   }
 }

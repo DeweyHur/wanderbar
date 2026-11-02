@@ -3,9 +3,9 @@ name: API & mobile checks
 on:
   push:
     branches: [main]
-    paths: ["apps/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
+    paths: ["apps/**", "packages/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
   pull_request:
-    paths: ["apps/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
+    paths: ["apps/**", "packages/**", "package.json", "package-lock.json", ".github/workflows/js.yml"]
   workflow_dispatch:
 
 jobs:
@@ -18,6 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Route logic tests (ported from the Kotlin app)
+        run: npm test -w packages/route
       - name: API tests (in-memory Postgres)
         run: npm test -w apps/api
       - name: API typecheck

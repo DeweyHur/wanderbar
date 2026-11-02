@@ -27,6 +27,8 @@ export default defineConfig({
     env: {
       DATABASE_URL: "pglite:memory",
       E2E_TEST_LOGIN: "1",
+      // Canned Google Places/Routes answers (server-side; never reaches Google).
+      E2E_FAKE_GOOGLE: "1",
       GOOGLE_CLIENT_IDS: "e2e.apps.googleusercontent.com",
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "e2e.apps.googleusercontent.com",
       NEXT_TELEMETRY_DISABLED: "1",

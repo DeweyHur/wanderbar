@@ -28,11 +28,11 @@ export async function openHome(page: Page) {
 /** New route from the group home; leaves the route screen open. */
 export async function newRoute(page: Page) {
   await page.getByRole("button", { name: "New route" }).click();
-  await expect(page.getByPlaceholder("Cafe, park, jazz bar")).toBeVisible();
+  await expect(addInput(page)).toBeVisible();
 }
 
 export async function quickAdd(page: Page, text: string) {
-  const input = page.getByPlaceholder("Cafe, park, jazz bar");
+  const input = addInput(page);
   await input.fill(text);
   await input.press("Enter");
   await expect(input).toHaveValue("");
@@ -40,3 +40,6 @@ export async function quickAdd(page: Page, text: string) {
 
 export const current = (page: Page) => page.getByTestId("current-card");
 export const row = (page: Page, i: number) => page.getByTestId(`stop-row-${i}`);
+
+/** The route's add field ("Search a place, or type cafe, park, jazz bar" when place search is on). */
+export const addInput = (page: Page) => page.getByPlaceholder(/cafe, park, jazz bar/i);

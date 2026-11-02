@@ -9,7 +9,7 @@ import { confirm } from "@/core/platform/confirm";
 import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Stop } from "@/modules/food/route/api";
-import { googleAvailable } from "@/modules/food/route/google";
+import { useGoogleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 
@@ -19,6 +19,7 @@ export default function StopScreen() {
   const { t } = useTranslation();
   const c = useColors();
   const now = useNow();
+  const googleAvailable = useGoogleAvailable();
   const tesla = useTeslaFormat();
   const [stop, setStop] = useState<Stop | null>(null);
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });

@@ -6,8 +6,8 @@ const iosUrlScheme =
   "com.googleusercontent.apps.REPLACE_ME";
 
 // CI sets GITHUB_RUN_NUMBER so every APK installs as an update over the previous one.
-// Google key for Maps SDK, Places (New) and Routes on Android. Android-restricted (package + signing SHA-1),
-// injected at build time from the MAPS_API_KEY GitHub secret; empty = search/map/drive times are off.
+// Google key for map tiles only (Maps SDK for Android). It ships inside the app, so restrict it to that API
+// and to the app's package + signing SHA-1. Place search and drive times use the server's own key instead.
 const androidMapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY ?? "";
 
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);

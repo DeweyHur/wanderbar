@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Field, useColors } from "@/components/ui";
-import { googleAvailable, placeDetails, suggestPlaces, type PlaceDetails, type Suggestion } from "./google";
+import { placeDetails, suggestPlaces, useGoogleAvailable, type PlaceDetails, type Suggestion } from "./google";
 
 /**
  * Google-Maps-style suggestions under a text field (search-first adding, as in the old app).
- * Without the Google key it is just the text field.
+ * When the server has no Google key it is just the text field.
  */
 export function PlaceSearch({
   value,
@@ -28,6 +28,7 @@ export function PlaceSearch({
   hint?: string;
 }) {
   const c = useColors();
+  const googleAvailable = useGoogleAvailable();
   const [items, setItems] = useState<Suggestion[]>([]);
   const seq = useRef(0);
 
@@ -41,7 +42,7 @@ export function PlaceSearch({
         .catch(() => n === seq.current && setItems([]));
     }, 300);
     return () => clearTimeout(h);
-  }, [value, near?.lat, near?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, near?.lat, near?.lng, googleAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pick = async (s: Suggestion) => {
     setItems([]);

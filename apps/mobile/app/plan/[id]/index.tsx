@@ -11,7 +11,7 @@ import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Plan, type Stop } from "@/modules/food/route/api";
 import { formatDuration } from "@/modules/food/route/format";
-import { googleAvailable, type PlaceDetails } from "@/modules/food/route/google";
+import { useGoogleAvailable, type PlaceDetails } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { useRoute } from "@/modules/food/route/useRoute";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
@@ -22,6 +22,7 @@ export default function PlanScreen() {
   const { t } = useTranslation();
   const c = useColors();
   const now = useNow();
+  const googleAvailable = useGoogleAvailable();
   const { format } = useTeslaFormat();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");

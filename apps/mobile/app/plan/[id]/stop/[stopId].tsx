@@ -1,4 +1,4 @@
-import { Links, parseSharedText, TESLA_FORMATS, teslaShareText } from "@wanderbar/route";
+import { Links, parseSharedText, TESLA_FORMATS, teslaShareText, type Destination } from "@wanderbar/route";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ import { useGoogleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
+import { RestaurantView } from "@/modules/food/restaurants/RestaurantView";
 
 /** Place detail + edit, status actions, and the Tesla format tester (as in the old app). */
 export default function StopScreen() {
@@ -21,7 +22,6 @@ export default function StopScreen() {
   const c = useColors();
   const now = useNow();
   const googleAvailable = useGoogleAvailable();
-  const tesla = useTeslaFormat();
   const [stop, setStop] = useState<Stop | null>(null);
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });
   const [geo, setGeo] = useState<{ lat: number | null; lng: number | null; googlePlaceId: string } | null>(null);
@@ -29,7 +29,6 @@ export default function StopScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
-  const [tester, setTester] = useState(false);
 
   useEffect(() => {
     routeApi
@@ -68,7 +67,7 @@ export default function StopScreen() {
     }
   };
 
-  const flow = async (action: "setCurrent" | "drop" | "restore") => {
+  const flow = async (action: "setCurrent" | "drop" | "restore" | "complete" | "postpone") => {
     try {
       const stops = await routeApi.flow(planId, { action, stopId: stop.id });
       setStop(stops.find((s) => s.id === stop.id) ?? stop);
@@ -79,6 +78,38 @@ export default function StopScreen() {
   };
 
   const dest = { ...stop, ...form, ...(geo ?? {}) };
+  const removeStop = async () => {
+    if (!(await confirm(t("food:route.confirmDeleteStop"), t("common.delete"), t("common.cancel")))) return;
+    await routeApi.deleteStop(stop.id).then(() => router.back(), (e) => setError(errorText(t, e)));
+  };
+
+  // A restaurant stop is the restaurant's own page with the route controls on top.
+  if (stop.itemId)
+    return (
+      <RestaurantView
+        id={stop.itemId}
+        refreshKey={stop.status}
+        top={
+          <Card testID="route-widget" highlight={stop.status === "current"}>
+            <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>
+              {t("food:route.inRoute", { status: t(`food:route.status.${stop.status}`) })}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {stop.status === "current" && <Chip label={t("food:route.done")} onPress={() => flow("complete")} />}
+              {stop.status === "current" && <Chip label={t("food:route.skip")} onPress={() => flow("postpone")} />}
+              {stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
+              {(stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
+              {(stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
+              <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(stop.name, stop.address, stop.googlePlaceId))} />
+              <Chip label={t("food:route.deleteStop")} onPress={removeStop} />
+            </View>
+            <TeslaTester dest={stop} onError={setError} />
+            <ErrorText>{error}</ErrorText>
+          </Card>
+        }
+      />
+    );
+
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: stop.name }} />
@@ -87,12 +118,8 @@ export default function StopScreen() {
         {stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
         {(stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
         {(stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
-        <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address))} />
-        {stop.itemId ? (
-          <Chip label={t("food:restaurant.openRestaurant")} onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: stop.itemId! } })} />
-        ) : (
-          <Chip label="Google Maps" onPress={() => Linking.openURL(dest.mapsUrl || Links.googleSearch(dest.name, dest.address))} />
-        )}
+        <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address, dest.googlePlaceId))} />
+        <Chip label="Google Maps" onPress={() => Linking.openURL(Links.googlePlace(dest.name, dest.address, dest.googlePlaceId, dest.mapsUrl))} />
       </View>
 
       {googleAvailable && (
@@ -120,6 +147,21 @@ export default function StopScreen() {
       <ErrorText>{error}</ErrorText>
 
       <ShareMenu place={dest} onNotice={setNotice} kind="plain" />
+      <TeslaTester dest={dest} onError={setError} />
+
+      <Chip label={t("food:route.deleteStop")} onPress={removeStop} />
+    </ScrollView>
+  );
+}
+
+/** Tries each text format on the Tesla app; the one that lands in the car is saved for this phone. */
+function TeslaTester({ dest, onError }: { dest: Destination; onError: (s: string) => void }) {
+  const { t } = useTranslation();
+  const c = useColors();
+  const tesla = useTeslaFormat();
+  const [tester, setTester] = useState(false);
+  return (
+    <>
       {canSendToTesla && (
         <View style={{ flexDirection: "row" }}>
           <Chip label={t("food:tesla.tester")} selected={tester} onPress={() => setTester(!tester)} />
@@ -142,7 +184,7 @@ export default function StopScreen() {
                 {text && (
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <Chip label={t("food:tesla.send")} onPress={() => sendToTesla(text)} />
-                    {!inUse && <Chip label={t("food:tesla.useThis")} onPress={() => tesla.save(f).catch((e) => setError(errorText(t, e)))} />}
+                    {!inUse && <Chip label={t("food:tesla.useThis")} onPress={() => tesla.save(f).catch((e) => onError(errorText(t, e)))} />}
                   </View>
                 )}
               </View>
@@ -151,13 +193,6 @@ export default function StopScreen() {
         </Card>
       )}
 
-      <Chip
-        label={t("food:route.deleteStop")}
-        onPress={async () => {
-          if (!(await confirm(t("food:route.confirmDeleteStop"), t("common.delete"), t("common.cancel")))) return;
-          await routeApi.deleteStop(stop.id).then(() => router.back(), (e) => setError(errorText(t, e)));
-        }}
-      />
-    </ScrollView>
+    </>
   );
 }

@@ -19,6 +19,8 @@ export type PlaceDetails = {
   hoursRaw: string;
   /** Google's main type, e.g. "ramen_restaurant" (used to guess a category). */
   primaryType: string;
+  /** First photo's resource name (places/…/photos/…), or "". */
+  photoName: string;
 };
 export type RouteLeg = { seconds: number; meters: number; polyline: string };
 export type RouteResult = { legs: RouteLeg[]; seconds: number; meters: number };
@@ -79,9 +81,10 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     googleMapsUri?: string;
     regularOpeningHours?: { periods?: GooglePeriod[] };
     primaryType?: string;
+    photos?: { name: string }[];
   }>(f, `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${q}`, {
     method: "GET",
-    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType",
+    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType,photos",
   });
   return {
     googlePlaceId: placeId,
@@ -92,7 +95,21 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     mapsUrl: data.googleMapsUri ?? "",
     hoursRaw: googlePeriodsToHoursRaw(data.regularOpeningHours?.periods),
     primaryType: data.primaryType ?? "",
+    photoName: data.photos?.[0]?.name ?? "",
   };
+}
+
+/** A short-lived public image URL for a Places photo (the key stays on the server). */
+export async function photoUrl(photoName: string, maxWidthPx = 1000, f: Fetch = fetch): Promise<string> {
+  if (!/^places\/[^/]+\/photos\/[^/]+$/.test(photoName)) throw new HttpError(400, "bad_request");
+  if (googleFakeEnabled()) return "/favicon.ico";
+  const data = await call<{ photoUri?: string }>(
+    f,
+    `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidthPx}&skipHttpRedirect=true`,
+    { method: "GET" },
+  );
+  if (!data.photoUri) throw new HttpError(404, "not_found");
+  return data.photoUri;
 }
 
 /**
@@ -146,10 +163,10 @@ export async function computeRoute(points: LatLng[], f: Fetch = fetch): Promise<
 
 /** Deterministic stand-ins used by the end-to-end tests. */
 const FAKE_PLACES: PlaceDetails[] = [
-  { googlePlaceId: "fake-blue-bottle", name: "Blue Bottle Coffee", address: "315 Linden St, San Francisco, CA 94102", lat: 37.7764, lng: -122.4231, mapsUrl: "https://maps.google.com/?cid=1", hoursRaw: "24h", primaryType: "coffee_shop" },
-  { googlePlaceId: "fake-ggp", name: "Golden Gate Park", address: "San Francisco, CA", lat: 37.7694, lng: -122.4862, mapsUrl: "https://maps.google.com/?cid=2", hoursRaw: "24h", primaryType: "park" },
-  { googlePlaceId: "fake-sfjazz", name: "SFJAZZ Center", address: "201 Franklin St, San Francisco, CA 94102", lat: 37.7763, lng: -122.4213, mapsUrl: "https://maps.google.com/?cid=3", hoursRaw: "Mon-Sun 17:00-23:00", primaryType: "concert_hall" },
-  { googlePlaceId: "fake-mensho", name: "Mensho Tokyo", address: "672 Geary St, San Francisco, CA 94102", lat: 37.7866, lng: -122.4146, mapsUrl: "https://maps.google.com/?cid=4", hoursRaw: "Mon-Sun 11:30-22:00", primaryType: "ramen_restaurant" },
+  { googlePlaceId: "fake-blue-bottle", name: "Blue Bottle Coffee", address: "315 Linden St, San Francisco, CA 94102", lat: 37.7764, lng: -122.4231, mapsUrl: "https://maps.google.com/?cid=1", hoursRaw: "24h", primaryType: "coffee_shop", photoName: "places/fake-blue-bottle/photos/p1" },
+  { googlePlaceId: "fake-ggp", name: "Golden Gate Park", address: "San Francisco, CA", lat: 37.7694, lng: -122.4862, mapsUrl: "https://maps.google.com/?cid=2", hoursRaw: "24h", primaryType: "park", photoName: "" },
+  { googlePlaceId: "fake-sfjazz", name: "SFJAZZ Center", address: "201 Franklin St, San Francisco, CA 94102", lat: 37.7763, lng: -122.4213, mapsUrl: "https://maps.google.com/?cid=3", hoursRaw: "Mon-Sun 17:00-23:00", primaryType: "concert_hall", photoName: "" },
+  { googlePlaceId: "fake-mensho", name: "Mensho Tokyo", address: "672 Geary St, San Francisco, CA 94102", lat: 37.7866, lng: -122.4146, mapsUrl: "https://maps.google.com/?cid=4", hoursRaw: "Mon-Sun 11:30-22:00", primaryType: "ramen_restaurant", photoName: "places/fake-mensho/photos/p1" },
 ];
 /** What the fake short-link server answers (yelp.to / maps.app.goo.gl → canonical). */
 export const FAKE_SHORT_LINKS: Record<string, string> = {

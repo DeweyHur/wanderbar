@@ -117,7 +117,8 @@
     "legFromPrev": "{{time}} from the previous stop",
     "openInGoogleMaps": "Open the route in Google Maps",
     "mapNoPlaces": "Places need a location to show on the map (pick them from Google search).",
-    "searchPlaceholder": "Search a place, or type cafe, park, jazz bar"
+    "searchPlaceholder": "Search a place, or type cafe, park, jazz bar",
+    "inRoute": "In this route · {{status}}"
   },
   "hours": {
     "open": "Open · until {{time}}",
@@ -178,5 +179,14 @@
     "tesla": "Tesla",
     "more": "More…",
     "kakaoNoApp": "KakaoTalk isn't installed, so the share menu opened instead"
+  },
+  "visit": {
+    "title": "Visits",
+    "none": "No visits yet. Finishing it in a day route records one.",
+    "fromRoute": "day route",
+    "wentToday": "I went today",
+    "added": "Visit added",
+    "confirmDelete": "Delete this visit?",
+    "last": "Visited {{date}}"
   }
 }

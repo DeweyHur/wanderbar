@@ -9,9 +9,16 @@ export const placeQuery = (name: string, address?: string | null) =>
   [name.trim(), (address ?? "").trim()].filter(Boolean).join(", ");
 
 export const Links = {
-  /** Google Maps driving directions from the current location. */
-  googleDirections: (name: string, address?: string | null) =>
-    `https://www.google.com/maps/dir/?api=1&destination=${enc(placeQuery(name, address))}&travelmode=driving`,
+  /** Google Maps driving directions from the current location (to the exact place when its id is known). */
+  googleDirections: (name: string, address?: string | null, placeId?: string | null) =>
+    `https://www.google.com/maps/dir/?api=1&destination=${enc(placeQuery(name, address))}&travelmode=driving` +
+    (placeId ? `&destination_place_id=${enc(placeId)}` : ""),
+
+  /** The place's own page in Google Maps: by place id when known, else the saved Maps link, else a search. */
+  googlePlace: (name: string, address?: string | null, placeId?: string | null, mapsUrl?: string | null) =>
+    placeId
+      ? `https://www.google.com/maps/search/?api=1&query=${enc(placeQuery(name, address))}&query_place_id=${enc(placeId)}`
+      : (mapsUrl ?? "").trim() || `https://www.google.com/maps/search/?api=1&query=${enc(placeQuery(name, address))}`,
 
   /** Google Maps place search (used when no shared Maps link exists). */
   googleSearch: (name: string, address?: string | null) =>

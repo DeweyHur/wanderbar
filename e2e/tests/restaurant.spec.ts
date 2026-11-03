@@ -147,8 +147,9 @@ test("add a saved restaurant to a day route, and get back to it from the stop", 
   await expect(current(page)).toContainText("Blue Bottle Coffee");
   await expect(current(page)).toContainText("315 Linden St");
 
+  // The stop opens the restaurant's own page, with the route controls on top.
   await current(page).getByText("Blue Bottle Coffee").click();
-  await page.getByRole("button", { name: "Restaurant page" }).click();
+  await expect(page.getByTestId("route-widget").filter({ visible: true })).toContainText("In this route · Now");
   await expect(info(page)).toContainText("Blue Bottle Coffee");
 });
 
@@ -221,4 +222,52 @@ test("finishing a restaurant stop offers to rate it", async ({ page }) => {
   await page.goBack();
   await current(page).getByRole("button", { name: "Done" }).click();
   await expect(page.getByTestId("rate-prompt")).toHaveCount(0);
+});
+
+test("a restaurant picked into a route is saved under restaurants; Done records the visit on its page", async ({ page }) => {
+  await signIn(page, "Visitor");
+  const groupId = await openHome(page);
+  await page.getByRole("button", { name: "New route" }).click();
+  await page.getByPlaceholder(/cafe, park, jazz bar/i).fill("mensho");
+  await page.getByText("Mensho Tokyo").click();
+  await expect(current(page)).toContainText("Mensho Tokyo");
+  await page.getByPlaceholder(/cafe, park, jazz bar/i).fill("golden");
+  await page.getByText("Golden Gate Park").first().click();
+  await expect(page.getByTestId("stop-row-1")).toContainText("Golden Gate Park");
+
+  // Saved as a restaurant automatically (the park isn't).
+  const { restaurants } = await (await page.request.get(`/api/groups/${groupId}/restaurants`)).json();
+  expect(restaurants.map((r: { name: string }) => r.name)).toEqual(["Mensho Tokyo"]);
+  expect(restaurants[0]).toMatchObject({ hasPhoto: true, yelpUrl: "https://www.yelp.com/biz/mensho-tokyo-san-francisco" });
+
+  // Same page as the restaurant, plus the route widget; Done there records the visit.
+  await current(page).getByText("Mensho Tokyo").click();
+  const widget = page.getByTestId("route-widget").filter({ visible: true });
+  await expect(widget).toContainText("In this route · Now");
+  await expect(page.getByTestId("restaurant-photo").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("No visits yet.", { exact: false }).filter({ visible: true })).toBeVisible();
+  await widget.getByRole("button", { name: "Done" }).click();
+  await expect(widget).toContainText("In this route · Done");
+  await expect(page.getByTestId("visit-row").filter({ visible: true })).toContainText("Visitor · day route");
+
+  // The restaurant page itself shows the same visit; "I went today" adds another.
+  await page.goto(`/restaurant/${restaurants[0].id}`);
+  await expect(page.getByTestId("route-widget")).toHaveCount(0);
+  await expect(page.getByTestId("visit-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "I went today" }).click();
+  await expect(page.getByTestId("visit-row")).toHaveCount(2);
+  await page.goto(`/group/${groupId}`);
+  await restaurantsTab(page).click();
+  await expect(page.getByTestId("restaurant-card").filter({ visible: true })).toContainText("Visited ");
+});
+
+test("the photo is served through our API only to members", async ({ page, browser }) => {
+  await signIn(page, "Photo");
+  const groupId = await openHome(page);
+  const { restaurant } = await (await page.request.post(`/api/groups/${groupId}/restaurants`, { headers: WEB, data: { googlePlaceId: "fake-blue-bottle" } })).json();
+  const res = await page.request.get(`/api/restaurants/${restaurant.id}/photo`, { maxRedirects: 0 });
+  expect(res.status()).toBe(302);
+  const other = await (await browser.newContext()).newPage();
+  await signIn(other, "Nosy");
+  expect((await other.request.get(`/api/restaurants/${restaurant.id}/photo`, { maxRedirects: 0 })).status()).toBe(404);
 });

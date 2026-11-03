@@ -47,3 +47,24 @@ test("live: a typed restaurant is found on Google (text search) with hours and a
   });
   expect((await again.json()).restaurant.id).toBe(restaurant.id);
 });
+
+test("live: a restaurant picked into a route is filed as a restaurant with a real cover photo; a park isn't", async ({ page }) => {
+  test.skip(!process.env.GOOGLE_SERVER_KEY, "needs GOOGLE_SERVER_KEY");
+  await signIn(page, "Live Router");
+  const groupId = await openHome(page);
+  await newRoute(page);
+  await addInput(page).fill("Tartine Bakery Guerrero");
+  await page.getByText("Tartine Bakery", { exact: true }).first().click();
+  await expect(current(page)).toContainText("Tartine Bakery");
+  await addInput(page).fill("Dolores Park San Francisco");
+  await page.getByText("Mission Dolores Park", { exact: true }).first().click();
+  await expect(row(page, 1)).toContainText("Dolores Park");
+
+  const { restaurants } = await (await page.request.get(`/api/groups/${groupId}/restaurants`)).json();
+  expect(restaurants.map((r: { name: string }) => r.name)).toEqual(["Tartine Bakery"]);
+  expect(restaurants[0].hasPhoto).toBe(true);
+  const photo = await page.request.get(`/api/restaurants/${restaurants[0].id}/photo`, { maxRedirects: 0 });
+  expect(photo.status()).toBe(302);
+  expect(photo.headers()["location"]).toMatch(/^https:\/\/[a-z0-9.-]*googleusercontent\.com\//);
+  expect(photo.headers()["location"]).not.toContain("key=");
+});

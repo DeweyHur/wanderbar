@@ -73,7 +73,8 @@
       "category_invalid": "알 수 없는 카테고리예요",
       "duplicate": "이 그룹의 다른 가게가 이미 그 링크나 구글 장소를 쓰고 있어요",
       "delete_forbidden": "추가한 사람이나 그룹장만 삭제할 수 있어요",
-      "google_not_found": "구글에서 찾지 못했어요. 구글 검색으로 직접 골라 보세요."
+      "google_not_found": "구글에서 찾지 못했어요. 구글 검색으로 직접 골라 보세요.",
+      "no_photo": "사진 없음"
     },
     "menu": {
       "not_found": "메뉴를 찾을 수 없어요",
@@ -92,6 +93,11 @@
     },
     "rating": {
       "stars_invalid": "별 반 개에서 다섯 개 사이로 골라 주세요"
+    },
+    "visit": {
+      "not_found": "방문 기록을 찾을 수 없어요",
+      "not_yours": "내 방문 기록만 지울 수 있어요",
+      "date_invalid": "날짜를 확인해 주세요"
     }
   }
 }

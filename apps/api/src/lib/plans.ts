@@ -4,7 +4,7 @@ import type { Db } from "../db/client";
 import { planStops, plans, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
 import { requireMember } from "./groups";
-import { restaurantsInGroup } from "./restaurants";
+import { fileStopAsRestaurant, recordStopVisit, restaurantsInGroup } from "./restaurants";
 
 export type Stop = typeof planStops.$inferSelect;
 export type StopFields = Partial<
@@ -73,9 +73,21 @@ export async function createPlan(db: Db, groupId: string, userId: string, title:
   return plan;
 }
 
+/** Files not-yet-checked stops that are restaurants under the group's restaurants (older routes too). */
+async function fileRestaurants(db: Db, groupId: string, userId: string, stops: Stop[]) {
+  let changed = false;
+  for (const s of stops) {
+    if (s.itemId || s.placeKind) continue;
+    if ((await fileStopAsRestaurant(db, groupId, userId, s)) !== undefined) changed = true;
+  }
+  return changed;
+}
+
 export async function getPlan(db: Db, planId: string, userId: string) {
   const plan = await ownPlan(db, planId, userId);
-  return { ...plan, stops: await stopsOf(db, planId) };
+  const stops = await stopsOf(db, planId);
+  if (await fileRestaurants(db, plan.groupId, userId, stops)) return { ...plan, stops: await stopsOf(db, planId) };
+  return { ...plan, stops };
 }
 
 export async function renamePlan(db: Db, planId: string, userId: string, title: string) {
@@ -108,6 +120,7 @@ export async function addStops(db: Db, planId: string, userId: string, fields: S
     const before = stops;
     stops = await save(db, [...before, row], PlanFlow.add(before, row));
   }
+  if (await fileRestaurants(db, plan.groupId, userId, stops)) stops = await stopsOf(db, planId);
   return stops;
 }
 
@@ -137,7 +150,7 @@ export type FlowAction =
 
 /** Applies one "naive scheduler" step (same rules as the old Kotlin app) and returns the new stop list. */
 export async function applyFlow(db: Db, planId: string, userId: string, a: FlowAction) {
-  await ownPlan(db, planId, userId);
+  const plan = await ownPlan(db, planId, userId);
   const before = await stopsOf(db, planId);
   let after: Stop[];
   switch (a.action) {
@@ -150,6 +163,12 @@ export async function applyFlow(db: Db, planId: string, userId: string, a: FlowA
     default:
       if (!before.some((s) => s.id === a.stopId)) throw notFound("plan.stop_not_found");
       after = PlanFlow[a.action](before, a.stopId);
+  }
+  // Visits follow "done": finishing a restaurant stop records one, bringing it back removes it.
+  for (const b of before) {
+    const now = after.find((x) => x.id === b.id);
+    if (!now || (b.status === "done") === (now.status === "done") || a.action === "restart") continue;
+    await recordStopVisit(db, b, plan.groupId, userId, now.status === "done");
   }
   return save(db, before, after);
 }

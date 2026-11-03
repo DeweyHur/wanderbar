@@ -66,3 +66,8 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   if (!res.ok) throw new ApiError(res.status, data.error ?? "unknown");
   return data as T;
 }
+
+/** An image our API serves (e.g. a restaurant's cover photo), with the app's sign-in header. */
+export function apiImage(path: string) {
+  return { uri: API_URL + path, headers: token ? { authorization: `Bearer ${token}` } : undefined };
+}

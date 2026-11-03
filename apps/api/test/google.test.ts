@@ -36,6 +36,7 @@ describe("server-side Google", () => {
       googleMapsUri: "https://maps.google.com/?cid=9",
       regularOpeningHours: { periods: [{ open: { day: 5, hour: 18 }, close: { day: 6, hour: 2 } }] },
       primaryType: "concert_hall",
+      photos: [{ name: "places/p9/photos/abc" }],
     });
     expect(await placeDetails("p9", "session-123", f)).toEqual({
       googlePlaceId: "p9",
@@ -46,9 +47,10 @@ describe("server-side Google", () => {
       mapsUrl: "https://maps.google.com/?cid=9",
       hoursRaw: "Fri 18:00-02:00",
       primaryType: "concert_hall",
+      photoName: "places/p9/photos/abc",
     });
     expect(calls[0].url).toContain("/places/p9?sessionToken=session-123");
-    expect(header(0, "X-Goog-FieldMask")).toBe("id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType");
+    expect(header(0, "X-Goog-FieldMask")).toBe("id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType,photos");
   });
 
   it("routes sum the legs", async () => {

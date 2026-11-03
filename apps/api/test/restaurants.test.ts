@@ -3,14 +3,20 @@ import type { Db } from "@/db/client";
 import { signIn } from "@/lib/auth";
 import type { Fetch } from "@/lib/google";
 import { acceptInvite, createGroup, createInvite } from "@/lib/groups";
-import { addStops, createPlan, getPlan } from "@/lib/plans";
+import { addStops, applyFlow, createPlan, getPlan } from "@/lib/plans";
+import { planStops } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import {
   addMenu,
   createRestaurant,
   deleteMenu,
   deleteRestaurant,
+  addVisit,
+  deleteVisit,
   getMenu,
   getRestaurant,
+  isFoodPlace,
+  restaurantPhotoUrl,
   linkGoogle,
   listRestaurants,
   rateMenu,
@@ -280,5 +286,81 @@ describe("short links", () => {
     expect(seen).toEqual(["https://yelp.to/abc"]);
     expect(await resolveShortLink("https://example.com/x", f)).toBe("https://example.com/x");
     expect(seen).toHaveLength(1);
+  });
+});
+
+describe("route stops become restaurants; visits", () => {
+  beforeEach(() => fakeGoogle(true));
+
+  it("a Google-picked restaurant or a Yelp share in a route is filed under restaurants; a park or typed name isn't", async () => {
+    const plan = await createPlan(db, groupId, me, "p");
+    const stops = await addStops(db, plan.id, me, [
+      { name: "Blue Bottle Coffee", googlePlaceId: "fake-blue-bottle", address: "315 Linden St" },
+      { name: "Golden Gate Park", googlePlaceId: "fake-ggp" },
+      { name: "카페" },
+      { name: "Mensho Tokyo", yelpUrl: "https://yelp.to/mensho" },
+    ]);
+    const list = await listRestaurants(db, groupId, me);
+    expect(list.map((r) => r.name).sort()).toEqual(["Blue Bottle Coffee", "Mensho Tokyo"]);
+    const byName = Object.fromEntries(stops.map((x) => [x.name, x]));
+    expect(byName["Blue Bottle Coffee"].itemId).toBe(list.find((r) => r.name === "Blue Bottle Coffee")!.id);
+    expect(byName["Golden Gate Park"]).toMatchObject({ itemId: null, placeKind: "other" });
+    expect(byName["카페"]).toMatchObject({ itemId: null, placeKind: "other" });
+    // Adding the same place again (another route) points at the same restaurant.
+    const plan2 = await createPlan(db, groupId, me, "p2");
+    const [again] = await addStops(db, plan2.id, me, [{ name: "Blue Bottle", googlePlaceId: "fake-blue-bottle" }]);
+    expect(again.itemId).toBe(byName["Blue Bottle Coffee"].itemId);
+    expect(await listRestaurants(db, groupId, me)).toHaveLength(2);
+  });
+
+  it("older stops are filed when the route is opened", async () => {
+    const plan = await createPlan(db, groupId, me, "p");
+    const [s] = await addStops(db, plan.id, me, [{ name: "x" }]);
+    // An old stop saved before this feature: Google place, not checked yet.
+    await db.update(planStops).set({ name: "Mensho Tokyo", googlePlaceId: "fake-mensho", placeKind: null }).where(eq(planStops.id, s.id));
+    const opened = await getPlan(db, plan.id, me);
+    expect(opened.stops[0].itemId).not.toBeNull();
+    expect((await getRestaurant(db, opened.stops[0].itemId!, me)).hasPhoto).toBe(true);
+  });
+
+  it("Done on a restaurant stop records a visit; bringing it back removes it; restart keeps it", async () => {
+    const plan = await createPlan(db, groupId, me, "p");
+    const [a, b] = await addStops(db, plan.id, me, [{ name: "Mensho Tokyo", googlePlaceId: "fake-mensho" }, { name: "park" }]);
+    await applyFlow(db, plan.id, me, { action: "complete", stopId: a.id });
+    await applyFlow(db, plan.id, me, { action: "complete", stopId: b.id });
+    let r = await getRestaurant(db, a.itemId!, friend);
+    expect(r.visits.map((v) => [v.name, v.fromRoute])).toEqual([["me", true]]);
+    expect((await listRestaurants(db, groupId, me))[0].lastVisitedAt).not.toBeNull();
+    await applyFlow(db, plan.id, me, { action: "restore", stopId: a.id });
+    expect((await getRestaurant(db, a.itemId!, me)).visits).toEqual([]);
+    await applyFlow(db, plan.id, me, { action: "complete", stopId: a.id });
+    await applyFlow(db, plan.id, me, { action: "restart" });
+    expect((await getRestaurant(db, a.itemId!, me)).visits).toHaveLength(1);
+  });
+
+  it("visits by hand; only your own can be deleted", async () => {
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "동네 분식" });
+    await addVisit(db, r.id, friend, new Date("2026-10-01T19:00:00Z"));
+    const mine = await addVisit(db, r.id, me);
+    expect(mine.visits.map((v) => v.name)).toEqual(["me", "friend"]);
+    expect(await status(deleteVisit(db, mine.visits[1].id, me))).toBe(403);
+    expect((await deleteVisit(db, mine.visits[0].id, me)).visits).toHaveLength(1);
+    expect(await status(addVisit(db, r.id, me, new Date("2099-01-01")))).toBe(400);
+    expect(await status(addVisit(db, r.id, outsider))).toBe(404);
+  });
+
+  it("cover photo comes from Google; a Yelp page is found for Google-picked restaurants", async () => {
+    const { restaurant } = await createRestaurant(db, groupId, me, { googlePlaceId: "fake-mensho" });
+    expect(restaurant.hasPhoto).toBe(true);
+    expect(await restaurantPhotoUrl(db, restaurant.id, me)).toBe("/favicon.ico");
+    expect(restaurant.yelpUrl).toBe("https://www.yelp.com/biz/mensho-tokyo-san-francisco");
+    const { restaurant: plain } = await createRestaurant(db, groupId, me, { name: "동네 분식" });
+    expect(await status(restaurantPhotoUrl(db, plain.id, me))).toBe(404);
+    expect(await status(restaurantPhotoUrl(db, restaurant.id, outsider))).toBe(404);
+  });
+
+  it("knows food places from Google types", () => {
+    for (const t of ["restaurant", "korean_restaurant", "cafe", "coffee_shop", "bar", "bakery", "fast_food_restaurant", "ice_cream_shop", "steak_house"]) expect(isFoodPlace(t)).toBe(true);
+    for (const t of ["park", "museum", "tourist_attraction", "gas_station", "", null]) expect(isFoodPlace(t)).toBe(false);
   });
 });

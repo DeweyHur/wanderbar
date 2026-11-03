@@ -15,6 +15,8 @@ export type RestaurantSummary = {
   mapsUrl: string;
   menuCount: number;
   rating: RatingSummary;
+  hasPhoto: boolean;
+  lastVisitedAt: string | null;
 };
 export type Menu = { id: string; name: string; memo: string; priceMinor: number | null; currency: string; rating: RatingSummary; myStars: number | null };
 export type MenuDetail = {
@@ -40,12 +42,15 @@ export type Restaurant = {
   lat: number | null;
   lng: number | null;
   googlePlaceId: string;
+  hasPhoto: boolean;
+  visits: Visit[];
   yelpUrl: string;
   mapsUrl: string;
   currency: string;
   rating: RatingSummary;
   menus: Menu[];
 };
+export type Visit = { id: string; userId: string; name: string; visitedAt: string; fromRoute: boolean };
 export type NewRestaurant = {
   name?: string;
   address?: string;
@@ -69,6 +74,8 @@ export const restaurantApi = {
   addMenu: (id: string, m: MenuInput) => api<Restaurant>(`/api/restaurants/${id}/menus`, { body: m }),
   updateMenu: (menuId: string, m: MenuInput) => api<Restaurant>(`/api/menus/${menuId}`, { method: "PATCH", body: m }),
   deleteMenu: (menuId: string) => api<Restaurant>(`/api/menus/${menuId}`, { method: "DELETE" }),
+  addVisit: (id: string) => api<Restaurant>(`/api/restaurants/${id}/visits`, { body: {} }),
+  deleteVisit: (visitId: string) => api<Restaurant>(`/api/visits/${visitId}`, { method: "DELETE" }),
   getMenu: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}`),
   rate: (menuId: string, stars: number, review: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "PUT", body: { stars, review } }),
   unrate: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "DELETE" }),

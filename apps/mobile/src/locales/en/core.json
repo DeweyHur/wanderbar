@@ -74,7 +74,8 @@
       "category_invalid": "Unknown category",
       "duplicate": "Another restaurant in this group already has that link or Google place",
       "delete_forbidden": "Only whoever added it or the group owner can delete it",
-      "google_not_found": "Couldn't find it on Google. Try Search Google and pick it."
+      "google_not_found": "Couldn't find it on Google. Try Search Google and pick it.",
+      "no_photo": "No photo"
     },
     "menu": {
       "not_found": "Menu not found",
@@ -93,6 +94,11 @@
     },
     "rating": {
       "stars_invalid": "Pick between half a star and five stars"
+    },
+    "visit": {
+      "not_found": "Visit not found",
+      "not_yours": "You can only delete your own visits",
+      "date_invalid": "Check the date"
     }
   }
 }

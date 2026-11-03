@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { Body, Button, Card, Chip, Field, useColors } from "@/components/ui";
+import { apiImage } from "@/core/api";
 import { HoursBadge } from "../route/HoursBadge";
 import { useNow } from "../route/hooks";
 import type { RestaurantSummary } from "./api";
@@ -10,7 +11,7 @@ import { RatingBadge } from "./Stars";
 
 /** The group's saved restaurants: search by name or address, filter by category. */
 export function RestaurantList({ groupId, restaurants }: { groupId: string; restaurants: RestaurantSummary[] }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const c = useColors();
   const now = useNow();
   const [q, setQ] = useState("");
@@ -44,24 +45,36 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
           onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: r.id } })}
         >
           <Card testID="restaurant-card">
-            <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }} numberOfLines={1}>
-              {r.name}
-            </Text>
-            <Body muted>
-              {[r.category ? t(`food:category.${r.category}`) : null, r.menuCount ? t("food:restaurant.menuCount", { count: r.menuCount }) : null]
-                .filter(Boolean)
-                .join(" · ") || r.address}
-            </Body>
-            {r.category || r.menuCount ? (
-              r.address ? (
-                <Text style={{ color: c.muted, fontSize: 13 }} numberOfLines={1}>
-                  {r.address}
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              {r.hasPhoto && (
+                <Image source={apiImage(`/api/restaurants/${r.id}/photo`)} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: c.bg }} resizeMode="cover" />
+              )}
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }} numberOfLines={1}>
+                  {r.name}
                 </Text>
-              ) : null
-            ) : null}
-            <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-              <RatingBadge rating={r.rating} />
-              <HoursBadge hoursRaw={r.hoursRaw} now={now} />
+                <Body muted>
+                  {[r.category ? t(`food:category.${r.category}`) : null, r.menuCount ? t("food:restaurant.menuCount", { count: r.menuCount }) : null]
+                    .filter(Boolean)
+                    .join(" · ") || r.address}
+                </Body>
+                {r.category || r.menuCount ? (
+                  r.address ? (
+                    <Text style={{ color: c.muted, fontSize: 13 }} numberOfLines={1}>
+                      {r.address}
+                    </Text>
+                  ) : null
+                ) : null}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                  <RatingBadge rating={r.rating} />
+                  <HoursBadge hoursRaw={r.hoursRaw} now={now} />
+                  {r.lastVisitedAt && (
+                    <Text style={{ color: c.muted, fontSize: 13 }}>
+                      {t("food:visit.last", { date: new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(new Date(r.lastVisitedAt)) })}
+                    </Text>
+                  )}
+                </View>
+              </View>
             </View>
           </Card>
         </Pressable>

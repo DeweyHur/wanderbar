@@ -148,6 +148,8 @@ export const restaurantDetails = pgTable(
     lng: doublePrecision("lng"),
     hoursRaw: text("hours_raw").notNull().default(""),
     hoursFetchedAt: timestamp("hours_fetched_at", { withTimezone: true }),
+    /** Google Places photo resource name (places/…/photos/…) for the cover photo; served through our API. */
+    photoName: text("photo_name"),
   },
   (t) => [
     uniqueIndex("restaurant_details_group_yelp_uq").on(t.groupId, t.yelpAlias),
@@ -178,6 +180,27 @@ export const ratings = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("ratings_item_user_uq").on(t.itemId, t.userId), index("ratings_group_idx").on(t.groupId)],
+);
+
+/** "Went there": from finishing a restaurant stop in a day route (stopId set) or added by hand. */
+export const visits = pgTable(
+  "visits",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    visitedAt: timestamp("visited_at", { withTimezone: true }).notNull().defaultNow(),
+    stopId: text("stop_id").references((): AnyPgColumn => planStops.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("visits_item_idx").on(t.itemId, t.visitedAt), uniqueIndex("visits_stop_uq").on(t.stopId)],
 );
 
 export const menuDetails = pgTable("menu_details", {
@@ -233,6 +256,8 @@ export const planStops = pgTable(
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
     googlePlaceId: text("google_place_id").notNull().default(""),
+    /** Whether the place is somewhere to eat ("food") or not ("other"); null = not checked yet. */
+    placeKind: text("place_kind"),
     orderIndex: integer("order_index").notNull().default(0),
     status: stopStatus("status").notNull().default("pending"),
     createdAt: createdAt(),

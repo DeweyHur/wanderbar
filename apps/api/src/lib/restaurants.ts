@@ -1,11 +1,12 @@
 import { categoryFromGoogleType, coordsFromMapsUrl, isFoodCategory, placeQuery, yelpAlias } from "@wanderbar/route";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { externalLinks, groups, items, menuDetails, ratings, restaurantDetails, users } from "../db/schema";
+import { externalLinks, groups, items, menuDetails, planStops, ratings, restaurantDetails, users, visits } from "../db/schema";
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
-import { findPlaceId, googleAvailable, placeDetails, type PlaceDetails } from "./google";
+import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
 import { resolveShortLink } from "./shortLinks";
+import { findYelpUrl, yelpAvailable } from "./yelp";
 
 /**
  * Food module: a group's restaurants and their menus.
@@ -23,6 +24,8 @@ export type NewRestaurant = {
   googlePlaceId?: string;
   /** The app's autocomplete session, so Google bills search + details as one session. */
   sessionToken?: string;
+  /** Google details already fetched (e.g. while checking a route stop), to skip another call. */
+  prefetched?: PlaceDetails | null;
   category?: string | null;
   memo?: string;
 };
@@ -139,7 +142,7 @@ export async function createRestaurant(db: Db, groupId: string, userId: string, 
   if (sameYelp) return merge(sameYelp.itemId);
 
   const resolvedMaps = mapsUrl ? await resolveShortLink(mapsUrl) : "";
-  const g: PlaceDetails | null = await lookupGoogle({
+  const g: PlaceDetails | null = input.prefetched ?? await lookupGoogle({
     placeId: input.googlePlaceId,
     sessionToken: input.sessionToken,
     name,
@@ -186,11 +189,27 @@ export async function createRestaurant(db: Db, groupId: string, userId: string, 
     lng: linked?.lng ?? null,
     hoursRaw: linked?.hoursRaw ?? "",
     hoursFetchedAt: linked ? new Date() : null,
+    photoName: linked?.photoName || null,
   });
   if (yelpUrl) await setLink(db, item.id, "yelp", yelpUrl);
+  else if (linked?.lat != null && linked.lng != null) await findOwnYelpPage(db, groupId, item.id, name, { lat: linked.lat, lng: linked.lng });
   if (mapsUrl || linked?.mapsUrl) await setLink(db, item.id, "gmaps", mapsUrl || linked!.mapsUrl);
   return { restaurant: await getRestaurant(db, item.id, userId), created: true };
 }
+
+/** With a Yelp API key: link the restaurant's own Yelp page (unless another restaurant here has it). */
+async function findOwnYelpPage(db: Db, groupId: string, itemId: string, name: string, near: { lat: number; lng: number }) {
+  if (!yelpAvailable()) return;
+  const url = await findYelpUrl(name, near);
+  const alias = url ? yelpAlias(url) : null;
+  if (!url || !alias || (await byKey(db, groupId, { yelpAlias: alias }))) return;
+  await db.update(restaurantDetails).set({ yelpAlias: alias }).where(eq(restaurantDetails.itemId, itemId));
+  await setLink(db, itemId, "yelp", url);
+}
+
+/** Somewhere to eat or drink, judging by Google's main type. */
+export const isFoodPlace = (primaryType: string | null | undefined) =>
+  !!categoryFromGoogleType(primaryType) || /restaurant|food|meal|diner|deli|bistro|brew|steak|sandwich|cafe|bar_and_grill|tea|juice|winery|gastropub/i.test(primaryType ?? "");
 
 export async function listRestaurants(db: Db, groupId: string, userId: string) {
   await requireMember(db, groupId, userId);
@@ -214,10 +233,17 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .innerJoin(items, eq(items.id, ratings.itemId))
     .where(inArray(items.parentId, ids))
     .groupBy(items.parentId);
+  const last = await db
+    .select({ itemId: visits.itemId, at: sql<string>`max(${visits.visitedAt})` })
+    .from(visits)
+    .where(inArray(visits.itemId, ids))
+    .groupBy(visits.itemId);
   return rows.map(({ item, detail }) => ({
     id: item.id,
     name: item.name,
     category: item.category,
+    hasPhoto: !!detail.photoName,
+    lastVisitedAt: last.find((v) => v.itemId === item.id)?.at ?? null,
     address: detail.address,
     hoursRaw: detail.hoursRaw,
     lat: detail.lat,
@@ -253,6 +279,13 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
         .where(inArray(ratings.itemId, menus.map((m) => m.item.id)))
     : [];
   const of = (menuId: string) => rs.filter((r) => r.itemId === menuId);
+  const vs = await db
+    .select({ visit: visits, name: users.name, email: users.email })
+    .from(visits)
+    .innerJoin(users, eq(users.id, visits.userId))
+    .where(eq(visits.itemId, id))
+    .orderBy(sql`${visits.visitedAt} desc`)
+    .limit(30);
   return {
     id: item.id,
     groupId: item.groupId,
@@ -266,6 +299,14 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     lat: detail.lat,
     lng: detail.lng,
     googlePlaceId: detail.googlePlaceKey ?? "",
+    hasPhoto: !!detail.photoName,
+    visits: vs.map((v) => ({
+      id: v.visit.id,
+      userId: v.visit.userId,
+      name: v.name || v.email.split("@")[0],
+      visitedAt: v.visit.visitedAt,
+      fromRoute: !!v.visit.stopId,
+    })),
     yelpUrl: links.find((l) => l.kind === "yelp")?.url ?? "",
     mapsUrl: links.find((l) => l.kind === "gmaps")?.url ?? "",
     links: links.map((l) => ({ id: l.id, kind: l.kind, url: l.url, label: l.label })),
@@ -382,8 +423,10 @@ export async function linkGoogle(db: Db, id: string, userId: string, placeId?: s
       lng: g.lng,
       hoursRaw: g.hoursRaw || detail.hoursRaw,
       hoursFetchedAt: new Date(),
+      photoName: g.photoName || detail.photoName,
     })
     .where(eq(restaurantDetails.itemId, id));
+  if (!detail.yelpAlias && g.lat != null && g.lng != null) await findOwnYelpPage(db, item.groupId, id, item.name, { lat: g.lat, lng: g.lng });
   if (!item.category) {
     const guess = categoryFromGoogleType(g.primaryType);
     if (guess) await db.update(items).set({ category: guess }).where(eq(items.id, id));
@@ -445,4 +488,75 @@ export async function restaurantsInGroup(db: Db, groupId: string, ids: string[])
     .from(items)
     .where(and(eq(items.groupId, groupId), eq(items.type, "restaurant"), inArray(items.id, ids)));
   return rows.map((r) => r.id);
+}
+
+/** A fresh image URL for the restaurant's cover photo (from Google Places). */
+export async function restaurantPhotoUrl(db: Db, id: string, userId: string) {
+  const { detail } = await memberRestaurant(db, id, userId);
+  if (!detail.photoName || !googleAvailable()) throw notFound("restaurant.no_photo");
+  return photoUrl(detail.photoName);
+}
+
+/** "I went here" by hand, now or at a given time. */
+export async function addVisit(db: Db, restaurantId: string, userId: string, visitedAt?: Date) {
+  const { item } = await memberRestaurant(db, restaurantId, userId);
+  if (visitedAt && (Number.isNaN(visitedAt.getTime()) || visitedAt.getTime() > Date.now() + 86_400_000)) throw badRequest("visit.date_invalid");
+  await db.insert(visits).values({ groupId: item.groupId, itemId: restaurantId, userId, visitedAt: visitedAt ?? new Date() });
+  return getRestaurant(db, restaurantId, userId);
+}
+
+/** Only your own visits. */
+export async function deleteVisit(db: Db, visitId: string, userId: string) {
+  const [v] = await db.select().from(visits).where(eq(visits.id, visitId));
+  if (!v) throw notFound("visit.not_found");
+  await memberRestaurant(db, v.itemId, userId);
+  if (v.userId !== userId) throw forbidden("visit.not_yours");
+  await db.delete(visits).where(eq(visits.id, visitId));
+  return getRestaurant(db, v.itemId, userId);
+}
+
+/** Finishing a restaurant stop records a visit (once per stop); bringing the stop back removes it. */
+export async function recordStopVisit(db: Db, stop: { id: string; itemId: string | null }, groupId: string, userId: string, done: boolean) {
+  if (!stop.itemId) return;
+  if (done) await db.insert(visits).values({ groupId, itemId: stop.itemId, userId, stopId: stop.id }).onConflictDoNothing();
+  else await db.delete(visits).where(eq(visits.stopId, stop.id));
+}
+
+/**
+ * Decides whether a route stop is somewhere to eat and, if so, files it under the group's restaurants
+ * (an existing one when the Yelp page or Google place matches). Typed names like "cafe" stay plain stops.
+ * Returns the restaurant id, null for a place that isn't a restaurant, or undefined when it can't tell yet.
+ */
+export async function fileStopAsRestaurant(
+  db: Db,
+  groupId: string,
+  userId: string,
+  stop: { id: string; name: string; address: string; mapsUrl: string; yelpUrl: string; googlePlaceId: string; itemId: string | null },
+): Promise<string | null | undefined> {
+  if (stop.itemId) return stop.itemId;
+  let kind: "food" | "other" = "other";
+  let details: PlaceDetails | null = null;
+  if (stop.googlePlaceId && googleAvailable()) {
+    try {
+      details = await placeDetails(stop.googlePlaceId, null);
+      kind = isFoodPlace(details.primaryType) ? "food" : "other";
+    } catch {
+      return undefined; // Google trouble: decide next time
+    }
+  } else if (yelpAlias(stop.yelpUrl) || /yelp\.to\//.test(stop.yelpUrl)) kind = "food";
+  else if (stop.googlePlaceId) return undefined; // Google off: decide later
+  let itemId: string | null = null;
+  if (kind === "food") {
+    const { restaurant } = await createRestaurant(db, groupId, userId, {
+      name: stop.name,
+      address: stop.address,
+      yelpUrl: stop.yelpUrl,
+      mapsUrl: stop.mapsUrl,
+      googlePlaceId: stop.googlePlaceId || undefined,
+      prefetched: details,
+    });
+    itemId = restaurant.id;
+  }
+  await db.update(planStops).set({ placeKind: kind, itemId }).where(eq(planStops.id, stop.id));
+  return itemId;
 }

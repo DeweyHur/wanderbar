@@ -43,6 +43,13 @@
       "when": 1793664135804,
       "tag": "0005_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793667819093,
+      "tag": "0006_visits_photos_place_kind",
+      "breakpoints": true
     }
   ]
 }

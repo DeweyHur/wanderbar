@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { current, openHome, signIn } from "./helpers";
+import { current, openHome, signIn, WEB } from "./helpers";
 
 // Milestone 3: the group's restaurants and menus (Google answers are canned by the test server).
 
@@ -28,7 +28,7 @@ test("add a restaurant from Google search: address, hours and a category guess f
   await expect(page.getByTestId("restaurant-card")).toContainText("Japanese");
 });
 
-test("menus with prices: add, edit, delete", async ({ page }) => {
+test("menus with prices: add several quickly, edit and delete on the menu page", async ({ page }) => {
   await signIn(page, "Menus");
   await openHome(page);
   await restaurantsTab(page).click();
@@ -44,23 +44,72 @@ test("menus with prices: add, edit, delete", async ({ page }) => {
   await page.getByRole("button", { name: "Add menu" }).click();
   await page.getByPlaceholder("Menu name").fill("Dumplings");
   await page.getByRole("button", { name: "Add menu" }).click();
-  const rows = page.getByTestId("menu-row");
+  const rows = page.getByTestId("menu-row").filter({ visible: true });
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0)).toContainText("Cold noodles");
   await expect(rows.nth(0)).toContainText("$16.50");
+  await expect(rows.nth(0)).toContainText("No ratings yet");
   await expect(rows.nth(1)).toContainText("Dumplings");
 
-  await page.getByRole("button", { name: "Dumplings" }).click();
-  await page.getByLabel("Price (USD)").first().fill("12");
+  await rows.nth(1).click();
+  await page.getByRole("button", { name: "Edit menu" }).click();
+  await page.getByRole("textbox", { name: "Price (USD)", exact: true }).filter({ visible: true }).last().fill("12");
   await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("menu-info").filter({ visible: true })).toContainText("$12");
+  await page.goBack();
   await expect(rows.nth(1)).toContainText("$12");
 
-  await page.getByRole("button", { name: "Cold noodles" }).click();
+  await rows.nth(0).click();
+  await page.getByRole("button", { name: "Edit menu" }).click();
+  page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Delete menu" }).click();
   await expect(rows).toHaveCount(1);
-  await page.reload();
-  await expect(page.getByTestId("menu-row")).toHaveCount(1);
-  await expect(page.getByTestId("menu-row")).toContainText("Dumplings");
+  await expect(rows.first()).toContainText("Dumplings");
+});
+
+test("rate menus in half stars with a review; the group sees averages and each other's reviews", async ({ page, browser }) => {
+  await signIn(page, "Rater");
+  const groupId = await openHome(page);
+  const { restaurant } = await (
+    await page.request.post(`/api/groups/${groupId}/restaurants`, { headers: WEB, data: { name: "Ramen Ya", category: "japanese" } })
+  ).json();
+  await page.request.post(`/api/restaurants/${restaurant.id}/menus`, { headers: WEB, data: { name: "Tonkotsu", priceMinor: 1800 } });
+
+  // A friend joins and rates first.
+  const inv = await (await page.request.post(`/api/groups/${groupId}/invites`, { headers: WEB })).json();
+  const friend = await (await browser.newContext({ locale: "en-US" })).newPage();
+  await signIn(friend, "Jisoo");
+  expect((await friend.request.post(`${new URL(inv.url).pathname.replace("/invite/", "/api/invites/")}/accept`, { headers: WEB })).ok()).toBeTruthy();
+  const r = await (await friend.request.get(`/api/restaurants/${restaurant.id}`)).json();
+  const menuId = r.menus[0].id;
+  expect((await friend.request.put(`/api/menus/${menuId}/rating`, { headers: WEB, data: { stars: 3, review: "Broth a bit salty" } })).ok()).toBeTruthy();
+  await friend.close();
+
+  await page.goto(`/restaurant/${restaurant.id}`);
+  await page.getByTestId("menu-row").filter({ visible: true }).click();
+  await expect(page.getByTestId("review")).toContainText("Jisoo");
+  await expect(page.getByTestId("review")).toContainText("Broth a bit salty");
+  await page.getByRole("button", { name: "4.5 stars", exact: true }).click();
+  await page.getByLabel("Review").fill("Rich and creamy");
+  await page.getByRole("button", { name: "Save rating" }).click();
+  await expect(page.getByText("Rating saved")).toBeVisible();
+  await expect(page.getByTestId("menu-info").filter({ visible: true })).toContainText("3.8 (2)");
+
+  await page.goBack();
+  const row = page.getByTestId("menu-row").filter({ visible: true });
+  await expect(row).toContainText("3.8 (2)");
+  await expect(row).toContainText("You: 4.5★");
+  await expect(info(page)).toContainText("3.8 (2)");
+  await page.goto(`/group/${groupId}`);
+  await restaurantsTab(page).click();
+  await expect(page.getByTestId("restaurant-card").filter({ visible: true })).toContainText("3.8 (2)");
+
+  // Rating again replaces mine; reloading shows what I saved.
+  await page.goto(`/menu/${menuId}`);
+  await expect(page.getByLabel("Review")).toHaveValue("Rich and creamy");
+  await page.getByRole("button", { name: "5 stars", exact: true }).click();
+  await page.getByRole("button", { name: "Save rating" }).click();
+  await expect(page.getByTestId("menu-info").filter({ visible: true })).toContainText("4.0 (2)");
 });
 
 test("a Yelp share saved twice is one restaurant; it carries Yelp and Google links", async ({ page }) => {
@@ -94,7 +143,7 @@ test("add a saved restaurant to a day route, and get back to it from the stop", 
   await expect(info(page)).toContainText("Cafe");
 
   await page.getByRole("button", { name: "Add to route" }).click();
-  await page.getByTestId("add-to-route").getByRole("button", { name: "New route" }).click();
+  await page.getByTestId("add-to-route").filter({ visible: true }).getByRole("button", { name: "New route" }).click();
   await expect(current(page)).toContainText("Blue Bottle Coffee");
   await expect(current(page)).toContainText("315 Linden St");
 
@@ -133,6 +182,7 @@ test("edit a restaurant, filter by category, and delete it", async ({ page }) =>
   await expect(info(page)).toContainText("Cash only");
   await expect(info(page)).toContainText("Open 24 hours");
 
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Delete restaurant" }).click();
   await expect(page.getByTestId("restaurant-card")).toHaveCount(1);
@@ -153,4 +203,22 @@ test("restaurants are private to the group", async ({ page, browser }) => {
   expect((await other.request.get(`/api/groups/${groupId}/restaurants`)).status()).toBe(404);
   expect((await other.request.get(`/api/restaurants/${restaurant.id}`)).status()).toBe(404);
   await other.close();
+});
+
+test("finishing a restaurant stop offers to rate it", async ({ page }) => {
+  await signIn(page, "Eater");
+  const groupId = await openHome(page);
+  const { restaurant } = await (await page.request.post(`/api/groups/${groupId}/restaurants`, { headers: WEB, data: { name: "Taco Spot" } })).json();
+  const plan = await (await page.request.post(`/api/groups/${groupId}/plans`, { headers: WEB, data: { title: "Lunch" } })).json();
+  await page.request.post(`/api/plans/${plan.id}/stops`, { headers: WEB, data: { stops: [{ name: "Taco Spot", itemId: restaurant.id }, { name: "Park" }] } });
+  await page.goto(`/plan/${plan.id}`);
+  await current(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByTestId("rate-prompt")).toContainText("How was Taco Spot?");
+  await page.getByTestId("rate-prompt").getByRole("button", { name: "Rate" }).click();
+  await expect(info(page)).toContainText("Taco Spot");
+
+  // A plain place doesn't ask.
+  await page.goBack();
+  await current(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByTestId("rate-prompt")).toHaveCount(0);
 });

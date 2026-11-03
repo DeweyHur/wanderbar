@@ -1,5 +1,8 @@
 import { api } from "@/core/api";
 
+/** Group average in stars (one decimal) and how many ratings it's from. */
+export type RatingSummary = { avg: number | null; count: number };
+
 export type RestaurantSummary = {
   id: string;
   name: string;
@@ -11,8 +14,20 @@ export type RestaurantSummary = {
   yelpUrl: string;
   mapsUrl: string;
   menuCount: number;
+  rating: RatingSummary;
 };
-export type Menu = { id: string; name: string; memo: string; priceMinor: number | null; currency: string };
+export type Menu = { id: string; name: string; memo: string; priceMinor: number | null; currency: string; rating: RatingSummary; myStars: number | null };
+export type MenuDetail = {
+  id: string;
+  name: string;
+  memo: string;
+  priceMinor: number | null;
+  currency: string;
+  restaurant: { id: string; name: string };
+  rating: RatingSummary;
+  mine: { stars: number; review: string } | null;
+  ratings: { userId: string; name: string; stars: number; review: string; updatedAt: string }[];
+};
 export type Restaurant = {
   id: string;
   groupId: string;
@@ -28,6 +43,7 @@ export type Restaurant = {
   yelpUrl: string;
   mapsUrl: string;
   currency: string;
+  rating: RatingSummary;
   menus: Menu[];
 };
 export type NewRestaurant = {
@@ -53,4 +69,7 @@ export const restaurantApi = {
   addMenu: (id: string, m: MenuInput) => api<Restaurant>(`/api/restaurants/${id}/menus`, { body: m }),
   updateMenu: (menuId: string, m: MenuInput) => api<Restaurant>(`/api/menus/${menuId}`, { method: "PATCH", body: m }),
   deleteMenu: (menuId: string) => api<Restaurant>(`/api/menus/${menuId}`, { method: "DELETE" }),
+  getMenu: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}`),
+  rate: (menuId: string, stars: number, review: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "PUT", body: { stars, review } }),
+  unrate: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "DELETE" }),
 };

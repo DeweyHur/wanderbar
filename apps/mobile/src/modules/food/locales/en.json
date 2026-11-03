@@ -52,7 +52,25 @@
     "price": "Price ({{currency}})",
     "noPrice": "—",
     "add": "Add menu",
-    "delete": "Delete menu"
+    "delete": "Delete menu",
+    "edit": "Edit menu",
+    "confirmDelete": "Delete \"{{name}}\" and its ratings?"
+  },
+  "rating": {
+    "none": "No ratings yet",
+    "mine": "You: {{stars}}★",
+    "yours": "Your rating",
+    "review": "Review",
+    "reviewPlaceholder": "What was it like? (optional)",
+    "save": "Save rating",
+    "saved": "Rating saved",
+    "remove": "Remove my rating",
+    "group": "Group reviews",
+    "setStars_one": "{{count}} star",
+    "setStars_other": "{{count}} stars",
+    "prompt": "How was {{name}}? Rate what you ate.",
+    "rateNow": "Rate",
+    "later": "Later"
   },
   "route": {
     "title": "Day routes",
@@ -154,6 +172,11 @@
       "yelp": "From Yelp",
       "other": "Shared text"
     },
-    "noGroup": "Sign in and open a group first."
+    "noGroup": "Sign in and open a group first.",
+    "button": "Share",
+    "kakao": "KakaoTalk",
+    "tesla": "Tesla",
+    "more": "More…",
+    "kakaoNoApp": "KakaoTalk isn't installed, so the share menu opened instead"
   }
 }

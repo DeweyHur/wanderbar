@@ -10,6 +10,7 @@ test("add from a pasted Google Maps share into a new route", async ({ page }) =>
   );
   await expect(page.getByText("From Google Maps")).toBeVisible();
   await expect(page.getByLabel("Name")).toHaveValue("Blue Bottle Coffee");
+  await page.getByRole("button", { name: "Add to a route" }).click();
   await page.getByRole("button", { name: "New route" }).click();
   await expect(current(page)).toContainText("Blue Bottle Coffee");
   await expect(current(page)).toContainText("315 Linden St, San Francisco, CA 94102");
@@ -22,6 +23,7 @@ test("a Yelp share sentence becomes the place name and keeps the Yelp link", asy
   await page.getByLabel("Paste a Google Maps or Yelp share").fill("Check out Tsujita LA Artisan Noodle on Yelp! https://yelp.to/AbC12");
   await expect(page.getByText("From Yelp")).toBeVisible();
   await expect(page.getByLabel("Name")).toHaveValue("Tsujita LA Artisan Noodle");
+  await page.getByRole("button", { name: "Add to a route" }).click();
   await page.getByRole("button", { name: "New route" }).click();
   await expect(current(page)).toContainText("Tsujita LA Artisan Noodle");
 

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { authed, json } from "@/lib/http";
-import { deleteMenu, updateMenu } from "@/lib/restaurants";
+import { deleteMenu, getMenu, updateMenu } from "@/lib/restaurants";
+
+export const GET = authed<{ menuId: string }>(async (_req, { db, user, params }) => json(await getMenu(db, params.menuId, user.id)));
 
 const Body = z.object({
   name: z.string().max(200).optional(),

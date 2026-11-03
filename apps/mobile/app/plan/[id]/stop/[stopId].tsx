@@ -11,6 +11,7 @@ import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Stop } from "@/modules/food/route/api";
 import { useGoogleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
+import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 
 /** Place detail + edit, status actions, and the Tesla format tester (as in the old app). */
@@ -28,6 +29,7 @@ export default function StopScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tester, setTester] = useState(false);
 
   useEffect(() => {
     routeApi
@@ -86,9 +88,11 @@ export default function StopScreen() {
         {(stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
         {(stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
         <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address))} />
-        <Chip label="Google Maps" onPress={() => Linking.openURL(dest.mapsUrl || Links.googleSearch(dest.name, dest.address))} />
-        <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(dest.yelpUrl || Links.yelpSearch(dest.name, dest.address))} />
-        {stop.itemId && <Chip label={t("food:restaurant.openRestaurant")} onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: stop.itemId! } })} />}
+        {stop.itemId ? (
+          <Chip label={t("food:restaurant.openRestaurant")} onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: stop.itemId! } })} />
+        ) : (
+          <Chip label="Google Maps" onPress={() => Linking.openURL(dest.mapsUrl || Links.googleSearch(dest.name, dest.address))} />
+        )}
       </View>
 
       {googleAvailable && (
@@ -115,7 +119,13 @@ export default function StopScreen() {
       {notice ? <Body muted>{notice}</Body> : null}
       <ErrorText>{error}</ErrorText>
 
+      <ShareMenu place={dest} onNotice={setNotice} kind="plain" />
       {canSendToTesla && (
+        <View style={{ flexDirection: "row" }}>
+          <Chip label={t("food:tesla.tester")} selected={tester} onPress={() => setTester(!tester)} />
+        </View>
+      )}
+      {canSendToTesla && tester && (
         <Card>
           <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:tesla.tester")}</Text>
           <Body muted>{t("food:tesla.testerHint")}</Body>

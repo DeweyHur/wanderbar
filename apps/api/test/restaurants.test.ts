@@ -9,9 +9,12 @@ import {
   createRestaurant,
   deleteMenu,
   deleteRestaurant,
+  getMenu,
   getRestaurant,
   linkGoogle,
   listRestaurants,
+  rateMenu,
+  unrateMenu,
   updateMenu,
   updateRestaurant,
 } from "@/lib/restaurants";
@@ -143,6 +146,57 @@ describe("restaurants without Google", () => {
   it("linking Google needs the server key", async () => {
     const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "R" });
     expect(await status(linkGoogle(db, r.id, me))).toBe(503);
+  });
+});
+
+describe("menu ratings", () => {
+  it("each member rates a menu once (rating again replaces it); averages roll up to the restaurant and the list", async () => {
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "을지면옥" });
+    let full = await addMenu(db, r.id, me, { name: "물냉면", priceMinor: 16000 });
+    full = await addMenu(db, r.id, me, { name: "편육" });
+    const [cold, meat] = full.menus;
+
+    await rateMenu(db, cold.id, me, { stars: 4.5, review: "육수가 진하다" });
+    await rateMenu(db, cold.id, friend, { stars: 3 });
+    let m = await rateMenu(db, cold.id, me, { stars: 5, review: " 다시 와서 먹어도 최고 " });
+    expect(m.rating).toEqual({ avg: 4, count: 2 });
+    expect(m.mine).toEqual({ stars: 5, review: "다시 와서 먹어도 최고" });
+    expect(m.ratings.map((x) => [x.name, x.stars])).toEqual([
+      ["me", 5],
+      ["friend", 3],
+    ]);
+    expect(m.restaurant).toEqual({ id: r.id, name: "을지면옥" });
+
+    await rateMenu(db, meat.id, friend, { stars: 2.5 });
+    const detail = await getRestaurant(db, r.id, friend);
+    expect(detail.menus.map((x) => [x.name, x.rating.avg, x.rating.count, x.myStars])).toEqual([
+      ["물냉면", 4, 2, 3],
+      ["편육", 2.5, 1, 2.5],
+    ]);
+    expect(detail.rating).toEqual({ avg: 3.5, count: 3 });
+    expect((await listRestaurants(db, groupId, me))[0].rating).toEqual({ avg: 3.5, count: 3 });
+
+    m = await unrateMenu(db, cold.id, me);
+    expect(m.mine).toBeNull();
+    expect(m.rating).toEqual({ avg: 3, count: 1 });
+  });
+
+  it("stars must be 0.5..5 in halves; outsiders can't see or rate", async () => {
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "R" });
+    const [menu] = (await addMenu(db, r.id, me, { name: "m" })).menus;
+    for (const stars of [0, 0.3, 5.5, -1]) expect(await status(rateMenu(db, menu.id, me, { stars }))).toBe(400);
+    expect(await status(rateMenu(db, menu.id, me, { stars: 0.5 }))).toBe(200);
+    expect(await status(rateMenu(db, menu.id, outsider, { stars: 5 }))).toBe(404);
+    expect(await status(getMenu(db, menu.id, outsider))).toBe(404);
+    expect((await listRestaurants(db, groupId, me))[0].rating).toEqual({ avg: 0.5, count: 1 });
+  });
+
+  it("deleting a menu deletes its ratings", async () => {
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "R" });
+    const [menu] = (await addMenu(db, r.id, me, { name: "m" })).menus;
+    await rateMenu(db, menu.id, me, { stars: 4 });
+    await deleteMenu(db, menu.id, me);
+    expect((await getRestaurant(db, r.id, me)).rating).toEqual({ avg: null, count: 0 });
   });
 });
 

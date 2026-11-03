@@ -90,6 +90,9 @@
       "stop_not_found": "Place not found",
       "title_required": "Enter a route name",
       "stop_name_required": "Enter a place name"
+    },
+    "rating": {
+      "stars_invalid": "Pick between half a star and five stars"
     }
   }
 }

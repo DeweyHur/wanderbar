@@ -36,6 +36,13 @@
       "when": 1793658104635,
       "tag": "0004_items_restaurants_menus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793664135804,
+      "tag": "0005_ratings",
+      "breakpoints": true
     }
   ]
 }

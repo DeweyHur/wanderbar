@@ -1,4 +1,4 @@
-import { formatPrice, Links, parsePrice, priceInput } from "@wanderbar/route";
+import { formatPrice, Links, parsePrice } from "@wanderbar/route";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,12 +9,14 @@ import { confirm } from "@/core/platform/confirm";
 import { AddToRoute } from "@/modules/food/restaurants/AddToRoute";
 import { CategoryPicker } from "@/modules/food/restaurants/CategoryPicker";
 import { restaurantApi, type Menu, type Restaurant } from "@/modules/food/restaurants/api";
+import { RatingBadge } from "@/modules/food/restaurants/Stars";
+import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { takeSession, useGoogleAvailable } from "@/modules/food/route/google";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { useNow } from "@/modules/food/route/hooks";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 
-/** A saved restaurant: hours, links, its menus with prices, editing, and adding it to a day route. */
+/** A saved restaurant: hours, links, menus with prices and ratings, sharing, editing, and adding it to a day route. */
 export default function RestaurantScreen() {
   const { id, existing } = useLocalSearchParams<{ id: string; existing?: string }>();
   const { t, i18n } = useTranslation();
@@ -72,33 +74,38 @@ export default function RestaurantScreen() {
       {notice ? <Body muted>{notice}</Body> : null}
       <Card testID="restaurant-info">
         <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{r.name}</Text>
-        {r.category ? <Body muted>{t(`food:category.${r.category}`)}</Body> : null}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <RatingBadge rating={r.rating} />
+          {r.category ? <Body muted>{t(`food:category.${r.category}`)}</Body> : null}
+        </View>
         <HoursBadge hoursRaw={r.hoursRaw} now={now} />
         {r.address ? <Body>{r.address}</Body> : null}
         {r.memo ? <Body muted>{r.memo}</Body> : null}
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <Link label="Google Maps" onPress={() => Linking.openURL(r.mapsUrl || Links.googleSearch(r.name, r.address))} />
+          <Link label={t("food:route.yelp")} onPress={() => Linking.openURL(r.yelpUrl || Links.yelpSearch(r.name, r.address))} />
+        </View>
       </Card>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Chip label={t("food:restaurant.addToRoute")} selected={panel === "route"} onPress={() => setPanel(panel === "route" ? "none" : "route")} />
-        <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(r.name, r.address))} />
-        <Chip label="Google Maps" onPress={() => Linking.openURL(r.mapsUrl || Links.googleSearch(r.name, r.address))} />
-        <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(r.yelpUrl || Links.yelpSearch(r.name, r.address))} />
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <ShareMenu place={r} onNotice={setNotice} kind="plain" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button kind="plain" label={t("food:restaurant.addToRoute")} onPress={() => setPanel(panel === "route" ? "none" : "route")} />
+        </View>
       </View>
       {panel === "route" && <AddToRoute restaurant={r} />}
 
       <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:menu.title")}</Text>
       {r.menus.length === 0 && <Body muted>{t("food:menu.empty")}</Body>}
       {r.menus.map((m) => (
-        <MenuRow key={m.id} menu={m} locale={i18n.language} onSave={(edit) => run(restaurantApi.updateMenu(m.id, edit))} onDelete={() => run(restaurantApi.deleteMenu(m.id))} />
+        <MenuRow key={m.id} menu={m} locale={i18n.language} />
       ))}
       <NewMenu currency={r.currency} onAdd={(m) => run(restaurantApi.addMenu(r.id, m))} />
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+      <View style={{ flexDirection: "row", marginTop: 10 }}>
         <Chip label={t("food:restaurant.edit")} selected={panel === "edit"} onPress={() => setPanel(panel === "edit" ? "none" : "edit")} />
-        {googleAvailable && !r.googlePlaceId && (
-          <Chip label={t("food:restaurant.findOnGoogle")} onPress={() => run(restaurantApi.linkGoogle(r.id), t("food:restaurant.linked"))} />
-        )}
-        <Chip label={t("food:restaurant.delete")} onPress={remove} />
       </View>
       {panel === "edit" && (
         <EditRestaurant
@@ -106,6 +113,8 @@ export default function RestaurantScreen() {
           googleAvailable={googleAvailable}
           onSave={async (edit) => (await run(restaurantApi.update(r.id, edit), t("food:stop.saved"))) && setPanel("none")}
           onPickGoogle={(placeId) => run(restaurantApi.linkGoogle(r.id, { placeId, sessionToken: takeSession() }), t("food:restaurant.linked"))}
+          onFindGoogle={() => run(restaurantApi.linkGoogle(r.id), t("food:restaurant.linked"))}
+          onDelete={remove}
         />
       )}
       <ErrorText>{error}</ErrorText>
@@ -113,38 +122,34 @@ export default function RestaurantScreen() {
   );
 }
 
-function MenuRow({ menu, locale, onSave, onDelete }: { menu: Menu; locale: string; onSave: (m: { name: string; priceMinor: number | null }) => Promise<boolean>; onDelete: () => void }) {
+function Link({ label, onPress }: { label: string; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable accessibilityRole="link" onPress={onPress} hitSlop={8}>
+      <Text style={{ color: c.accent, fontSize: 15, fontWeight: "600" }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Name, price, group average and my stars; opens the menu page (rate, reviews, edit). */
+function MenuRow({ menu, locale }: { menu: Menu; locale: string }) {
   const { t } = useTranslation();
   const c = useColors();
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(menu.name);
-  const [price, setPrice] = useState(menu.priceMinor == null ? "" : priceInput(menu.priceMinor, menu.currency));
-
-  if (!editing)
-    return (
-      <Pressable accessibilityRole="button" accessibilityLabel={menu.name} onPress={() => setEditing(true)}>
-        <View testID="menu-row" style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border }}>
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={menu.name} onPress={() => router.push({ pathname: "/menu/[id]", params: { id: menu.id } })}>
+      <View testID="menu-row" style={{ gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
           <Text style={{ color: c.text, fontSize: 16, flex: 1 }}>{menu.name}</Text>
           <Text style={{ color: menu.priceMinor == null ? c.muted : c.text, fontSize: 16 }}>
             {menu.priceMinor == null ? t("food:menu.noPrice") : formatPrice(menu.priceMinor, menu.currency, locale)}
           </Text>
         </View>
-      </Pressable>
-    );
-  return (
-    <Card>
-      <Field label={t("food:menu.name")} value={name} onChangeText={setName} />
-      <Field label={t("food:menu.price", { currency: menu.currency })} value={price} onChangeText={setPrice} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Chip
-          label={t("food:stop.save")}
-          disabled={!name.trim()}
-          onPress={async () => (await onSave({ name, priceMinor: parsePrice(price, menu.currency) })) && setEditing(false)}
-        />
-        <Chip label={t("common.cancel")} onPress={() => setEditing(false)} />
-        <Chip label={t("food:menu.delete")} onPress={onDelete} />
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          {menu.rating.count ? <RatingBadge rating={menu.rating} /> : <Text style={{ color: c.muted, fontSize: 14 }}>{t("food:rating.none")}</Text>}
+          {menu.myStars != null && <Text style={{ color: c.muted, fontSize: 13 }}>{t("food:rating.mine", { stars: menu.myStars })}</Text>}
+        </View>
       </View>
-    </Card>
+    </Pressable>
   );
 }
 
@@ -182,11 +187,15 @@ function EditRestaurant({
   googleAvailable,
   onSave,
   onPickGoogle,
+  onFindGoogle,
+  onDelete,
 }: {
   r: Restaurant;
   googleAvailable: boolean;
   onSave: (edit: Partial<Restaurant>) => void;
   onPickGoogle: (placeId: string) => void;
+  onFindGoogle: () => void;
+  onDelete: () => void;
 }) {
   const { t } = useTranslation();
   const now = useNow();
@@ -218,6 +227,10 @@ function EditRestaurant({
       <Field label={t("food:stop.mapsUrl")} value={form.mapsUrl} onChangeText={set("mapsUrl")} />
       <Field label={t("food:stop.memo")} value={form.memo} onChangeText={set("memo")} multiline />
       <Button label={t("food:stop.save")} disabled={!form.name.trim()} onPress={() => onSave({ ...form, category })} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {googleAvailable && !r.googlePlaceId && <Chip label={t("food:restaurant.findOnGoogle")} onPress={onFindGoogle} />}
+        <Chip label={t("food:restaurant.delete")} onPress={onDelete} />
+      </View>
     </Card>
   );
 }

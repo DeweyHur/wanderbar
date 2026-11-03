@@ -155,6 +155,31 @@ export const restaurantDetails = pgTable(
   ],
 );
 
+/**
+ * A member's rating of a menu: one per person per menu, updated when they eat it again.
+ * score is in half stars, 1..10 (= 0.5..5 stars).
+ */
+export const ratings = pgTable(
+  "ratings",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    review: text("review").notNull().default(""),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("ratings_item_user_uq").on(t.itemId, t.userId), index("ratings_group_idx").on(t.groupId)],
+);
+
 export const menuDetails = pgTable("menu_details", {
   itemId: text("item_id")
     .primaryKey()

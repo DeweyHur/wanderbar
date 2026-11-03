@@ -1,20 +1,19 @@
-import { formatDistance, hoursStatusFromText, Links, parseSharedText, teslaShareTextWithFallback } from "@wanderbar/route";
+import { formatDistance, hoursStatusFromText, Links, parseSharedText } from "@wanderbar/route";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Loading, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
-import { copyText } from "@/core/platform/clipboard";
 import { confirm } from "@/core/platform/confirm";
-import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Plan, type Stop } from "@/modules/food/route/api";
 import { formatDuration } from "@/modules/food/route/format";
 import { useGoogleAvailable, type PlaceDetails } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { useRoute } from "@/modules/food/route/useRoute";
-import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
+import { useNow } from "@/modules/food/route/hooks";
+import { ShareMenu } from "@/modules/food/route/ShareMenu";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
 export default function PlanScreen() {
@@ -23,7 +22,8 @@ export default function PlanScreen() {
   const c = useColors();
   const now = useNow();
   const googleAvailable = useGoogleAvailable();
-  const { format } = useTeslaFormat();
+  /** A restaurant stop just finished: offer to rate what was eaten there. */
+  const [justAte, setJustAte] = useState<Stop | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -54,10 +54,9 @@ export default function PlanScreen() {
 
   const current = plan.stops.find((s) => s.status === "current");
 
-  const tesla = async (s: Stop) => {
-    setNotice("");
-    const how = await sendToTesla(teslaShareTextWithFallback(format, s));
-    if (how === "fallback") setNotice(t("food:route.teslaNoApp"));
+  const done = async (s: Stop) => {
+    await flow({ action: "complete", stopId: s.id });
+    setJustAte(s.itemId ? s : null);
   };
 
   /** "카페, 공원, 재즈바" adds three; a pasted Google Maps share adds one place with its address and link. */
@@ -110,19 +109,11 @@ export default function PlanScreen() {
               <Chip label={t("food:route.next")} onPress={() => flow({ action: "postpone", stopId: current.id })} />
             </View>
           )}
-          {canSendToTesla ? (
-            <Button label={t("food:route.sendTesla")} onPress={() => tesla(current)} />
-          ) : (
-            <Button
-              label={t("food:route.copyAddress")}
-              onPress={() => copyText(current.address || current.name).then(() => setNotice(t("food:route.copied")))}
-            />
-          )}
+          <ShareMenu place={current} onNotice={setNotice} />
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            <Chip label={t("food:route.done")} onPress={() => flow({ action: "complete", stopId: current.id })} />
+            <Chip label={t("food:route.done")} onPress={() => done(current)} />
             <Chip label={t("food:route.skip")} onPress={() => flow({ action: "postpone", stopId: current.id })} />
             <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(current.name, current.address))} />
-            <Chip label={t("food:route.yelp")} onPress={() => Linking.openURL(current.yelpUrl || Links.yelpSearch(current.name, current.address))} />
           </View>
         </Card>
       ) : plan.stops.length > 0 ? (
@@ -131,6 +122,16 @@ export default function PlanScreen() {
           <Chip label={t("food:route.restart")} onPress={() => flow({ action: "restart" })} />
         </Card>
       ) : null}
+
+      {justAte?.itemId && (
+        <Card testID="rate-prompt">
+          <Body>{t("food:rating.prompt", { name: justAte.name })}</Body>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <Chip label={t("food:rating.rateNow")} onPress={() => router.push({ pathname: "/restaurant/[id]", params: { id: justAte.itemId! } })} />
+            <Chip label={t("food:rating.later")} onPress={() => setJustAte(null)} />
+          </View>
+        </Card>
+      )}
 
       {route.result && (
         <Body muted>

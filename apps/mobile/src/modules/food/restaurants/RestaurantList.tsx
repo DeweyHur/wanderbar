@@ -6,6 +6,7 @@ import { Body, Button, Card, Chip, Field, useColors } from "@/components/ui";
 import { HoursBadge } from "../route/HoursBadge";
 import { useNow } from "../route/hooks";
 import type { RestaurantSummary } from "./api";
+import { RatingBadge } from "./Stars";
 
 /** The group's saved restaurants: search by name or address, filter by category. */
 export function RestaurantList({ groupId, restaurants }: { groupId: string; restaurants: RestaurantSummary[] }) {
@@ -58,7 +59,10 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
                 </Text>
               ) : null
             ) : null}
-            <HoursBadge hoursRaw={r.hoursRaw} now={now} />
+            <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+              <RatingBadge rating={r.rating} />
+              <HoursBadge hoursRaw={r.hoursRaw} now={now} />
+            </View>
           </Card>
         </Pressable>
       ))}

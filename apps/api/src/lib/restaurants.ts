@@ -1,7 +1,7 @@
 import { categoryFromGoogleType, coordsFromMapsUrl, isFoodCategory, placeQuery, yelpAlias } from "@wanderbar/route";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { externalLinks, groups, items, menuDetails, restaurantDetails } from "../db/schema";
+import { externalLinks, groups, items, menuDetails, ratings, restaurantDetails, users } from "../db/schema";
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
@@ -208,6 +208,12 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .where(and(eq(items.type, "menu"), inArray(items.parentId, ids)))
     .groupBy(items.parentId);
   const links = await db.select().from(externalLinks).where(inArray(externalLinks.itemId, ids));
+  const stats = await db
+    .select({ parentId: items.parentId, sum: sql<number>`sum(${ratings.score})::int`, n: sql<number>`count(*)::int` })
+    .from(ratings)
+    .innerJoin(items, eq(items.id, ratings.itemId))
+    .where(inArray(items.parentId, ids))
+    .groupBy(items.parentId);
   return rows.map(({ item, detail }) => ({
     id: item.id,
     name: item.name,
@@ -219,8 +225,16 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     yelpUrl: links.find((l) => l.itemId === item.id && l.kind === "yelp")?.url ?? "",
     mapsUrl: links.find((l) => l.itemId === item.id && l.kind === "gmaps")?.url ?? "",
     menuCount: counts.find((c) => c.parentId === item.id)?.n ?? 0,
+    rating: summary(stats.find((x) => x.parentId === item.id)),
   }));
 }
+
+/** Half-star sums → { avg in stars (one decimal), count }. */
+const summary = (x?: { sum: number; n: number } | null) =>
+  x && x.n ? { avg: Math.round((x.sum / x.n / 2) * 10) / 10, count: x.n } : { avg: null as number | null, count: 0 };
+
+/** score 1..10 (half stars) → stars. */
+const stars = (score: number) => score / 2;
 
 export async function getRestaurant(db: Db, id: string, userId: string) {
   const { item, detail } = await memberRestaurant(db, id, userId);
@@ -232,6 +246,13 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     .leftJoin(menuDetails, eq(menuDetails.itemId, items.id))
     .where(and(eq(items.parentId, id), eq(items.type, "menu")))
     .orderBy(asc(items.createdAt));
+  const rs = menus.length
+    ? await db
+        .select({ itemId: ratings.itemId, userId: ratings.userId, score: ratings.score })
+        .from(ratings)
+        .where(inArray(ratings.itemId, menus.map((m) => m.item.id)))
+    : [];
+  const of = (menuId: string) => rs.filter((r) => r.itemId === menuId);
   return {
     id: item.id,
     groupId: item.groupId,
@@ -249,14 +270,69 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     mapsUrl: links.find((l) => l.kind === "gmaps")?.url ?? "",
     links: links.map((l) => ({ id: l.id, kind: l.kind, url: l.url, label: l.label })),
     currency: group?.currency ?? "USD",
-    menus: menus.map((m) => ({
-      id: m.item.id,
-      name: m.item.name,
-      memo: m.item.memo,
-      priceMinor: m.detail?.priceMinor ?? null,
-      currency: m.detail?.currency ?? group?.currency ?? "USD",
+    rating: summary({ sum: rs.reduce((a, r) => a + r.score, 0), n: rs.length }),
+    menus: menus.map((m) => {
+      const mine = of(m.item.id).find((r) => r.userId === userId);
+      return {
+        id: m.item.id,
+        name: m.item.name,
+        memo: m.item.memo,
+        priceMinor: m.detail?.priceMinor ?? null,
+        currency: m.detail?.currency ?? group?.currency ?? "USD",
+        rating: summary({ sum: of(m.item.id).reduce((a, r) => a + r.score, 0), n: of(m.item.id).length }),
+        myStars: mine ? stars(mine.score) : null,
+      };
+    }),
+  };
+}
+
+/** One menu with every member's rating and review, newest first. */
+export async function getMenu(db: Db, menuId: string, userId: string) {
+  const { menu, restaurant } = await memberMenu(db, menuId, userId);
+  const [detail] = await db.select().from(menuDetails).where(eq(menuDetails.itemId, menuId));
+  const rows = await db
+    .select({ rating: ratings, name: users.name, email: users.email })
+    .from(ratings)
+    .innerJoin(users, eq(users.id, ratings.userId))
+    .where(eq(ratings.itemId, menuId))
+    .orderBy(sql`${ratings.updatedAt} desc`);
+  const mine = rows.find((r) => r.rating.userId === userId);
+  return {
+    id: menu.id,
+    name: menu.name,
+    memo: menu.memo,
+    priceMinor: detail?.priceMinor ?? null,
+    currency: detail?.currency ?? "USD",
+    restaurant: { id: restaurant.item.id, name: restaurant.item.name },
+    rating: summary({ sum: rows.reduce((a, r) => a + r.rating.score, 0), n: rows.length }),
+    mine: mine ? { stars: stars(mine.rating.score), review: mine.rating.review } : null,
+    ratings: rows.map((r) => ({
+      userId: r.rating.userId,
+      name: r.name || r.email.split("@")[0],
+      stars: stars(r.rating.score),
+      review: r.rating.review,
+      updatedAt: r.rating.updatedAt,
     })),
   };
+}
+
+/** My rating of a menu, 0.5..5 stars in halves, with an optional review. Rating again replaces it. */
+export async function rateMenu(db: Db, menuId: string, userId: string, input: { stars: number; review?: string }) {
+  const { menu } = await memberMenu(db, menuId, userId);
+  const score = input.stars * 2;
+  if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
+  const review = (input.review ?? "").trim();
+  await db
+    .insert(ratings)
+    .values({ groupId: menu.groupId, itemId: menuId, userId, score, review })
+    .onConflictDoUpdate({ target: [ratings.itemId, ratings.userId], set: { score, review, updatedAt: new Date() } });
+  return getMenu(db, menuId, userId);
+}
+
+export async function unrateMenu(db: Db, menuId: string, userId: string) {
+  await memberMenu(db, menuId, userId);
+  await db.delete(ratings).where(and(eq(ratings.itemId, menuId), eq(ratings.userId, userId)));
+  return getMenu(db, menuId, userId);
 }
 
 export async function updateRestaurant(db: Db, id: string, userId: string, edit: RestaurantEdit) {

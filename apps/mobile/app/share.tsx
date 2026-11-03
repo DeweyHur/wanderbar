@@ -27,6 +27,7 @@ export default function ShareScreen() {
   const [plans, setPlans] = useState<PlanSummary[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [routes, setRoutes] = useState(false);
 
   useEffect(() => {
     if (incoming.share) {
@@ -116,7 +117,10 @@ export default function ShareScreen() {
           <Body muted>{t("food:restaurant.saveRestaurantHint")}</Body>
         </View>
       )}
-      {place && groupId && plans && (
+      {place && groupId && plans && !routes && (
+        <Button kind="plain" label={t("food:share.addTo")} disabled={!!busy || !place.name.trim()} onPress={() => setRoutes(true)} />
+      )}
+      {place && groupId && plans && routes && (
         <View style={{ gap: 8 }}>
           <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:share.addTo")}</Text>
           {plans.map((p) => (

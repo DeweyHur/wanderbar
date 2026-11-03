@@ -52,7 +52,25 @@
     "price": "가격 ({{currency}})",
     "noPrice": "—",
     "add": "메뉴 추가",
-    "delete": "메뉴 삭제"
+    "delete": "메뉴 삭제",
+    "edit": "메뉴 편집",
+    "confirmDelete": "\"{{name}}\"과(와) 평점을 모두 삭제할까요?"
+  },
+  "rating": {
+    "none": "아직 평점 없음",
+    "mine": "내 평점 {{stars}}★",
+    "yours": "내 평점",
+    "review": "후기",
+    "reviewPlaceholder": "어땠어요? (선택)",
+    "save": "평점 저장",
+    "saved": "평점을 저장했어요",
+    "remove": "내 평점 지우기",
+    "group": "그룹 후기",
+    "setStars_one": "별 {{count}}개",
+    "setStars_other": "별 {{count}}개",
+    "prompt": "{{name}} 어땠어요? 먹은 메뉴에 평점을 남겨 보세요.",
+    "rateNow": "평점 남기기",
+    "later": "나중에"
   },
   "route": {
     "title": "동선",
@@ -154,6 +172,11 @@
       "yelp": "옐프에서 받음",
       "other": "공유받은 내용"
     },
-    "noGroup": "먼저 로그인하고 그룹을 열어 주세요."
+    "noGroup": "먼저 로그인하고 그룹을 열어 주세요.",
+    "button": "공유",
+    "kakao": "카카오톡",
+    "tesla": "테슬라",
+    "more": "더보기…",
+    "kakaoNoApp": "카카오톡이 없어서 공유 메뉴를 열었어요"
   }
 }

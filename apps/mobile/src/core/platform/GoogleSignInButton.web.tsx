@@ -28,8 +28,14 @@ export function GoogleSignInButton({ onIdToken, onError }: { onIdToken: (t: stri
         const el = ref.current;
         const gsi = window.google?.accounts.id;
         if (cancelled || !el || !gsi) return;
+        // Redirect mode: the page goes to Google and comes back (POST /api/auth/google/redirect sets the
+        // session cookie). No popup, so popup blockers and in-app browsers (KakaoTalk, etc.) can't stop it.
+        document.cookie = `wb_return=${encodeURIComponent(location.pathname + location.search)}; Path=/; Secure; SameSite=None; Max-Age=900`;
         gsi.initialize({
           client_id: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
+          ux_mode: "redirect",
+          login_uri: `${location.origin}/api/auth/google/redirect`,
+          // E2E and local tools that inject a token still use the callback.
           callback: (r) => onIdToken(r.credential).catch(onError),
         });
         el.innerHTML = "";

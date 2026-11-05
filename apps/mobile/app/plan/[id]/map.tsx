@@ -2,6 +2,7 @@ import { Links, placeQuery, formatDistance } from "@wanderbar/route";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { planLabel } from "@/modules/food/route/dates";
 import { Linking, ScrollView, Text, View } from "react-native";
 import { Body, Button, ErrorText, Loading, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
@@ -22,7 +23,7 @@ function googleRouteUrl(plan: Plan) {
 
 export default function PlanMap() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const c = useColors();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");
@@ -35,7 +36,7 @@ export default function PlanMap() {
   const url = googleRouteUrl(plan);
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Stack.Screen options={{ title: plan.title }} />
+      <Stack.Screen options={{ title: planLabel(t, i18n.language, plan) }} />
       {route.points.length ? <RouteMap stops={plan.stops} route={route.result} /> : <Body muted>{t("food:route.mapNoPlaces")}</Body>}
       {route.result && (
         <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>

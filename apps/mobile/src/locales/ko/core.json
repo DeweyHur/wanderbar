@@ -89,7 +89,8 @@
       "not_found": "동선을 찾을 수 없어요",
       "stop_not_found": "장소를 찾을 수 없어요",
       "title_required": "동선 이름을 입력하세요",
-      "stop_name_required": "장소 이름을 입력하세요"
+      "stop_name_required": "장소 이름을 입력하세요",
+      "date_invalid": "올바른 날짜를 골라 주세요"
     },
     "rating": {
       "stars_invalid": "별 반 개에서 다섯 개 사이로 골라 주세요"
@@ -98,6 +99,11 @@
       "not_found": "방문 기록을 찾을 수 없어요",
       "not_yours": "내 방문 기록만 지울 수 있어요",
       "date_invalid": "날짜를 확인해 주세요"
+    },
+    "dish": {
+      "not_found": "요리를 찾을 수 없어요",
+      "name_required": "요리 이름을 입력하세요",
+      "delete_forbidden": "추가한 사람이나 그룹장만 삭제할 수 있어요"
     }
   }
 }

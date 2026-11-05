@@ -1,7 +1,7 @@
 import { PlanFlow, type StopStatus } from "@wanderbar/route";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { planStops, plans, teslaFormats } from "../db/schema";
+import { groups, planStops, plans, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
 import { requireMember } from "./groups";
 import { fileStopAsRestaurant, recordStopVisit, restaurantsInGroup } from "./restaurants";
@@ -46,7 +46,7 @@ export async function listPlans(db: Db, groupId: string, userId: string) {
     .select()
     .from(plans)
     .where(and(eq(plans.groupId, groupId), eq(plans.userId, userId)))
-    .orderBy(desc(plans.createdAt));
+    .orderBy(desc(plans.date), desc(plans.createdAt));
   if (!rows.length) return [];
   const stops = await db
     .select({ planId: planStops.planId, status: planStops.status, name: planStops.name })
@@ -57,6 +57,7 @@ export async function listPlans(db: Db, groupId: string, userId: string) {
     return {
       id: p.id,
       title: p.title,
+      date: p.date,
       createdAt: p.createdAt,
       total: mine.length,
       finished: mine.filter((s) => s.status === "done" || s.status === "skipped").length,
@@ -65,11 +66,31 @@ export async function listPlans(db: Db, groupId: string, userId: string) {
   });
 }
 
-export async function createPlan(db: Db, groupId: string, userId: string, title: string) {
+/** "YYYY-MM-DD" that is a real calendar day. */
+export function isDay(s: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/** Today in a time zone, as YYYY-MM-DD. */
+export const todayIn = (timeZone: string, now = new Date()) => {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+};
+
+/** A route for any day (today when none is given); the title is optional (it's then called by its date). */
+export async function createPlan(db: Db, groupId: string, userId: string, title = "", date?: string) {
   await requireMember(db, groupId, userId);
-  const t = title.trim();
-  if (!t) throw badRequest("plan.title_required");
-  const [plan] = await db.insert(plans).values({ groupId, userId, title: t }).returning();
+  if (date !== undefined && !isDay(date)) throw badRequest("plan.date_invalid");
+  const [group] = await db.select({ timezone: groups.timezone }).from(groups).where(eq(groups.id, groupId));
+  const [plan] = await db
+    .insert(plans)
+    .values({ groupId, userId, title: title.trim(), date: date ?? todayIn(group?.timezone ?? "UTC") })
+    .returning();
   return plan;
 }
 
@@ -90,11 +111,15 @@ export async function getPlan(db: Db, planId: string, userId: string) {
   return { ...plan, stops };
 }
 
-export async function renamePlan(db: Db, planId: string, userId: string, title: string) {
+/** Rename (empty = call it by its date) and/or move the route to another day. */
+export async function updatePlan(db: Db, planId: string, userId: string, edit: { title?: string; date?: string }) {
   await ownPlan(db, planId, userId);
-  const t = title.trim();
-  if (!t) throw badRequest("plan.title_required");
-  const [plan] = await db.update(plans).set({ title: t }).where(eq(plans.id, planId)).returning();
+  if (edit.date !== undefined && !isDay(edit.date)) throw badRequest("plan.date_invalid");
+  const set: Partial<typeof plans.$inferInsert> = {};
+  if (edit.title !== undefined) set.title = edit.title.trim();
+  if (edit.date !== undefined) set.date = edit.date;
+  if (!Object.keys(set).length) return ownPlan(db, planId, userId);
+  const [plan] = await db.update(plans).set(set).where(eq(plans.id, planId)).returning();
   return plan;
 }
 

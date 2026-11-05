@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { current, openHome, signIn, WEB } from "./helpers";
+import { current, openHome, signIn, WEB, pickDay } from "./helpers";
 
 // Milestone 3: the group's restaurants and menus (Google answers are canned by the test server).
 
@@ -144,6 +144,7 @@ test("add a saved restaurant to a day route, and get back to it from the stop", 
 
   await page.getByRole("button", { name: "Add to route" }).click();
   await page.getByTestId("add-to-route").filter({ visible: true }).getByRole("button", { name: "New route" }).click();
+  await pickDay(page);
   await expect(current(page)).toContainText("Blue Bottle Coffee");
   await expect(current(page)).toContainText("315 Linden St");
 
@@ -228,6 +229,7 @@ test("a restaurant picked into a route is saved under restaurants; Done records 
   await signIn(page, "Visitor");
   const groupId = await openHome(page);
   await page.getByRole("button", { name: "New route" }).click();
+  await pickDay(page);
   await page.getByPlaceholder(/cafe, park, jazz bar/i).fill("mensho");
   await page.getByText("Mensho Tokyo").click();
   await expect(current(page)).toContainText("Mensho Tokyo");

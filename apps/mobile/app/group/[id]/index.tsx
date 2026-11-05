@@ -28,8 +28,13 @@ import {
 } from "@/modules/food/restaurants/api";
 import { RestaurantList } from "@/modules/food/restaurants/RestaurantList";
 import { routeApi, type PlanSummary } from "@/modules/food/route/api";
+import { RouteList } from "@/modules/food/route/RouteList";
+import { dishApi, type DishSummary } from "@/modules/food/dishes/api";
+import { DishList } from "@/modules/food/dishes/DishList";
 
-type Tab = "restaurants" | "routes";
+type Tab = "restaurants" | "home" | "routes";
+const TABS: Tab[] = ["restaurants", "home", "routes"];
+const TAB_LABEL: Record<Tab, string> = { restaurants: "food:restaurant.title", home: "food:dish.title", routes: "food:route.title" };
 const TAB_KEY = "group_home_tab";
 
 /** Group home. For a food group: saved restaurants and day routes (more tabs arrive with later milestones). */
@@ -44,12 +49,12 @@ export default function GroupHome() {
   );
   const [tab, setTab] = useState<Tab>("routes");
   const [error, setError] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [dishes, setDishes] = useState<DishSummary[] | null>(null);
 
   useEffect(() => {
     prefs
       .get(TAB_KEY)
-      .then((v) => (v === "restaurants" || v === "routes") && setTab(v));
+      .then((v) => TABS.includes(v as Tab) && setTab(v as Tab));
   }, []);
   const pickTab = (next: Tab) => {
     setTab(next);
@@ -63,11 +68,13 @@ export default function GroupHome() {
         api<GroupDetail>(`/api/groups/${id}`),
         routeApi.list(id),
         restaurantApi.list(id),
+        dishApi.list(id),
       ])
-        .then(([g, p, r]) => {
+        .then(([g, p, r, d]) => {
           setGroup(g);
           setPlans(p);
           setRestaurants(r);
+          setDishes(d);
           setError("");
         })
         .catch((e) => setError(errorText(t, e)));
@@ -95,7 +102,7 @@ export default function GroupHome() {
     />
   );
 
-  if (!group || !plans || !restaurants)
+  if (!group || !plans || !restaurants || !dishes)
     return error ? (
       <View style={{ flex: 1, padding: 20, backgroundColor: c.bg }}>
         {header}
@@ -106,25 +113,6 @@ export default function GroupHome() {
     );
 
   const mod = getModule(group.module);
-  const newPlan = async () => {
-    setCreating(true);
-    try {
-      const date = new Intl.DateTimeFormat(i18n.language, {
-        month: "long",
-        day: "numeric",
-      }).format(new Date());
-      const plan = await routeApi.create(
-        id,
-        t("food:route.defaultTitle", { date }),
-      );
-      router.push({ pathname: "/plan/[id]", params: { id: plan.id } });
-    } catch (e) {
-      setError(errorText(t, e));
-    } finally {
-      setCreating(false);
-    }
-  };
-
   return (
     <ScrollView
       style={{ backgroundColor: c.bg }}
@@ -139,12 +127,10 @@ export default function GroupHome() {
             accessibilityRole="tablist"
             style={{ flexDirection: "row", gap: 8 }}
           >
-            {(["restaurants", "routes"] as const).map((k) => (
+            {TABS.map((k) => (
               <Chip
                 key={k}
-                label={t(
-                  k === "routes" ? "food:route.title" : "food:restaurant.title",
-                )}
+                label={t(TAB_LABEL[k])}
                 selected={tab === k}
                 onPress={() => pickTab(k)}
               />
@@ -152,43 +138,10 @@ export default function GroupHome() {
           </View>
           {tab === "restaurants" ? (
             <RestaurantList groupId={id} restaurants={restaurants} />
+          ) : tab === "home" ? (
+            <DishList groupId={id} dishes={dishes} />
           ) : (
-            <>
-              {plans.length === 0 && <Body muted>{t("food:route.empty")}</Body>}
-              {plans.map((p) => (
-                <Pressable
-                  key={p.id}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/plan/[id]",
-                      params: { id: p.id },
-                    })
-                  }
-                >
-                  <Card>
-                    <Text
-                      style={{ color: c.text, fontSize: 17, fontWeight: "600" }}
-                    >
-                      {p.title}
-                    </Text>
-                    <Body muted>
-                      {t("food:route.progress", {
-                        finished: p.finished,
-                        total: p.total,
-                      })}
-                      {p.currentName
-                        ? ` · ${t("food:route.now", { name: p.currentName })}`
-                        : ""}
-                    </Body>
-                  </Card>
-                </Pressable>
-              ))}
-              <Button
-                label={t("food:route.new")}
-                busy={creating}
-                onPress={newPlan}
-              />
-            </>
+            <RouteList groupId={id} plans={plans} />
           )}
         </>
       )}

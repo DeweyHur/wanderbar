@@ -25,9 +25,15 @@ export async function openHome(page: Page) {
   return groups[0].id;
 }
 
-/** New route from the group home; leaves the route screen open. */
-export async function newRoute(page: Page) {
+/** In the day picker that "New route" opens: "Today", "Tomorrow", or a calendar day "YYYY-MM-DD". */
+export async function pickDay(page: Page, day = "Today") {
+  await page.getByTestId("day-picker").getByRole("button", { name: day, exact: true }).click();
+}
+
+/** New route (for today unless another day is given) from the group home; leaves the route screen open. */
+export async function newRoute(page: Page, day = "Today") {
   await page.getByRole("button", { name: "New route" }).click();
+  await pickDay(page, day);
   await expect(addInput(page)).toBeVisible();
 }
 

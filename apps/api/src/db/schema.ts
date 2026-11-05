@@ -1,4 +1,4 @@
-import { type AnyPgColumn, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const id = () =>
   text("id")
@@ -85,8 +85,8 @@ export const invites = pgTable(
 
 // ---- Core: items (what a group rates) and their links ----
 
-/** Restaurant and menu for the food module; the board game module adds "game" later. */
-export const itemType = pgEnum("item_type", ["restaurant", "menu"]);
+/** Food module: restaurant, its menus, and dishes made at home. The board game module adds "game" later. */
+export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish"]);
 export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other"]);
 
 export const items = pgTable(
@@ -229,7 +229,10 @@ export const plans = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /** May be empty: the route is then called by its date. */
     title: text("title").notNull(),
+    /** The day the route is for (YYYY-MM-DD in the group's time zone); can be in the future. */
+    date: date("date", { mode: "string" }),
     createdAt: createdAt(),
   },
   (t) => [index("plans_group_user_idx").on(t.groupId, t.userId)],

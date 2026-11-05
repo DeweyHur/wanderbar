@@ -83,3 +83,15 @@ describe("Hours", () => {
     expect(wallTime(new Date(2026, 10, 8, 0, 5))).toEqual({ day: SUN, minutes: 5 });
   });
 });
+
+describe("hours on a planned day", () => {
+  it("maps calendar days to weekdays and returns that day's hours", async () => {
+    const { dayOfDate, hoursOnDay } = await import("../src/hours");
+    expect(dayOfDate("2026-11-05")).toBe(3); // Thursday
+    expect(dayOfDate("2026-11-09")).toBe(0); // Monday
+    expect(dayOfDate("2026-11-08")).toBe(6); // Sunday
+    expect(hoursOnDay("Mon-Fri 11:00-22:00", 5)).toEqual([]);
+    expect(hoursOnDay("Mon-Fri 11:00-22:00", 0)).toEqual([{ start: 660, end: 1320 }]);
+    expect(hoursOnDay("", 0)).toBeNull();
+  });
+});

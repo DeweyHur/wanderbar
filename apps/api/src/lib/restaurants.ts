@@ -42,7 +42,7 @@ export type RestaurantEdit = {
 
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };
 
-const cleanCategory = (c: string | null | undefined) => {
+export const cleanCategory = (c: string | null | undefined) => {
   if (c === undefined) return undefined;
   if (c === null || c === "") return null;
   if (!isFoodCategory(c)) throw badRequest("restaurant.category_invalid");
@@ -256,11 +256,11 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
 }
 
 /** Half-star sums → { avg in stars (one decimal), count }. */
-const summary = (x?: { sum: number; n: number } | null) =>
+export const summary = (x?: { sum: number; n: number } | null) =>
   x && x.n ? { avg: Math.round((x.sum / x.n / 2) * 10) / 10, count: x.n } : { avg: null as number | null, count: 0 };
 
 /** score 1..10 (half stars) → stars. */
-const stars = (score: number) => score / 2;
+export const stars = (score: number) => score / 2;
 
 export async function getRestaurant(db: Db, id: string, userId: string) {
   const { item, detail } = await memberRestaurant(db, id, userId);

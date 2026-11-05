@@ -5,6 +5,8 @@ import { Pressable, Text, View } from "react-native";
 import { Body, Button, Card, ErrorText, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { routeApi, type PlanSummary } from "../route/api";
+import { planLabel, today } from "../route/dates";
+import { DayPicker } from "../route/DayPicker";
 import type { Restaurant } from "./api";
 
 /** Pick one of my routes in this group (or start a new one) and put the restaurant at its end. */
@@ -14,17 +16,17 @@ export function AddToRoute({ restaurant }: { restaurant: Restaurant }) {
   const [plans, setPlans] = useState<PlanSummary[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     routeApi.list(restaurant.groupId).then(setPlans).catch((e) => setError(errorText(t, e)));
   }, [restaurant.groupId, t]);
 
-  const add = async (planId: string | null) => {
+  const add = async (planId: string | null, date?: string) => {
     setBusy(planId ?? "new");
     setError("");
     try {
-      const date = new Intl.DateTimeFormat(i18n.language, { month: "long", day: "numeric" }).format(new Date());
-      const id = planId ?? (await routeApi.create(restaurant.groupId, t("food:route.defaultTitle", { date }))).id;
+      const id = planId ?? (await routeApi.create(restaurant.groupId, { date: date ?? today() })).id;
       await routeApi.addStops(id, [
         {
           name: restaurant.name,
@@ -49,15 +51,16 @@ export function AddToRoute({ restaurant }: { restaurant: Restaurant }) {
   return (
     <View style={{ gap: 8 }} testID="add-to-route">
       <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:share.addTo")}</Text>
-      {plans?.map((p) => (
+      {plans?.filter((p) => !p.date || p.date >= today()).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")).map((p) => (
         <Pressable key={p.id} accessibilityRole="button" disabled={!!busy} onPress={() => add(p.id)}>
           <Card>
-            <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{p.title}</Text>
+            <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{planLabel(t, i18n.language, p)}</Text>
             <Body muted>{t("food:route.progress", { finished: p.finished, total: p.total })}</Body>
           </Card>
         </Pressable>
       ))}
-      <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} onPress={() => add(null)} />
+      <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} onPress={() => setPicking(true)} />
+      <DayPicker visible={picking} onPick={(date) => add(null, date)} onClose={() => setPicking(false)} />
       <ErrorText>{error}</ErrorText>
     </View>
   );

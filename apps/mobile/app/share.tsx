@@ -10,6 +10,8 @@ import { useIncomingShare } from "@/core/platform/shareIntent";
 import { useSession } from "@/core/session";
 import { restaurantApi } from "@/modules/food/restaurants/api";
 import { routeApi, type PlanSummary } from "@/modules/food/route/api";
+import { planLabel, today } from "@/modules/food/route/dates";
+import { DayPicker } from "@/modules/food/route/DayPicker";
 import { parseSharedPlace, type ParsedPlace } from "@wanderbar/route";
 
 /**
@@ -28,6 +30,7 @@ export default function ShareScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [routes, setRoutes] = useState(false);
+  const [pickingDay, setPickingDay] = useState(false);
 
   useEffect(() => {
     if (incoming.share) {
@@ -54,7 +57,7 @@ export default function ShareScreen() {
     setPlace(v.trim() ? parseSharedPlace(v) : null);
   };
 
-  const addTo = async (planId: string | null) => {
+  const addTo = async (planId: string | null, date?: string) => {
     if (!place?.name.trim() || !groupId) return;
     setBusy(planId ?? "new");
     setError("");
@@ -62,10 +65,7 @@ export default function ShareScreen() {
       const id =
         planId ??
         (
-          await routeApi.create(
-            groupId,
-            t("food:route.defaultTitle", { date: new Intl.DateTimeFormat(i18n.language, { month: "long", day: "numeric" }).format(new Date()) }),
-          )
+          await routeApi.create(groupId, { date: date ?? today() })
         ).id;
       await routeApi.addStops(id, [{ name: place.name.trim(), address: place.address, mapsUrl: place.mapsUrl, yelpUrl: place.yelpUrl }]);
       incoming.clear();
@@ -123,15 +123,16 @@ export default function ShareScreen() {
       {place && groupId && plans && routes && (
         <View style={{ gap: 8 }}>
           <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }}>{t("food:share.addTo")}</Text>
-          {plans.map((p) => (
+          {plans.filter((p) => !p.date || p.date >= today()).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")).map((p) => (
             <Pressable key={p.id} disabled={!!busy || !place.name.trim()} onPress={() => addTo(p.id)}>
               <Card>
-                <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{p.title}</Text>
+                <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{planLabel(t, i18n.language, p)}</Text>
                 <Body muted>{t("food:route.progress", { finished: p.finished, total: p.total })}</Body>
               </Card>
             </Pressable>
           ))}
-          <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} disabled={!place.name.trim()} onPress={() => addTo(null)} />
+          <Button kind="plain" label={t("food:share.newRoute")} busy={busy === "new"} disabled={!place.name.trim()} onPress={() => setPickingDay(true)} />
+          <DayPicker visible={pickingDay} onPick={(date) => addTo(null, date)} onClose={() => setPickingDay(false)} />
         </View>
       )}
       {groups && groups.length === 0 && <Body muted>{t("food:share.noGroup")}</Body>}

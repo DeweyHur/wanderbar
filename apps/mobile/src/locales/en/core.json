@@ -90,7 +90,8 @@
       "not_found": "Route not found",
       "stop_not_found": "Place not found",
       "title_required": "Enter a route name",
-      "stop_name_required": "Enter a place name"
+      "stop_name_required": "Enter a place name",
+      "date_invalid": "Pick a valid day"
     },
     "rating": {
       "stars_invalid": "Pick between half a star and five stars"
@@ -99,6 +100,11 @@
       "not_found": "Visit not found",
       "not_yours": "You can only delete your own visits",
       "date_invalid": "Check the date"
+    },
+    "dish": {
+      "not_found": "Dish not found",
+      "name_required": "Enter the dish name",
+      "delete_forbidden": "Only whoever added it or the group owner can delete it"
     }
   }
 }

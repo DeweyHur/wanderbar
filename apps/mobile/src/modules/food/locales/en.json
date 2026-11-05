@@ -75,7 +75,7 @@
   "route": {
     "title": "Day routes",
     "new": "New route",
-    "defaultTitle": "{{date}} route",
+    "defaultTitle": "Route · {{date}}",
     "empty": "No routes yet. Make one and add places in the order you want to go.",
     "progress": "{{finished}}/{{total}} done",
     "now": "Now: {{name}}",
@@ -118,14 +118,18 @@
     "openInGoogleMaps": "Open the route in Google Maps",
     "mapNoPlaces": "Places need a location to show on the map (pick them from Google search).",
     "searchPlaceholder": "Search a place, or type cafe, park, jazz bar",
-    "inRoute": "In this route · {{status}}"
+    "inRoute": "In this route · {{status}}",
+    "upcoming": "Upcoming",
+    "past": "Past"
   },
   "hours": {
     "open": "Open · until {{time}}",
     "open24": "Open 24 hours",
     "closingSoon": "Closing soon · {{minutes}} min left",
     "closed": "Closed",
-    "closedOpensAt": "Closed · opens {{time}}"
+    "closedOpensAt": "Closed · opens {{time}}",
+    "onDay": "That day {{hours}}",
+    "closedOnDay": "Closed that day"
   },
   "stop": {
     "edit": "Edit place",
@@ -188,5 +192,33 @@
     "added": "Visit added",
     "confirmDelete": "Delete this visit?",
     "last": "Visited {{date}}"
+  },
+  "date": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "pick": "Which day?",
+    "change": "Change day",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
+  "dish": {
+    "title": "Home cooking",
+    "add": "Add",
+    "namePlaceholder": "A dish you made (e.g. kimchi stew)",
+    "search": "Search dishes",
+    "empty": "Log what you cook at home: rate it, note the recipe, and keep track of when you made it.",
+    "lastMade_one": "Made {{date}}",
+    "lastMade_other": "Made {{date}} · {{count}} times",
+    "madeTitle": "Made",
+    "neverMade": "Not logged yet.",
+    "madeToday": "I made it today",
+    "madeAdded": "Logged",
+    "edit": "Edit dish",
+    "name": "Dish",
+    "memo": "Recipe notes",
+    "memoPlaceholder": "Ingredients, steps, what to change next time",
+    "delete": "Delete dish",
+    "confirmDelete": "Delete \"{{name}}\" with its ratings and log?"
   }
 }

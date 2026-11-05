@@ -118,14 +118,18 @@
     "openInGoogleMaps": "구글맵에서 경로 열기",
     "mapNoPlaces": "지도에 보이려면 장소에 위치가 있어야 해요 (구글 검색으로 고르면 채워져요).",
     "searchPlaceholder": "장소 검색, 또는 카페, 공원, 재즈바",
-    "inRoute": "이 동선에서 · {{status}}"
+    "inRoute": "이 동선에서 · {{status}}",
+    "upcoming": "예정",
+    "past": "지난 동선"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",
     "open24": "24시간 영업",
     "closingSoon": "곧 닫힘 · {{minutes}}분 남음",
     "closed": "닫힘",
-    "closedOpensAt": "닫힘 · {{time}}에 열림"
+    "closedOpensAt": "닫힘 · {{time}}에 열림",
+    "onDay": "그날 {{hours}}",
+    "closedOnDay": "그날 휴무"
   },
   "stop": {
     "edit": "장소 편집",
@@ -188,5 +192,33 @@
     "added": "방문을 기록했어요",
     "confirmDelete": "이 방문 기록을 지울까요?",
     "last": "{{date}} 방문"
+  },
+  "date": {
+    "today": "오늘",
+    "tomorrow": "내일",
+    "yesterday": "어제",
+    "pick": "어느 날로 할까요?",
+    "change": "날짜 바꾸기",
+    "prevMonth": "이전 달",
+    "nextMonth": "다음 달"
+  },
+  "dish": {
+    "title": "집밥",
+    "add": "추가",
+    "namePlaceholder": "만든 요리 (예: 김치찌개)",
+    "search": "요리 검색",
+    "empty": "집에서 만든 요리를 기록해 보세요. 평점과 레시피 메모, 만든 날을 남길 수 있어요.",
+    "lastMade_one": "{{date}} 만듦",
+    "lastMade_other": "{{date}} 만듦 · {{count}}번",
+    "madeTitle": "만든 날",
+    "neverMade": "아직 기록이 없어요.",
+    "madeToday": "오늘 만들었어요",
+    "madeAdded": "기록했어요",
+    "edit": "요리 편집",
+    "name": "요리",
+    "memo": "레시피 메모",
+    "memoPlaceholder": "재료, 순서, 다음엔 이렇게",
+    "delete": "요리 삭제",
+    "confirmDelete": "\"{{name}}\"과(와) 평점·기록을 모두 삭제할까요?"
   }
 }

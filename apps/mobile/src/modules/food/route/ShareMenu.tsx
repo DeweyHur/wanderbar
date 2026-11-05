@@ -49,7 +49,7 @@ export function ShareMenu({ place, onNotice, kind = "primary" }: { place: Destin
       <Button kind={kind} label={t("food:share.button")} onPress={() => setOpen(true)} />
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => setOpen(false)}>
-          <Pressable style={{ backgroundColor: c.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24, paddingTop: 8 }}>
+          <Pressable style={{ backgroundColor: c.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24, paddingTop: 8, width: "100%", maxWidth: 480, alignSelf: "center" }}>
             <Text style={{ color: c.muted, fontSize: 14, paddingHorizontal: 20, paddingVertical: 10 }} numberOfLines={1}>
               {place.name}
             </Text>

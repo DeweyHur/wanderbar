@@ -14,16 +14,19 @@ import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { useRoute } from "@/modules/food/route/useRoute";
 import { useNow } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
+import { dayLabel, planLabel, today } from "@/modules/food/route/dates";
+import { DayPicker } from "@/modules/food/route/DayPicker";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
 export default function PlanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const c = useColors();
   const now = useNow();
   const googleAvailable = useGoogleAvailable();
   /** A restaurant stop just finished: offer to rate what was eaten there. */
   const [justAte, setJustAte] = useState<Stop | null>(null);
+  const [pickingDay, setPickingDay] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -80,19 +83,32 @@ export default function PlanScreen() {
   const lastLocated = [...plan.stops].reverse().find((s) => s.lat != null && s.lng != null);
   const near = lastLocated ? { lat: lastLocated.lat!, lng: lastLocated.lng! } : null;
 
-  const closedNow = current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
+  // Another day than today: hours are shown for that day, and "closed now" warnings don't apply.
+  const otherDay = plan.date && plan.date !== today() ? plan.date : null;
+  const closedNow = !otherDay && current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
 
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen
         options={{
-          title: plan.title,
+          title: planLabel(t, i18n.language, plan),
           headerRight: () => (
             <Pressable accessibilityRole="button" hitSlop={10} style={{ paddingHorizontal: 12, paddingVertical: 6 }} onPress={() => router.push({ pathname: "/plan/[id]/map", params: { id: plan.id } })}>
               <Text style={{ color: c.accent, fontSize: 16 }}>{t("food:route.map")}</Text>
             </Pressable>
           ),
         }}
+      />
+
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} testID="plan-day">
+        <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{plan.date ? dayLabel(t, i18n.language, plan.date) : ""}</Text>
+        <Chip label={t("food:date.change")} onPress={() => setPickingDay(true)} />
+      </View>
+      <DayPicker
+        visible={pickingDay}
+        value={plan.date}
+        onPick={(date) => routeApi.update(plan.id, { date }).then((p) => setPlan((old) => (old ? { ...old, date: p.date } : old)), (e) => setError(errorText(t, e)))}
+        onClose={() => setPickingDay(false)}
       />
 
       {current ? (
@@ -102,7 +118,7 @@ export default function PlanScreen() {
             <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{current.name}</Text>
             {current.address ? <Body muted>{current.address}</Body> : null}
           </Pressable>
-          <HoursBadge hoursRaw={current.hoursRaw} now={now} />
+          <HoursBadge hoursRaw={current.hoursRaw} now={now} day={otherDay} />
           {closedNow && (
             <View style={{ gap: 8 }}>
               <Text style={{ color: c.danger }}>{t("food:route.closedWarning")}</Text>
@@ -173,7 +189,7 @@ export default function PlanScreen() {
                 {dim ? (
                   <Text style={{ color: c.muted, fontSize: 13 }}>{t(`food:route.status.${s.status}`)}</Text>
                 ) : (
-                  <HoursBadge hoursRaw={s.hoursRaw} now={now} />
+                  <HoursBadge hoursRaw={s.hoursRaw} now={now} day={otherDay} />
                 )}
                 {!dim && route.legTo.get(s.id) && (
                   <Text style={{ color: c.muted, fontSize: 13 }}>

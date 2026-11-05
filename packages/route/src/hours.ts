@@ -187,3 +187,16 @@ export function formatHours(hours: WeeklyHours): string {
 
 /** "HH:MM" for a minutes-since-midnight value (24:00 shows as 00:00). */
 export const clock = (min: number) => hhmm(min % DAY_MIN);
+
+/** The weekday of a calendar day "YYYY-MM-DD" (Monday = 0, as in WeeklyHours). */
+export const dayOfDate = (iso: string): Day => (((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7) as Day);
+
+/**
+ * Hours on one weekday, for planning another day: the ranges ([] = closed that day), or null when the
+ * hours are unknown. "Mon-Fri 11-22" on a Saturday → [].
+ */
+export function hoursOnDay(raw: string | null | undefined, day: Day): MinuteRange[] | null {
+  const h = parseHours(raw);
+  if (!h) return null;
+  return h[day] ?? [];
+}

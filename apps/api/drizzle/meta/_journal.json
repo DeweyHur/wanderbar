@@ -50,6 +50,13 @@
       "when": 1793667819093,
       "tag": "0006_visits_photos_place_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793907470646,
+      "tag": "0007_plan_date_home_dishes",
+      "breakpoints": true
     }
   ]
 }

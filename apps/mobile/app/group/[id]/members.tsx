@@ -62,9 +62,11 @@ export default function MembersScreen() {
       />
       {group.myRole === "owner" && <Button label={t("group.invite")} busy={inviting} onPress={invite} />}
       {notice ? <Body muted>{notice}</Body> : null}
+      {otherGroups.length > 0 && <Body muted>{t("group.others")}</Body>}
       {otherGroups.map((g) => (
         <Button key={g.id} kind="plain" label={t("group.switchTo", { name: g.name })} onPress={() => router.replace({ pathname: "/group/[id]", params: { id: g.id } })} />
       ))}
+      <Button kind="plain" label={t("group.new")} onPress={() => router.push("/group/new")} />
       <ErrorText>{error}</ErrorText>
     </Screen>
   );

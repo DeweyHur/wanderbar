@@ -1,0 +1,137 @@
+import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { Linking, Pressable, Text, View } from "react-native";
+import { Card, Chip, useColors } from "@/components/ui";
+import type { GameLink, NightSummary, Rating } from "./api";
+import { nightWhen, scoreText } from "./format";
+
+const GOLD = "#F5A524";
+
+/** One chip per link (BGG, BGA, TTS, Rulebook, Video rules, …) that opens it. */
+export function GameLinks({ links }: { links: GameLink[] }) {
+  const { t } = useTranslation();
+  if (!links.length) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      {links.map((l) => (
+        <Chip
+          key={`${l.kind}:${l.url}`}
+          label={l.kind === "other" && l.label ? l.label : t(`boardgame:game.link.${l.kind}`)}
+          onPress={() => Linking.openURL(l.url)}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** "★ 8.5/10 (2)" — nothing when nobody has rated yet. */
+export function ScoreBadge({ rating, mine }: { rating: Rating; mine?: number | null }) {
+  const c = useColors();
+  const { t } = useTranslation();
+  if (rating.avg == null) return null;
+  return (
+    <Text style={{ color: c.text, fontSize: 14 }}>
+      <Text style={{ color: GOLD }}>★</Text> {scoreText(rating.avg)}
+      <Text style={{ color: c.muted }}>/10 ({rating.count})</Text>
+      {mine != null ? <Text style={{ color: c.muted }}> · {t("boardgame:rating.mine", { score: mine })}</Text> : null}
+    </Text>
+  );
+}
+
+/** Ten buttons, 1..10. */
+export function ScoreInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const c = useColors();
+  const { t } = useTranslation();
+  return (
+    <View style={{ flexDirection: "row", gap: 4, maxWidth: 440 }}>
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+        const on = value === n;
+        return (
+          <Pressable
+            key={n}
+            accessibilityRole="button"
+            accessibilityLabel={t("boardgame:rating.score", { score: n })}
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(n)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minWidth: 24,
+              height: 40,
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: on ? c.accent : c.border,
+              backgroundColor: on ? c.accent : value >= n ? `${c.accent}33` : "transparent",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text style={{ color: on ? "#fff" : c.text, fontSize: 15, fontWeight: "600" }}>{n}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function SectionTitle({ children }: { children: string }) {
+  const c = useColors();
+  return <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{children}</Text>;
+}
+
+/** A game night in a list: when, where, who picks, the games. */
+export function NightCard({ night, tz, highlight }: { night: NightSummary; tz: string; highlight?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={nightWhen(night.startsAt, tz, i18n.language)}
+      onPress={() => router.push({ pathname: "/night/[id]", params: { id: night.id } })}
+    >
+      <Card testID="night-card" highlight={highlight}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+          <Text style={{ color: c.text, fontSize: 17, fontWeight: "700", flexShrink: 1 }}>{nightWhen(night.startsAt, tz, i18n.language)}</Text>
+          <Text style={{ color: night.status === "past" ? c.muted : c.accent, fontSize: 13, fontWeight: "700" }}>{t(`boardgame:night.status.${night.status}`)}</Text>
+        </View>
+        {night.seriesTitle || night.location ? (
+          <Text style={{ color: c.muted, fontSize: 14 }}>{[night.seriesTitle, night.location].filter(Boolean).join(" · ")}</Text>
+        ) : null}
+        {night.status !== "past" && (
+          <Text style={{ color: c.text, fontSize: 14 }}>{night.picker ? t("boardgame:night.pickedBy", { name: night.picker.name }) : t("boardgame:night.nobodyPicking")}</Text>
+        )}
+        {night.games.length ? (
+          night.games.map((g) => (
+            <View key={g.id} style={{ gap: 4 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                <Text style={{ color: c.text, fontSize: 16, fontWeight: "600", flexShrink: 1 }}>{g.name}</Text>
+                <ScoreBadge rating={g.rating} />
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={{ color: c.muted, fontSize: 14 }}>{t("boardgame:night.noGames")}</Text>
+        )}
+      </Card>
+    </Pressable>
+  );
+}
+
+export function TagChips({ tags, active, onPick, allLabel }: { tags: string[]; active: string | null; onPick: (t: string | null) => void; allLabel: string }) {
+  if (!tags.length) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      <Chip label={allLabel} selected={active === null} onPress={() => onPick(null)} />
+      {tags.map((tag) => (
+        <Chip key={tag} label={`#${tag}`} selected={active === tag} onPress={() => onPick(active === tag ? null : tag)} />
+      ))}
+    </View>
+  );
+}
+
+/** Every tag used in the group, case-insensitively unique, alphabetical. */
+export function allTags(games: { tags: string[] }[]) {
+  const seen = new Map<string, string>();
+  for (const g of games) for (const tag of g.tags) if (!seen.has(tag.toLowerCase())) seen.set(tag.toLowerCase(), tag);
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}

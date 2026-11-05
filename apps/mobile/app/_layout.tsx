@@ -70,6 +70,26 @@ export default function RootLayout() {
             options={{ title: t("food:menu.title") }}
           />
           <Stack.Screen
+            name="group/new"
+            options={{ title: t("group.newTitle") }}
+          />
+          <Stack.Screen
+            name="night/[id]"
+            options={{ title: t("boardgame:night.title") }}
+          />
+          <Stack.Screen
+            name="game/new"
+            options={{ title: t("boardgame:game.add") }}
+          />
+          <Stack.Screen
+            name="game/[id]"
+            options={{ title: t("boardgame:game.title") }}
+          />
+          <Stack.Screen
+            name="meetup/schedule"
+            options={{ title: t("boardgame:schedule.title") }}
+          />
+          <Stack.Screen
             name="invite/[token]"
             options={{ title: t("invite.title") }}
           />

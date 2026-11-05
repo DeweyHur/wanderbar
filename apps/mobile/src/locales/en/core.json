@@ -27,7 +27,17 @@
     "inviteMessage": "Join \"{{name}}\" on wanderbar. The link works for 7 days.\n{{url}}",
     "inviteCopied": "Invite link copied",
     "switchTo": "Switch to {{name}}",
-    "moduleUnavailable": "This group's module isn't available in this version yet."
+    "moduleUnavailable": "This group's module isn't available in this version yet.",
+    "new": "New group",
+    "newTitle": "New group",
+    "name": "Group name",
+    "kind": "What is it for?",
+    "kindFood": "Food & day routes",
+    "kindBoardgame": "Board game night",
+    "language": "Group language",
+    "language_hint": "Used for invite previews and new members' first language. Everyone can still pick their own.",
+    "create": "Create group",
+    "others": "Your other groups"
   },
   "invite": {
     "title": "Group invite",
@@ -94,7 +104,8 @@
       "date_invalid": "Pick a valid day"
     },
     "rating": {
-      "stars_invalid": "Pick between half a star and five stars"
+      "stars_invalid": "Pick between half a star and five stars",
+      "score_invalid": "Pick a score from 1 to 10"
     },
     "visit": {
       "not_found": "Visit not found",
@@ -105,6 +116,29 @@
       "not_found": "Dish not found",
       "name_required": "Enter the dish name",
       "delete_forbidden": "Only whoever added it or the group owner can delete it"
+    },
+    "game": {
+      "not_found": "Game not found",
+      "name_required": "Enter the game's name",
+      "link_invalid": "Links must start with http:// or https://",
+      "too_many_tags": "Up to 12 tags per game",
+      "delete_forbidden": "Only whoever added it, the owner or a host can delete it"
+    },
+    "series": {
+      "not_found": "Meetup not found",
+      "manage_forbidden": "Only the owner or a host can change the schedule",
+      "weekday_invalid": "Pick a day of the week",
+      "time_invalid": "Enter the time as HH:MM, e.g. 19:00",
+      "every_invalid": "Repeat every 1 to 4 weeks",
+      "start_invalid": "Check the start date"
+    },
+    "night": {
+      "not_found": "Game night not found",
+      "manage_forbidden": "Only the owner or a host can change this night",
+      "time_invalid": "Enter the date as YYYY-MM-DD and the time as HH:MM",
+      "picker_forbidden": "Only the current picker, the owner or a host can hand picking over",
+      "picker_not_member": "That person isn't in this group",
+      "lineup_forbidden": "Only this night's picker, the owner or a host can change the games. Queue it instead."
     }
   }
 }

@@ -17,7 +17,9 @@ import {
   Loading,
   useColors,
 } from "@/components/ui";
-import { api, type GroupDetail } from "@/core/api";
+import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
+import { useSession } from "@/core/session";
+import { BoardGameHome } from "@/modules/boardgame/BoardGameHome";
 import { errorText } from "@/core/errors";
 import { saveLastGroup } from "@/core/lastGroup";
 import { getModule } from "@/core/modules/registry";
@@ -37,9 +39,56 @@ const TABS: Tab[] = ["restaurants", "home", "routes"];
 const TAB_LABEL: Record<Tab, string> = { restaurants: "food:restaurant.title", home: "food:dish.title", routes: "food:route.title" };
 const TAB_KEY = "group_home_tab";
 
-/** Group home. For a food group: saved restaurants and day routes (more tabs arrive with later milestones). */
+/** Group home: each module brings its own (food: restaurants, home cooking, routes; board game night). */
 export default function GroupHome() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { state } = useSession();
+  const known = state.status === "signedIn" ? state.groups.find((g) => g.id === id)?.module : undefined;
+  const [module, setModule] = useState<GroupModuleId | null>(known ?? null);
+  useEffect(() => {
+    if (known) setModule(known);
+    // Not in the session yet (just joined, or a stale list): ask the server.
+    else api<GroupDetail>(`/api/groups/${id}`).then((g) => setModule(g.module), () => setModule("food"));
+  }, [id, known]);
+  if (!module) return <Loading />;
+  return module === "boardgame" ? <BoardGameGroup id={id} /> : <FoodHome id={id} />;
+}
+
+function BoardGameGroup({ id }: { id: string }) {
+  const { t } = useTranslation();
+  const c = useColors();
+  const [name, setName] = useState("");
+  useFocusEffect(
+    useCallback(() => {
+      saveLastGroup(id);
+      api<GroupDetail>(`/api/groups/${id}`).then((g) => setName(g.name), () => {});
+    }, [id]),
+  );
+  return (
+    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
+      <Stack.Screen options={{ title: name, headerRight: () => <SettingsLink /> }} />
+      <BoardGameHome groupId={id} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
+      </View>
+    </ScrollView>
+  );
+}
+
+function SettingsLink() {
+  const { t } = useTranslation();
+  const c = useColors();
+  return (
+    <Link href="/settings" asChild>
+      <Pressable accessibilityRole="button" hitSlop={10} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+        <Text style={{ color: c.accent, fontSize: 16 }}>{t("common.settings")}</Text>
+      </Pressable>
+    </Link>
+  );
+}
+
+/** Food group: saved restaurants, home cooking and day routes. */
+function FoodHome({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const c = useColors();
   const [group, setGroup] = useState<GroupDetail | null>(null);

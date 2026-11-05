@@ -1,4 +1,4 @@
-import { type AnyPgColumn, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, boolean, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 const id = () =>
   text("id")
@@ -85,9 +85,9 @@ export const invites = pgTable(
 
 // ---- Core: items (what a group rates) and their links ----
 
-/** Food module: restaurant, its menus, and dishes made at home. The board game module adds "game" later. */
-export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish"]);
-export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other"]);
+/** Food module: restaurant, its menus, and dishes made at home. Board game module: games. */
+export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish", "game"]);
+export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other", "tts"]);
 
 export const items = pgTable(
   "items",
@@ -279,4 +279,115 @@ export const teslaFormats = pgTable(
     format: teslaFormat("format").notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.platform] })],
+);
+
+// ---- Board game module: regular meetups, game nights, the queue, tags ----
+
+/** Group-defined labels for items (e.g. "coop", "heavy", "party"). The leaderboard filters by them. */
+export const tags = pgTable(
+  "tags",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Lowercased name: "Coop" and "coop" are the same tag. */
+    key: text("key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("tags_group_key_uq").on(t.groupId, t.key)],
+);
+
+export const itemTags = pgTable(
+  "item_tags",
+  {
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.itemId, t.tagId] }), index("item_tags_tag_idx").on(t.tagId)],
+);
+
+/** A regular meetup: every N weeks on a weekday at a local time, in the group's time zone. */
+export const meetupSeries = pgTable(
+  "meetup_series",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    /** 0 = Sunday .. 6 = Saturday. */
+    weekday: integer("weekday").notNull(),
+    /** Local time "HH:MM". */
+    time: text("time").notNull(),
+    everyWeeks: integer("every_weeks").notNull().default(1),
+    /** First possible day (YYYY-MM-DD); anchors the every-N-weeks cycle. */
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    location: text("location").notNull().default(""),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [index("meetup_series_group_idx").on(t.groupId)],
+);
+
+/** One game night: from a series (created ahead automatically) or a one-off. */
+export const meetupNights = pgTable(
+  "meetup_nights",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    seriesId: text("series_id").references(() => meetupSeries.id, { onDelete: "set null" }),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    location: text("location").notNull().default(""),
+    note: text("note").notNull().default(""),
+    /** Who picks the games for this night. */
+    pickerId: text("picker_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("meetup_nights_group_idx").on(t.groupId, t.startsAt), uniqueIndex("meetup_nights_series_start_uq").on(t.seriesId, t.startsAt)],
+);
+
+/** The games planned (and, once the night has passed, played) on a night. */
+export const nightGames = pgTable(
+  "night_games",
+  {
+    nightId: text("night_id")
+      .notNull()
+      .references(() => meetupNights.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    orderIndex: integer("order_index").notNull().default(0),
+    addedBy: text("added_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.nightId, t.itemId] }), index("night_games_item_idx").on(t.itemId)],
+);
+
+/** "I want to play this": the group's wishlist queue, one entry per member per game. */
+export const gameQueue = pgTable(
+  "game_queue",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.itemId, t.userId] }), index("game_queue_group_idx").on(t.groupId)],
 );

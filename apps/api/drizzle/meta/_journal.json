@@ -57,6 +57,13 @@
       "when": 1793907470646,
       "tag": "0007_plan_date_home_dishes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793918859076,
+      "tag": "0008_boardgame",
+      "breakpoints": true
     }
   ]
 }

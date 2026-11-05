@@ -29,6 +29,7 @@ e2e/              Playwright 테스트 (데스크톱·폰 화면). 기본은 가
 | M3 가게와 메뉴: 공유로 가게 저장, 중복 판정(옐프 별칭·구글 장소), 구글 연결·영업시간, 가게·메뉴·가격 CRUD, 동선에 추가 | 완료 |
 | M5 사진 업로드 (R2, 촬영 시각) | 다음. Cloudflare R2 버킷·키 필요 |
 | M6 방문 기록과 평점 → M7 위시리스트와 추천 | 기획서 참고 |
+| 보드게임 나이트 (기획서 M8·M9를 앞당김) | 완료: 정기 모임(요일·시간·N주마다, 그룹 시간대), 다음 모임 자동 생성, 고르는 사람(자원·넘기기·순번 제안), 게임 라이브러리(BGG·BGA·TTS·룰북·룰 영상·기타 링크, 태그), 큐, 10점 평점·코멘트, 리더보드(평점순·많이 한 순, 태그 필터), 지난 모임. "새 그룹"에서 보드게임 그룹을 만든다 |
 
 APK는 안드로이드용 구글 키가 들어가므로, 저장소가 공개인 동안은 GitHub 릴리스·아티팩트로 올리지 않는다
 (2026-11-02에 기존 공개 APK와 릴리스를 모두 삭제). CI는 릴리스 APK를 빌드해 에뮬레이터에서 실행·공유 받기를 확인한 뒤, **초안(draft) 릴리스**로 올린다.
@@ -98,6 +99,19 @@ Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew sign
 | POST | `/api/invites/:token/accept` | 참여 |
 
 에러는 문장이 아니라 코드(`invite.expired` 등)로 돌려주고 앱이 번역한다. 세션 토큰과 초대 토큰은 DB에 해시로만 저장한다. 모든 페이지와 응답에 `X-Robots-Tag: noindex`.
+
+### 보드게임 모듈
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | `/api/groups/:id/boardgame` | 정기 모임, 다가오는 모임(다음 모임이 없으면 만들어 둔다), 지난 모임, 큐 |
+| GET / POST | `/api/groups/:id/games` | 게임 목록(링크·태그·평균·플레이 횟수) / 추가 `{ name, links: [{kind,url,label}], tags, memo }` |
+| GET / PATCH / DELETE | `/api/games/:id` | 게임 상세(모두의 평점·코멘트, 했던 모임) |
+| PUT / DELETE | `/api/games/:id/rating` | 내 평점 `{ score: 1..10, review }` |
+| POST / DELETE | `/api/games/:id/queue` | 큐에 담기 / 빼기 |
+| POST | `/api/groups/:id/series` · PATCH / DELETE `/api/series/:id` | 정기 모임 `{ weekday 0..6, time "19:00", everyWeeks 1..4, location }` — 그룹장·진행자 |
+| POST | `/api/groups/:id/nights` · GET / PATCH / DELETE `/api/nights/:id` | 한 번만 하는 모임 `{ date, time, location }`, 고르는 사람 `{ pickerId }`, 메모 |
+| POST | `/api/nights/:id/games` · DELETE `/api/nights/:id/games/:gameId` | 그날 할 게임 — 고르는 사람·그룹장·진행자 (넣으면 큐에서 빠짐) |
 
 ## E2E (Playwright)
 

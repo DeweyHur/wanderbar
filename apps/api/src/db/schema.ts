@@ -480,3 +480,29 @@ export const pushTokens = pgTable(
   },
   (t) => [index("push_tokens_user_idx").on(t.userId)],
 );
+
+// ---- Board game module: BoardGameGeek details ----
+
+/** What BGG says about a game (picture, players, time…), fetched by the server when a game gets a BGG link. */
+export const gameDetails = pgTable("game_details", {
+  itemId: text("item_id")
+    .primaryKey()
+    .references(() => items.id, { onDelete: "cascade" }),
+  bggId: integer("bgg_id").notNull(),
+  year: integer("year"),
+  /** BGG's own image URLs (shown from BGG's image server, not copied). */
+  imageUrl: text("image_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  minPlayers: integer("min_players"),
+  maxPlayers: integer("max_players"),
+  playingTime: integer("playing_time"),
+  weight: doublePrecision("weight"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** BGG XML API answers, cached server-side as BGG asks (searches for a day, games for a week). */
+export const bggCache = pgTable("bgg_cache", {
+  key: text("key").primaryKey(),
+  body: jsonb("body").notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});

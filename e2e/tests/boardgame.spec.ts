@@ -174,3 +174,41 @@ test("rate games out of 10 after a night; leaderboard by rating and by tag; frie
   await expect(visible(page, "game-review")).toContainText("Best with 6+");
   void codenames;
 });
+
+test("BoardGameGeek: search by name, pick a game, and its box art and player count show up", async ({ page }) => {
+  await signIn(page, "Finder");
+  const groupId = await newBoardGameGroup(page, "BGG Club");
+  await button(page, "Games").click();
+  await button(page, "Add a game").click();
+
+  await field(page, "Name").pressSequentially("wing", { delay: 20 });
+  const results = visible(page, "bgg-results");
+  await expect(results).toContainText("Wingspan (2019)");
+  await expect(results).toContainText("Powered by BGG");
+  await results.getByRole("button", { name: "Wingspan (2019)" }).click();
+  await expect(results).toHaveCount(0);
+  await expect(field(page, "Name")).toHaveValue("Wingspan");
+  await expect(field(page, "BoardGameGeek link")).toHaveValue("https://boardgamegeek.com/boardgame/266192");
+  await expect(visible(page, "bgg-picked")).toContainText("1–5 players · 70 min · weight 2.5/5");
+  await field(page, "Tags").fill("birds");
+  await button(page, "Save").click();
+
+  const info = visible(page, "game-info");
+  await expect(info).toContainText("Wingspan (2019)");
+  await expect(info).toContainText("1–5 players · 70 min");
+  await expect(info.getByTestId("game-thumb")).toBeVisible();
+  await expect(info).toContainText("Powered by BGG");
+
+  // The box art follows the game into the list.
+  await page.goto(`/group/${groupId}`);
+  await button(page, "Games").click();
+  await expect(visible(page, "game-card").getByTestId("game-thumb")).toBeVisible();
+  const games = (await (await page.request.get(`/api/groups/${groupId}/games`)).json()).games as { id: string; bgg: { id: number; maxPlayers: number } }[];
+  expect(games[0].bgg).toMatchObject({ id: 266192, maxPlayers: 5 });
+
+  // A pasted BGG link (no search) fills the name and picture too.
+  await button(page, "Add a game").click();
+  await field(page, "BoardGameGeek link").fill("https://boardgamegeek.com/boardgame/295947/cascadia");
+  await expect(visible(page, "bgg-picked")).toContainText("1–4 players · 45 min");
+  await expect(field(page, "Name")).toHaveValue("Cascadia");
+});

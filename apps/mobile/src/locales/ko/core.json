@@ -156,6 +156,13 @@
       "too_large": "사진이 너무 커요 (최대 4MB)",
       "file_required": "사진을 골라 주세요",
       "delete_forbidden": "올린 사람이나 그룹장만 지울 수 있어요"
+    },
+    "bgg": {
+      "unavailable": "서버에 BoardGameGeek 연결이 아직 설정되지 않았어요 (BGG 토큰)",
+      "busy": "BoardGameGeek가 바빠요. 잠시 후 다시 해 주세요.",
+      "failed": "BoardGameGeek에 연결하지 못했어요",
+      "not_found": "BoardGameGeek에서 게임을 찾을 수 없어요",
+      "bad_id": "BoardGameGeek 게임이 아니에요"
     }
   },
   "photo": {

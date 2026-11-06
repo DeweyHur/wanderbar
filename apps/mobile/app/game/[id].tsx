@@ -8,7 +8,7 @@ import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { bgApi, type Game } from "@/modules/boardgame/api";
 import { GameForm } from "@/modules/boardgame/GameForm";
-import { allTags, GameLinks, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
+import { allTags, bggFacts, GameLinks, GameThumb, PoweredByBgg, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
 
 /** A game: its links (BGG, BGA, TTS, rulebook, video), tags, the queue, my 10-point rating and everyone's comments. */
 export default function GameScreen() {
@@ -74,8 +74,17 @@ export default function GameScreen() {
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: g.name }} />
       <Card testID="game-info">
+        {g.bgg?.image || g.bgg?.thumbnail ? (
+          <View style={{ alignItems: "center" }}>
+            <GameThumb bgg={g.bgg} size={220} big />
+          </View>
+        ) : null}
         <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{t("boardgame:game.title")}</Text>
-        <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{g.name}</Text>
+        <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>
+          {g.name}
+          {g.bgg?.year ? <Text style={{ color: c.muted, fontSize: 16 }}> ({g.bgg.year})</Text> : null}
+        </Text>
+        {g.bgg ? <Body muted>{bggFacts(g.bgg, t)}</Body> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
           {g.rating.count ? <ScoreBadge rating={g.rating} /> : <Body muted>{t("boardgame:rating.none")}</Body>}
           <Body muted>
@@ -85,6 +94,12 @@ export default function GameScreen() {
         </View>
         {g.tags.length > 0 && <Text style={{ color: c.muted, fontSize: 14 }}>{g.tags.map((x) => `#${x}`).join("  ")}</Text>}
         {g.links.length ? <GameLinks links={g.links} /> : <Body muted>{t("boardgame:game.noLinks")}</Body>}
+        {g.bgg ? <PoweredByBgg id={g.bgg.id} /> : null}
+        {g.links.some((l) => l.kind === "bgg") && !g.bgg?.image ? (
+          <View style={{ flexDirection: "row" }}>
+            <Chip label={t("boardgame:bgg.refresh")} onPress={() => run(bgApi.refreshBgg(g.id))} />
+          </View>
+        ) : null}
         {g.memo ? <Body>{g.memo}</Body> : null}
       </Card>
 

@@ -1,11 +1,50 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, View } from "react-native";
+import { Image, Linking, Pressable, View } from "react-native";
 import { Card, Chip, useColors, Text } from "@/components/ui";
-import type { GameLink, NightSummary, Rating } from "./api";
+import type { BggInfo, GameLink, NightSummary, Rating } from "./api";
 import { nightWhen, scoreText } from "./format";
 
 const GOLD = "#F5A524";
+
+/** The game's box art from BGG (thumbnail unless `big`), or a die when there is none. */
+export function GameThumb({ bgg, size = 56, big }: { bgg: BggInfo | null | undefined; size?: number; big?: boolean }) {
+  const c = useColors();
+  const uri = big ? (bgg?.image ?? bgg?.thumbnail) : (bgg?.thumbnail ?? bgg?.image);
+  const box = { width: size, height: size, borderRadius: Math.round(size / 5), backgroundColor: c.bg };
+  if (!uri)
+    return (
+      <View style={[box, { alignItems: "center", justifyContent: "center" }]}>
+        <Text style={{ fontSize: size / 2.2 }}>🎲</Text>
+      </View>
+    );
+  return <Image testID="game-thumb" source={{ uri }} style={box} resizeMode={big ? "contain" : "cover"} accessibilityIgnoresInvertColors />;
+}
+
+/** "1–5 players · 70 min · weight 2.5" from BGG. */
+export function bggFacts(bgg: BggInfo | null | undefined, t: (k: string, o?: Record<string, unknown>) => string) {
+  if (!bgg) return "";
+  const parts: string[] = [];
+  if (bgg.minPlayers && bgg.maxPlayers)
+    parts.push(t("boardgame:bgg.players", { players: bgg.minPlayers === bgg.maxPlayers ? `${bgg.minPlayers}` : `${bgg.minPlayers}–${bgg.maxPlayers}` }));
+  if (bgg.playingTime) parts.push(t("boardgame:bgg.minutes", { count: bgg.playingTime }));
+  if (bgg.weight) parts.push(t("boardgame:bgg.weight", { weight: bgg.weight.toFixed(1) }));
+  return parts.join(" · ");
+}
+
+/** BGG's terms ask apps to credit it; this links back to the game on BGG. */
+export function PoweredByBgg({ id }: { id?: number | null }) {
+  const c = useColors();
+  return (
+    <Text
+      accessibilityRole="link"
+      onPress={() => Linking.openURL(id ? `https://boardgamegeek.com/boardgame/${id}` : "https://boardgamegeek.com")}
+      style={{ color: c.muted, fontSize: 12 }}
+    >
+      Powered by BGG
+    </Text>
+  );
+}
 
 /** One chip per link (BGG, BGA, TTS, Rulebook, Video rules, …) that opens it. */
 export function GameLinks({ links }: { links: GameLink[] }) {
@@ -103,8 +142,9 @@ export function NightCard({ night, tz, highlight }: { night: NightSummary; tz: s
         {night.games.length ? (
           night.games.map((g) => (
             <View key={g.id} style={{ gap: 4 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                <Text style={{ color: c.text, fontSize: 16, fontWeight: "600", flexShrink: 1 }}>{g.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <GameThumb bgg={g.bgg} size={36} />
+                <Text style={{ color: c.text, fontSize: 16, fontWeight: "600", flex: 1 }}>{g.name}</Text>
                 <ScoreBadge rating={g.rating} />
               </View>
             </View>

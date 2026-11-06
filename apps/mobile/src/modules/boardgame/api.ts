@@ -5,6 +5,19 @@ export type LinkKind = (typeof LINK_KINDS)[number];
 export type GameLink = { kind: LinkKind; url: string; label: string | null };
 export type Rating = { avg: number | null; count: number };
 export type Person = { id: string; name: string };
+/** What BoardGameGeek says about a game (picture from BGG's image server). */
+export type BggInfo = {
+  id: number;
+  year: number | null;
+  image: string | null;
+  thumbnail: string | null;
+  minPlayers: number | null;
+  maxPlayers: number | null;
+  playingTime: number | null;
+  weight: number | null;
+};
+export type BggHit = { id: number; name: string; year: number | null };
+export type BggGame = Omit<BggInfo, "id"> & { id: number; name: string };
 
 export type GameSummary = {
   id: string;
@@ -20,6 +33,7 @@ export type GameSummary = {
   lastPlayedAt: string | null;
   queuedBy: { userId: string; name: string }[];
   queuedByMe: boolean;
+  bgg: BggInfo | null;
 };
 export type Game = GameSummary & {
   canDelete: boolean;
@@ -30,7 +44,7 @@ export type Game = GameSummary & {
 export type GameInput = { name?: string; memo?: string; links?: { kind: LinkKind; url: string; label?: string | null }[]; tags?: string[] };
 
 export type NightStatus = "upcoming" | "live" | "past";
-export type NightGame = { id: string; name: string; links: GameLink[]; tags: string[]; rating: Rating; myScore: number | null; myReview: string | null };
+export type NightGame = { id: string; name: string; links: GameLink[]; tags: string[]; rating: Rating; myScore: number | null; myReview: string | null; bgg: BggInfo | null };
 export type NightSummary = {
   id: string;
   groupId: string;
@@ -52,9 +66,19 @@ export type Night = NightSummary & {
 };
 export type Series = { id: string; title: string; weekday: number; time: string; everyWeeks: number; startDate: string; location: string };
 export type SeriesInput = Partial<Omit<Series, "id">>;
-export type QueueEntry = { id: string; name: string; links: GameLink[]; tags: string[]; rating: Rating; plays: number; queuedBy: { userId: string; name: string }[]; queuedByMe: boolean };
+export type QueueEntry = { id: string; name: string; links: GameLink[]; tags: string[]; rating: Rating; plays: number; queuedBy: { userId: string; name: string }[]; queuedByMe: boolean; bgg: BggInfo | null };
 export type Home = { timezone: string; canManage: boolean; series: Series[]; upcoming: NightSummary[]; past: NightSummary[]; queue: QueueEntry[] };
 export type NightInput = { date?: string; time?: string; location?: string; note?: string; pickerId?: string | null };
+
+let bggOn: Promise<boolean> | null = null;
+/** Whether the server can look games up on BoardGameGeek (it needs a BGG token). */
+export const bggAvailable = () => (bggOn ??= api<{ bgg?: boolean }>("/api/config").then((c) => !!c.bgg, () => false));
+
+export const bggApi = {
+  search: (q: string) => api<{ results: BggHit[] }>(`/api/bgg/search?q=${encodeURIComponent(q)}`).then((r) => r.results),
+  game: (id: number) => api<BggGame>(`/api/bgg/games/${id}`),
+};
+export const bggLink = (id: number) => `https://boardgamegeek.com/boardgame/${id}`;
 
 export const bgApi = {
   home: (groupId: string) => api<Home>(`/api/groups/${groupId}/boardgame`),
@@ -65,6 +89,7 @@ export const bgApi = {
   deleteGame: (id: string) => api(`/api/games/${id}`, { method: "DELETE" }),
   rate: (id: string, score: number, review: string) => api<Game>(`/api/games/${id}/rating`, { method: "PUT", body: { score, review } }),
   unrate: (id: string) => api<Game>(`/api/games/${id}/rating`, { method: "DELETE" }),
+  refreshBgg: (id: string) => api<Game>(`/api/games/${id}/bgg`, { body: {} }),
   queue: (id: string) => api<Game>(`/api/games/${id}/queue`, { body: {} }),
   unqueue: (id: string) => api<Game>(`/api/games/${id}/queue`, { method: "DELETE" }),
   createSeries: (groupId: string, s: SeriesInput) => api<Series>(`/api/groups/${groupId}/series`, { body: s }),

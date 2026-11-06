@@ -152,5 +152,14 @@
   },
   "history": {
     "empty": "Past game nights show up here."
+  },
+  "bgg": {
+    "players": "{{players}} players",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "weight": "weight {{weight}}/5",
+    "searchPlaceholder": "Type a name to search BoardGameGeek",
+    "refresh": "Get picture from BGG",
+    "noPicture": "Add a BGG link to show the box art."
   }
 }

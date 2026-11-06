@@ -8,7 +8,7 @@ import { prefs } from "@/core/platform/prefs";
 import { useSession } from "@/core/session";
 import { bgApi, type GameSummary, type Home } from "./api";
 import { scoreText, timeLabel } from "./format";
-import { allTags, GameLinks, NightCard, ScoreBadge, SectionTitle, TagChips } from "./parts";
+import { allTags, bggFacts, GameLinks, GameThumb, NightCard, ScoreBadge, SectionTitle, TagChips } from "./parts";
 
 type Tab = "next" | "games" | "leaderboard" | "history";
 const TABS: Tab[] = ["next", "games", "leaderboard", "history"];
@@ -102,8 +102,9 @@ function NextTab({ groupId, home, onChange, onError }: { groupId: string; home: 
       {home.queue.map((q) => (
         <Card key={q.id} testID="queue-card">
           <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/game/[id]", params: { id: q.id } })}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-              <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flexShrink: 1 }}>{q.name}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <GameThumb bgg={q.bgg} size={44} />
+              <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flex: 1 }}>{q.name}</Text>
               <ScoreBadge rating={q.rating} />
             </View>
           </Pressable>
@@ -148,13 +149,19 @@ function GamesTab({ groupId, games }: { groupId: string; games: GameSummary[] })
       {shown.map((g) => (
         <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={g.name} onPress={() => router.push({ pathname: "/game/[id]", params: { id: g.id } })}>
           <Card testID="game-card">
-            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-              <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flexShrink: 1 }}>{g.name}</Text>
-              <ScoreBadge rating={g.rating} />
+            <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+              <GameThumb bgg={g.bgg} />
+              <View style={{ flex: 1, gap: 4 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                  <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flexShrink: 1 }}>{g.name}</Text>
+                  <ScoreBadge rating={g.rating} />
+                </View>
+                {g.bgg ? <Text style={{ color: c.muted, fontSize: 13 }}>{bggFacts(g.bgg, t)}</Text> : null}
+                <Text style={{ color: c.muted, fontSize: 14 }}>
+                  {[t("boardgame:game.plays", { count: g.plays }), g.queuedBy.length ? t("boardgame:queue.added") : null, ...g.tags.map((x) => `#${x}`)].filter(Boolean).join(" · ")}
+                </Text>
+              </View>
             </View>
-            <Text style={{ color: c.muted, fontSize: 14 }}>
-              {[t("boardgame:game.plays", { count: g.plays }), g.queuedBy.length ? t("boardgame:queue.added") : null, ...g.tags.map((x) => `#${x}`)].filter(Boolean).join(" · ")}
-            </Text>
           </Card>
         </Pressable>
       ))}
@@ -191,6 +198,7 @@ function Leaderboard({ games }: { games: GameSummary[] }) {
         <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/game/[id]", params: { id: g.id } })}>
           <View testID="rank-row" style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.card, borderColor: c.border, borderWidth: 1, borderRadius: 14, padding: 12 }}>
             <Text style={{ color: i < 3 ? c.accent : c.muted, fontSize: 20, fontWeight: "800", width: 34, textAlign: "center" }}>{i + 1}</Text>
+            <GameThumb bgg={g.bgg} size={44} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }} numberOfLines={1}>
                 {g.name}

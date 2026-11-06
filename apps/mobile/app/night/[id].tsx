@@ -8,7 +8,7 @@ import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { bgApi, type GameSummary, type Night, type NightGame, type QueueEntry } from "@/modules/boardgame/api";
 import { localParts, nightWhen } from "@/modules/boardgame/format";
-import { GameLinks, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
+import { GameLinks, GameThumb, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
 
 /** One game night: who picks, the games (with their links), rating them afterwards, notes. */
 export default function NightScreen() {
@@ -115,11 +115,12 @@ export default function NightScreen() {
       {n.games.length === 0 && <Body muted>{t("boardgame:night.noGames")}</Body>}
       {n.games.map((g) => (
         <Card key={g.id} testID="lineup-card">
-          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <GameThumb bgg={g.bgg} size={52} />
             <Text
               accessibilityRole="link"
               onPress={() => router.push({ pathname: "/game/[id]", params: { id: g.id } })}
-              style={{ color: c.text, fontSize: 17, fontWeight: "600", flexShrink: 1 }}
+              style={{ color: c.text, fontSize: 17, fontWeight: "600", flex: 1 }}
             >
               {g.name}
             </Text>

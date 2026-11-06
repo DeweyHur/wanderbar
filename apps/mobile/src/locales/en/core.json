@@ -157,6 +157,13 @@
       "too_large": "That photo is too big (4 MB max)",
       "file_required": "Choose a photo",
       "delete_forbidden": "Only whoever added it or the group owner can delete it"
+    },
+    "bgg": {
+      "unavailable": "BoardGameGeek lookups aren't set up on the server (BGG token)",
+      "busy": "BoardGameGeek is busy. Try again in a moment.",
+      "failed": "Couldn't reach BoardGameGeek",
+      "not_found": "Game not found on BoardGameGeek",
+      "bad_id": "That isn't a BoardGameGeek game"
     }
   },
   "photo": {

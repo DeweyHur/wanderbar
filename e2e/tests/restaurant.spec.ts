@@ -19,7 +19,8 @@ test("add a restaurant from Google search: address, hours and a category guess f
   await expect(info(page)).toContainText("Mensho Tokyo");
   await expect(info(page)).toContainText("Japanese");
   await expect(info(page)).toContainText("672 Geary St, San Francisco, CA 94102");
-  await expect(info(page)).toContainText(/Open · until 22:00|Closed · opens 11:30|Closing soon/);
+  // Depends on the clock: open, closing soon, closed with the next opening, or (after 22:00) just closed.
+  await expect(info(page)).toContainText(/Open · until 22:00|Closing soon|Closed/);
 
   // Back on the group home the restaurants tab is remembered and lists it.
   await page.goBack();

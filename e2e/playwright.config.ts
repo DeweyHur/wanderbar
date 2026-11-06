@@ -40,6 +40,8 @@ export default defineConfig({
       // Canned Google Places/Routes answers (server-side; never reaches Google).
       E2E_FAKE_GOOGLE: live ? "0" : "1",
       ...(live ? { GOOGLE_SERVER_KEY: process.env.GOOGLE_SERVER_KEY ?? "" } : {}),
+      // Canned BoardGameGeek answers (server-side; never reaches BGG).
+      E2E_FAKE_BGG: "1",
       GOOGLE_CLIENT_IDS: "e2e.apps.googleusercontent.com",
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "e2e.apps.googleusercontent.com",
       NEXT_TELEMETRY_DISABLED: "1",

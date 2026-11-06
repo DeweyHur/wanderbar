@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { externalLinks, gameQueue, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
+import { externalLinks, gameDetails, gameQueue, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
+import { bggAvailable, bggIdFromUrl, getBggGame } from "./bgg";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember, type Role } from "./groups";
 import { displayName, notifyGroup } from "./push";
@@ -86,7 +87,7 @@ async function setTags(db: Db, groupId: string, itemId: string, names: string[])
 /** Links, tags, ratings, plays and queue entries for a set of games, keyed by game id. */
 async function gameFacts(db: Db, ids: string[], userId: string, now: Date) {
   if (!ids.length) return () => null;
-  const [links, tagRows, rs, plays, queued] = await Promise.all([
+  const [links, tagRows, rs, plays, queued, details] = await Promise.all([
     db.select().from(externalLinks).where(inArray(externalLinks.itemId, ids)).orderBy(asc(externalLinks.createdAt)),
     db
       .select({ itemId: itemTags.itemId, name: tags.name })
@@ -107,6 +108,7 @@ async function gameFacts(db: Db, ids: string[], userId: string, now: Date) {
       .innerJoin(users, eq(users.id, gameQueue.userId))
       .where(inArray(gameQueue.itemId, ids))
       .orderBy(asc(gameQueue.createdAt)),
+    db.select().from(gameDetails).where(inArray(gameDetails.itemId, ids)),
   ]);
   return (id: string) => {
     const mine = rs.filter((r) => r.itemId === id);
@@ -122,8 +124,57 @@ async function gameFacts(db: Db, ids: string[], userId: string, now: Date) {
       lastPlayedAt: p?.last ? new Date(p.last).toISOString() : null,
       queuedBy: q.map((x) => ({ userId: x.userId, name: who(x) })),
       queuedAt: q[0]?.at ?? null,
+      bgg: bggView(details.find((d) => d.itemId === id)),
     };
   };
+}
+
+/** BGG details shown with a game: picture (from BGG's image server), players, time, weight, year. */
+function bggView(d: typeof gameDetails.$inferSelect | undefined) {
+  if (!d) return null;
+  return {
+    id: d.bggId,
+    year: d.year,
+    image: d.imageUrl,
+    thumbnail: d.thumbnailUrl,
+    minPlayers: d.minPlayers,
+    maxPlayers: d.maxPlayers,
+    playingTime: d.playingTime,
+    weight: d.weight,
+  };
+}
+
+/**
+ * When a game has a BGG link, fetch its BGG details (picture, players, time) once and keep them.
+ * Best effort: without a BGG token, or if BGG is down, the game simply has no picture yet.
+ */
+export async function syncBggDetails(db: Db, itemId: string, links: { kind: string; url: string }[], force = false) {
+  const bggLink = links.find((l) => l.kind === "bgg");
+  const bggId = bggLink ? bggIdFromUrl(bggLink.url) : null;
+  if (!bggId) {
+    await db.delete(gameDetails).where(eq(gameDetails.itemId, itemId));
+    return;
+  }
+  const [have] = await db.select().from(gameDetails).where(eq(gameDetails.itemId, itemId));
+  if (have && have.bggId === bggId && !force) return;
+  if (!bggAvailable()) return;
+  try {
+    const g = await getBggGame(db, bggId);
+    const row = {
+      bggId,
+      year: g.year,
+      imageUrl: g.image,
+      thumbnailUrl: g.thumbnail,
+      minPlayers: g.minPlayers,
+      maxPlayers: g.maxPlayers,
+      playingTime: g.playingTime,
+      weight: g.weight,
+      fetchedAt: new Date(),
+    };
+    await db.insert(gameDetails).values({ itemId, ...row }).onConflictDoUpdate({ target: gameDetails.itemId, set: row });
+  } catch (e) {
+    console.error("[bgg] details for", bggId, e instanceof Error ? e.message : e);
+  }
 }
 
 type GameRow = typeof items.$inferSelect;
@@ -155,6 +206,7 @@ export async function createGame(db: Db, groupId: string, userId: string, input:
     .returning();
   await setLinks(db, game.id, links);
   await setTags(db, groupId, game.id, tagNames);
+  await syncBggDetails(db, game.id, links);
   return getGame(db, game.id, userId);
 }
 
@@ -195,7 +247,10 @@ export async function updateGame(db: Db, id: string, userId: string, input: Game
   const links = input.links === undefined ? undefined : cleanLinks(input.links);
   const tagNames = input.tags === undefined ? undefined : cleanTags(input.tags);
   await db.update(items).set(set).where(eq(items.id, id));
-  if (links) await setLinks(db, id, links);
+  if (links) {
+    await setLinks(db, id, links);
+    await syncBggDetails(db, id, links);
+  }
   if (tagNames) await setTags(db, game.groupId, id, tagNames);
   return getGame(db, id, userId);
 }
@@ -429,7 +484,7 @@ async function nightViews(db: Db, nights: NightRow[], userId: string, now: Date)
         .filter((l) => l.nightId === n.id)
         .map((l) => {
           const f = facts(l.item.id)!;
-          return { id: l.item.id, name: l.item.name, links: f.links, tags: f.tags, rating: f.rating, myScore: f.myScore, myReview: f.myReview };
+          return { id: l.item.id, name: l.item.name, links: f.links, tags: f.tags, rating: f.rating, myScore: f.myScore, myReview: f.myReview, bgg: f.bgg };
         }),
     };
   });
@@ -548,7 +603,7 @@ export async function boardgameHome(db: Db, groupId: string, userId: string, now
   const queueView = queuedGames
     .map((g) => {
       const f = facts(g.id)!;
-      return { id: g.id, name: g.name, links: f.links, tags: f.tags, rating: f.rating, plays: f.plays, queuedBy: f.queuedBy, queuedByMe: f.queuedBy.some((q) => q.userId === userId), queuedAt: f.queuedAt };
+      return { id: g.id, name: g.name, links: f.links, tags: f.tags, rating: f.rating, plays: f.plays, queuedBy: f.queuedBy, queuedByMe: f.queuedBy.some((q) => q.userId === userId), queuedAt: f.queuedAt, bgg: f.bgg };
     })
     // Most wanted first, then whoever queued first.
     .sort((a, b) => b.queuedBy.length - a.queuedBy.length || new Date(a.queuedAt!).getTime() - new Date(b.queuedAt!).getTime());

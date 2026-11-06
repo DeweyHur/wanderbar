@@ -148,5 +148,13 @@
   },
   "history": {
     "empty": "지난 게임 나이트가 여기에 쌓여요."
+  },
+  "bgg": {
+    "players": "{{players}}인",
+    "minutes_other": "{{count}}분",
+    "weight": "난이도 {{weight}}/5",
+    "searchPlaceholder": "이름을 입력하면 BoardGameGeek에서 찾아요",
+    "refresh": "BGG에서 사진 가져오기",
+    "noPicture": "BGG 링크를 넣으면 박스 사진이 보여요."
   }
 }

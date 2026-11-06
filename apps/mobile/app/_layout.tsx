@@ -108,6 +108,10 @@ export default function RootLayout() {
             options={{ title: t("food:menu.title") }}
           />
           <Stack.Screen
+            name="groups"
+            options={{ title: t("group.mine") }}
+          />
+          <Stack.Screen
             name="group/new"
             options={{ title: t("group.newTitle") }}
           />

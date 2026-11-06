@@ -38,7 +38,9 @@
     "language": "그룹 언어",
     "language_hint": "초대 미리보기와 새 멤버의 처음 언어로 써요. 언어는 각자 바꿀 수 있어요.",
     "create": "그룹 만들기",
-    "others": "내 다른 그룹"
+    "others": "내 다른 그룹",
+    "switch": "그룹 바꾸기",
+    "mine": "내 그룹"
   },
   "invite": {
     "title": "그룹 초대",

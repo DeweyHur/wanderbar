@@ -39,7 +39,9 @@
     "language": "Group language",
     "language_hint": "Used for invite previews and new members' first language. Everyone can still pick their own.",
     "create": "Create group",
-    "others": "Your other groups"
+    "others": "Your other groups",
+    "switch": "Switch group",
+    "mine": "Your groups"
   },
   "invite": {
     "title": "Group invite",

@@ -70,7 +70,7 @@ export function PhotoStrip({ itemId, onChange }: { itemId: string; onChange?: ()
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {photos.map((p) => (
             <Pressable key={p.id} accessibilityRole="imagebutton" accessibilityLabel={t("photo.open")} onPress={() => setOpen(p)}>
-              <Image testID="photo-thumb" source={apiImage(p.url)} style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: c.card }} resizeMode="cover" />
+              <Image testID="photo-thumb" source={apiImage(p.thumbUrl)} style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: c.card }} resizeMode="cover" />
             </Pressable>
           ))}
         </ScrollView>

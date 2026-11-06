@@ -231,5 +231,32 @@
     "badgeMe": "✓ 가 봄",
     "badgeGroup": "✓ 그룹이 가 봄",
     "badgeNotYet": "아직 안 감"
+  },
+  "meal": {
+    "atHome": "집에 있는 날",
+    "lunch": "점심",
+    "dinner": "저녁",
+    "none": "아직 정한 메뉴가 없어요.",
+    "placeholder_lunch": "점심은 뭐 먹지?",
+    "placeholder_dinner": "저녁은 뭐 먹지?",
+    "shop_zero": "장보기",
+    "shop_one": "{{count}}개 살 것",
+    "shop_other": "{{count}}개 살 것",
+    "remove": "{{name}} 빼기",
+    "deletedDish": "(지운 음식)"
+  },
+  "shopping": {
+    "title": "장보기",
+    "placeholder": "두부, 대파, 계란",
+    "add": "목록에 추가",
+    "linkDish": "음식 연결…",
+    "forDish": "{{name}}용 ✕",
+    "noDishes": "아직 집밥 음식이 없어요.",
+    "empty": "살 게 없어요. 여기서 추가하거나, 집에 있는 날 메뉴 밑에 추가하세요.",
+    "for": "{{what}}용",
+    "bought_one": "산 것 ({{count}})",
+    "bought_other": "산 것 ({{count}})",
+    "clear": "산 것 지우기",
+    "remove": "{{name}} 지우기"
   }
 }

@@ -19,8 +19,8 @@ export type Stop = {
   status: StopStatus;
 };
 /** A day route. date is the day it's for (YYYY-MM-DD); an empty title means "call it by its date". */
-export type Plan = { id: string; groupId: string; title: string; date: string | null; createdAt: string; stops: Stop[] };
-export type PlanSummary = { id: string; title: string; date: string | null; createdAt: string; total: number; finished: number; currentName: string | null };
+export type Plan = { id: string; groupId: string; title: string; date: string | null; atHome: boolean; createdAt: string; stops: Stop[] };
+export type PlanSummary = { id: string; title: string; date: string | null; atHome: boolean; createdAt: string; total: number; finished: number; currentName: string | null };
 export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">>;
 export type FlowAction =
   | { action: "complete" | "postpone" | "drop" | "setCurrent" | "restore"; stopId: string }
@@ -31,7 +31,7 @@ export const routeApi = {
   list: (groupId: string) => api<{ plans: PlanSummary[] }>(`/api/groups/${groupId}/plans`).then((r) => r.plans),
   create: (groupId: string, p: { date: string; title?: string }) => api<Plan>(`/api/groups/${groupId}/plans`, { body: p }),
   get: (planId: string) => api<Plan>(`/api/plans/${planId}`),
-  update: (planId: string, edit: { title?: string; date?: string }) => api<Plan>(`/api/plans/${planId}`, { method: "PATCH", body: edit }),
+  update: (planId: string, edit: { title?: string; date?: string; atHome?: boolean }) => api<Plan>(`/api/plans/${planId}`, { method: "PATCH", body: edit }),
   remove: (planId: string) => api(`/api/plans/${planId}`, { method: "DELETE" }),
   addStops: (planId: string, stops: (StopFields & { name: string })[]) =>
     api<{ stops: Stop[] }>(`/api/plans/${planId}/stops`, { body: { stops } }).then((r) => r.stops),

@@ -48,7 +48,7 @@ export function DishList({ groupId, dishes }: { groupId: string; dishes: DishSum
         <Pressable key={d.id} accessibilityRole="button" accessibilityLabel={d.name} onPress={() => router.push({ pathname: "/dish/[id]", params: { id: d.id } })}>
           <Card testID="dish-card">
             <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-              {d.coverPhotoId && <Image source={apiImage(`/api/photos/${d.coverPhotoId}`)} style={{ width: 56, height: 56, borderRadius: 12 }} resizeMode="cover" />}
+              {d.coverPhotoId && <Image source={apiImage(`/api/photos/${d.coverPhotoId}?size=thumb`)} style={{ width: 56, height: 56, borderRadius: 12 }} resizeMode="cover" />}
               <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flex: 1 }} numberOfLines={1}>
                 {d.name}
               </Text>

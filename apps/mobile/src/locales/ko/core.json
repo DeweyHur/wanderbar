@@ -51,7 +51,13 @@
     "title": "설정",
     "language": "언어",
     "languageSystem": "기기 언어",
-    "signedInAs": "{{email}}로 로그인됨"
+    "signedInAs": "{{email}}로 로그인됨",
+    "notifications": "알림",
+    "notifyReminders": "동선·장보기 알림",
+    "notifyRemindersHint": "동선 전날 저녁과 당일 아침, 집에 있는 날 전에 남은 장보기를 알려줘요.",
+    "notifyPush": "그룹 소식",
+    "notifyPushHint": "누가 가게를 저장하거나, 별점을 주거나, 사진을 올리거나, 보드게임 나이트를 잡으면 알려줘요.",
+    "notifyDenied": "폰 설정에서 wanderbar 알림이 꺼져 있어요."
   },
   "errors": {
     "unknown": "문제가 생겼어요",
@@ -156,5 +162,17 @@
     "open": "사진 열기",
     "delete": "사진 삭제",
     "confirmDelete": "이 사진을 지울까요?"
+  },
+  "notify": {
+    "channelReminders": "리마인더",
+    "channelGroup": "그룹 소식",
+    "routeTomorrowTitle": "내일 동선 🚗",
+    "routeTodayTitle": "오늘 동선 🚗",
+    "routeBody_one": "{{name}} · 1곳",
+    "routeBody_other": "{{name}} · {{count}}곳",
+    "shopTomorrowTitle": "내일 먹을 거 장보기 🛒",
+    "shopTodayTitle": "오늘 장볼 거 남았어요 🛒",
+    "shopBody_one": "메뉴에 필요한 게 1개 남았어요",
+    "shopBody_other": "메뉴에 필요한 게 {{count}}개 남았어요"
   }
 }

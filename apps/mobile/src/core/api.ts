@@ -46,6 +46,13 @@ export async function saveToken(next: string | null) {
 /** Whether it's worth asking the server who we are (web: the cookie may exist; apps: need a token). */
 export const mightHaveSession = () => sessionStore.mode === "cookie" || token !== null;
 
+const mutations = new Set<(path: string) => void>();
+/** Called after every successful change (POST/PATCH/PUT/DELETE), e.g. to reschedule reminders. */
+export function onApiMutation(fn: (path: string) => void) {
+  mutations.add(fn);
+  return () => void mutations.delete(fn);
+}
+
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   if (Platform.OS !== "web" && !API_URL) throw new ApiError(0, "config.api_url_missing");
   const headers: Record<string, string> = { "content-type": "application/json" };
@@ -64,6 +71,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   }
   const data = (await res.json().catch(() => ({}))) as { error?: string };
   if (!res.ok) throw new ApiError(res.status, data.error ?? "unknown");
+  if ((opts.method ?? (opts.body === undefined ? "GET" : "POST")) !== "GET") for (const fn of mutations) fn(path);
   return data as T;
 }
 

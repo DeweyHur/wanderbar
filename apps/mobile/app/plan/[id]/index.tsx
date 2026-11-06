@@ -16,6 +16,7 @@ import { useNow } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { dayLabel, planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
+import { MealPlanner } from "@/modules/food/shopping/MealPlanner";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
 export default function PlanScreen() {
@@ -100,10 +101,17 @@ export default function PlanScreen() {
         }}
       />
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} testID="plan-day">
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 }} testID="plan-day">
         <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{plan.date ? dayLabel(t, i18n.language, plan.date) : ""}</Text>
         <Chip label={t("food:date.change")} onPress={() => setPickingDay(true)} />
+        <Chip
+          label={t("food:meal.atHome")}
+          icon="🏠"
+          selected={plan.atHome}
+          onPress={() => routeApi.update(plan.id, { atHome: !plan.atHome }).then((p) => setPlan((old) => (old ? { ...old, atHome: p.atHome } : old)), (e) => setError(errorText(t, e)))}
+        />
       </View>
+      {plan.atHome && <MealPlanner planId={plan.id} groupId={plan.groupId} />}
       <DayPicker
         visible={pickingDay}
         value={plan.date}

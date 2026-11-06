@@ -12,7 +12,7 @@ export type StopFields = Partial<
 >;
 
 /** Plans are personal in the MVP: visible only to their owner, who must still be a group member. */
-async function ownPlan(db: Db, planId: string, userId: string) {
+export async function ownPlan(db: Db, planId: string, userId: string) {
   const [plan] = await db.select().from(plans).where(eq(plans.id, planId));
   if (!plan || plan.userId !== userId) throw notFound("plan.not_found");
   await requireMember(db, plan.groupId, userId);
@@ -58,6 +58,7 @@ export async function listPlans(db: Db, groupId: string, userId: string) {
       id: p.id,
       title: p.title,
       date: p.date,
+      atHome: p.atHome,
       createdAt: p.createdAt,
       total: mine.length,
       finished: mine.filter((s) => s.status === "done" || s.status === "skipped").length,
@@ -111,13 +112,14 @@ export async function getPlan(db: Db, planId: string, userId: string) {
   return { ...plan, stops };
 }
 
-/** Rename (empty = call it by its date) and/or move the route to another day. */
-export async function updatePlan(db: Db, planId: string, userId: string, edit: { title?: string; date?: string }) {
+/** Rename (empty = call it by its date), move the route to another day, or mark it a day at home. */
+export async function updatePlan(db: Db, planId: string, userId: string, edit: { title?: string; date?: string; atHome?: boolean }) {
   await ownPlan(db, planId, userId);
   if (edit.date !== undefined && !isDay(edit.date)) throw badRequest("plan.date_invalid");
   const set: Partial<typeof plans.$inferInsert> = {};
   if (edit.title !== undefined) set.title = edit.title.trim();
   if (edit.date !== undefined) set.date = edit.date;
+  if (edit.atHome !== undefined) set.atHome = edit.atHome;
   if (!Object.keys(set).length) return ownPlan(db, planId, userId);
   const [plan] = await db.update(plans).set(set).where(eq(plans.id, planId)).returning();
   return plan;

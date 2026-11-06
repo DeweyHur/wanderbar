@@ -52,7 +52,13 @@
     "title": "Settings",
     "language": "Language",
     "languageSystem": "Device language",
-    "signedInAs": "Signed in as {{email}}"
+    "signedInAs": "Signed in as {{email}}",
+    "notifications": "Notifications",
+    "notifyReminders": "Route & shopping reminders",
+    "notifyRemindersHint": "The evening before and the morning of a route; what's left to buy before a day at home.",
+    "notifyPush": "Group news",
+    "notifyPushHint": "When someone saves a restaurant, rates something, adds photos, or plans a board game night.",
+    "notifyDenied": "Notifications are turned off for wanderbar in your phone's settings."
   },
   "errors": {
     "unknown": "Something went wrong",
@@ -157,5 +163,17 @@
     "open": "Open photo",
     "delete": "Delete photo",
     "confirmDelete": "Delete this photo?"
+  },
+  "notify": {
+    "channelReminders": "Reminders",
+    "channelGroup": "Group news",
+    "routeTomorrowTitle": "Route tomorrow 🚗",
+    "routeTodayTitle": "Today's route 🚗",
+    "routeBody_one": "{{name}} · 1 stop",
+    "routeBody_other": "{{name}} · {{count}} stops",
+    "shopTomorrowTitle": "Shopping for tomorrow 🛒",
+    "shopTodayTitle": "Still to buy today 🛒",
+    "shopBody_one": "1 thing left on the list for your meals",
+    "shopBody_other": "{{count}} things left on the list for your meals"
   }
 }

@@ -5,6 +5,7 @@ import { externalLinks, groups, items, menuDetails, planStops, ratings, restaura
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
+import { displayName, notifyGroup } from "./push";
 import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { isDay } from "./plans";
 import { resolveShortLink } from "./shortLinks";
@@ -129,6 +130,7 @@ async function lookupGoogle(input: { placeId?: string; sessionToken?: string; na
 export async function createRestaurant(db: Db, groupId: string, userId: string, input: NewRestaurant) {
   if (input.visitedOn !== undefined && !isDay(input.visitedOn)) throw badRequest("visit.date_invalid");
   const r = await saveRestaurant(db, groupId, userId, input);
+  if (r.created) notifyGroup(db, groupId, userId, { type: "restaurant", who: await displayName(db, userId), name: r.restaurant.name, itemId: r.restaurant.id });
   if (input.visitedOn) {
     await visitOnDay(db, groupId, r.restaurant.id, userId, input.visitedOn);
     return { ...r, restaurant: await getRestaurant(db, r.restaurant.id, userId) };
@@ -398,6 +400,8 @@ export async function rateMenu(db: Db, menuId: string, userId: string, input: { 
   const score = input.stars * 2;
   if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
   const review = (input.review ?? "").trim();
+  const [before] = await db.select({ score: ratings.score }).from(ratings).where(and(eq(ratings.itemId, menuId), eq(ratings.userId, userId)));
+  if (!before) notifyGroup(db, menu.groupId, userId, { type: "rating", who: await displayName(db, userId), name: menu.name, stars: input.stars, itemId: menuId, kind: "menu" });
   await db
     .insert(ratings)
     .values({ groupId: menu.groupId, itemId: menuId, userId, score, review })

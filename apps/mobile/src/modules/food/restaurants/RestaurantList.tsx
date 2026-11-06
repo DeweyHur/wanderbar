@@ -58,7 +58,7 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
           <Card testID="restaurant-card">
             <View style={{ flexDirection: "row", gap: 12 }}>
               {(r.coverPhotoId || r.hasPhoto) && (
-                <Image source={apiImage(r.coverPhotoId ? `/api/photos/${r.coverPhotoId}` : `/api/restaurants/${r.id}/photo`)} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: c.bg }} resizeMode="cover" />
+                <Image source={apiImage(r.coverPhotoId ? `/api/photos/${r.coverPhotoId}?size=thumb` : `/api/restaurants/${r.id}/photo`)} style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: c.bg }} resizeMode="cover" />
               )}
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }} numberOfLines={1}>

@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { externalLinks, gameQueue, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember, type Role } from "./groups";
+import { displayName, notifyGroup } from "./push";
 import { DATE_RE, isTimeZone, localDate, nextOccurrence, TIME_RE, zonedInstant } from "./recurrence";
 
 /**
@@ -464,6 +465,7 @@ export async function createNight(db: Db, groupId: string, userId: string, input
     .insert(meetupNights)
     .values({ groupId, startsAt, location: (input.location ?? "").trim(), note: (input.note ?? "").trim(), pickerId: input.pickerId ?? null })
     .returning();
+  notifyGroup(db, groupId, userId, { type: "night_new", at: startsAt, tz: await groupTimezone(db, groupId), nightId: night.id });
   return getNight(db, night.id, userId);
 }
 
@@ -505,9 +507,13 @@ export async function addNightGame(db: Db, id: string, gameId: string, userId: s
   const { game } = await memberGame(db, gameId, userId);
   if (game.groupId !== night.groupId) throw notFound("game.not_found");
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(nightGames).where(eq(nightGames.nightId, id));
-  await db.insert(nightGames).values({ nightId: id, itemId: gameId, orderIndex: n, addedBy: userId }).onConflictDoNothing();
-  // Picked for a night still to come: it leaves the queue. Recording what a past night played doesn't.
-  if (night.startsAt.getTime() > now.getTime()) await db.delete(gameQueue).where(eq(gameQueue.itemId, gameId));
+  const added = await db.insert(nightGames).values({ nightId: id, itemId: gameId, orderIndex: n, addedBy: userId }).onConflictDoNothing().returning({ itemId: nightGames.itemId });
+  // Picked for a night still to come: it leaves the queue (and the group hears). Recording what a past night played doesn't.
+  if (night.startsAt.getTime() > now.getTime()) {
+    await db.delete(gameQueue).where(eq(gameQueue.itemId, gameId));
+    if (added.length)
+      notifyGroup(db, night.groupId, userId, { type: "night_game", who: await displayName(db, userId), game: game.name, at: night.startsAt, tz: await groupTimezone(db, night.groupId), nightId: id });
+  }
   return getNight(db, id, userId);
 }
 
@@ -554,4 +560,23 @@ export async function boardgameHome(db: Db, groupId: string, userId: string, now
     past: await nightViews(db, past, userId, now),
     queue: queueView.map(({ queuedAt: _, ...q }) => q),
   };
+}
+
+/** Board game nights starting 12–36 hours from now, for the daily "tomorrow" push. */
+export async function nightsTomorrow(db: Db, now = new Date()) {
+  const rows = await db
+    .select()
+    .from(meetupNights)
+    .where(and(gt(meetupNights.startsAt, new Date(now.getTime() + 12 * 3_600_000)), lte(meetupNights.startsAt, new Date(now.getTime() + 36 * 3_600_000))));
+  const out = [];
+  for (const n of rows) {
+    const games = await db
+      .select({ name: items.name })
+      .from(nightGames)
+      .innerJoin(items, eq(items.id, nightGames.itemId))
+      .where(eq(nightGames.nightId, n.id))
+      .orderBy(asc(nightGames.orderIndex));
+    out.push({ night: n, tz: await groupTimezone(db, n.groupId), games: games.map((g) => g.name) });
+  }
+  return out;
 }

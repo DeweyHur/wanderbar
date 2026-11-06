@@ -9,7 +9,9 @@ import {
   IncomingShareProvider,
   useIncomingShare,
 } from "@/core/platform/shareIntent";
-import { SessionProvider } from "@/core/session";
+import { SessionProvider, useSession } from "@/core/session";
+import { handleTaps, refreshNotifications, startReminderSync, syncReminders } from "@/core/notifications";
+import { AppState } from "react-native";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { useFonts } from "expo-font";
@@ -25,6 +27,25 @@ function ShareRedirect() {
   return null;
 }
 
+/** Signed in: keep reminders scheduled (on start, on return to the app, after changes) and open tapped notifications. */
+function Notifications() {
+  const { state } = useSession();
+  const signedIn = state.status === "signedIn";
+  useEffect(() => {
+    if (!signedIn) return;
+    refreshNotifications();
+    const stopSync = startReminderSync();
+    const stopTaps = handleTaps();
+    const sub = AppState.addEventListener("change", (s) => s === "active" && syncReminders(false).catch(() => {}));
+    return () => {
+      stopSync();
+      stopTaps();
+      sub.remove();
+    };
+  }, [signedIn]);
+  return null;
+}
+
 export default function RootLayout() {
   const { t } = useTranslation();
   // The round fonts are bundled with the app; wait for them so nothing flashes in a system font.
@@ -35,6 +56,7 @@ export default function RootLayout() {
       <SessionProvider>
         <StatusBar style="dark" />
         <ShareRedirect />
+        <Notifications />
         <Stack
           screenOptions={{
             headerBackButtonDisplayMode: "minimal",

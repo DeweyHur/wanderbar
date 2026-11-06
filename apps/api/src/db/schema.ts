@@ -222,6 +222,9 @@ export const photos = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     blobPath: text("blob_path").notNull(),
     contentType: text("content_type").notNull(),
+    /** A small copy (~360px) for lists and strips; null for photos uploaded before thumbnails. */
+    thumbPath: text("thumb_path"),
+    thumbType: text("thumb_type"),
     width: integer("width"),
     height: integer("height"),
     takenAt: timestamp("taken_at", { withTimezone: true }),
@@ -260,6 +263,8 @@ export const plans = pgTable(
     title: text("title").notNull(),
     /** The day the route is for (YYYY-MM-DD in the group's time zone); can be in the future. */
     date: date("date", { mode: "string" }),
+    /** A day at home: lunch and dinner are planned (meals) instead of, or as well as, stops. */
+    atHome: boolean("at_home").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [index("plans_group_user_idx").on(t.groupId, t.userId)],
@@ -417,4 +422,61 @@ export const gameQueue = pgTable(
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.itemId, t.userId] }), index("game_queue_group_idx").on(t.groupId)],
+);
+
+export const mealSlot = pgEnum("meal_slot", ["lunch", "dinner"]);
+
+/** What's for lunch or dinner on a day route at home: a dish from the group's home cooking, or just a name. */
+export const meals = pgTable(
+  "meals",
+  {
+    id: id(),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => plans.id, { onDelete: "cascade" }),
+    slot: mealSlot("slot").notNull(),
+    dishId: text("dish_id").references(() => items.id, { onDelete: "set null" }),
+    /** Shown when there is no dish (or the dish was deleted). */
+    title: text("title").notNull().default(""),
+    orderIndex: integer("order_index").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("meals_plan_idx").on(t.planId, t.slot)],
+);
+
+/** The group's shopping list. An item may be for a meal or a dish, or for nothing in particular. */
+export const shoppingItems = pgTable(
+  "shopping_items",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Free text: "2", "500g", "1 pack". */
+    qty: text("qty").notNull().default(""),
+    dishId: text("dish_id").references(() => items.id, { onDelete: "set null" }),
+    mealId: text("meal_id").references(() => meals.id, { onDelete: "set null" }),
+    addedBy: text("added_by").references(() => users.id, { onDelete: "set null" }),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    doneBy: text("done_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("shopping_group_idx").on(t.groupId, t.doneAt), index("shopping_meal_idx").on(t.mealId)],
+);
+
+/** A device's push token (FCM on Android, APNs on iOS) for group news. */
+export const pushTokens = pgTable(
+  "push_tokens",
+  {
+    token: text("token").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    /** The device's language for the message text ("en", "ko"). */
+    locale: text("locale").notNull().default("en"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("push_tokens_user_idx").on(t.userId)],
 );

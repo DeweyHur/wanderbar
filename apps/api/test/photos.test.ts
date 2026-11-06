@@ -49,6 +49,24 @@ describe("photos", () => {
     expect((await getRestaurant(db, r.id, me)).coverPhotoId).toBe(b.id);
   });
 
+  it("keeps a small WebP copy for lists, serves it as size=thumb, falls back to the full photo, deletes both", async () => {
+    const d = await createDish(db, groupId, me, { name: "d" });
+    const thumb = { body: new Uint8Array(3).fill(1), contentType: "image/webp" };
+    const p = await addPhoto(db, d.id, me, { body: new Uint8Array(30).fill(2), contentType: "image/webp", thumb });
+    expect(p.thumbUrl).toBe(`/api/photos/${p.id}?size=thumb`);
+    const small = await photoFile(db, p.id, friend, "thumb");
+    expect(small.contentType).toBe("image/webp");
+    expect((await bytesOf(small.body)).byteLength).toBe(3);
+    expect((await bytesOf((await photoFile(db, p.id, friend)).body)).byteLength).toBe(30);
+    const old = await addPhoto(db, d.id, me, jpeg(12));
+    expect((await bytesOf((await photoFile(db, old.id, me, "thumb")).body)).byteLength).toBe(12);
+    expect(await status(addPhoto(db, d.id, me, { ...jpeg(), thumb: { body: new Uint8Array(300 * 1024), contentType: "image/webp" } }))).toBe(400);
+    expect(await status(addPhoto(db, d.id, me, { ...jpeg(), thumb: { body: new Uint8Array(3), contentType: "image/gif" } }))).toBe(400);
+    await deletePhoto(db, p.id, me);
+    expect(await memoryStore.get(`groups/${groupId}/${d.id}/${p.id}.thumb.webp`)).toBeNull();
+    expect(await memoryStore.get(`groups/${groupId}/${d.id}/${p.id}.webp`)).toBeNull();
+  });
+
   it("rejects non-images and big files", async () => {
     const d = await createDish(db, groupId, me, { name: "d" });
     expect(await status(addPhoto(db, d.id, me, { body: new Uint8Array(5), contentType: "image/gif" }))).toBe(400);

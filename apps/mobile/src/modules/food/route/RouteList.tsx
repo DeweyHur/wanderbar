@@ -36,7 +36,10 @@ export function RouteList({ groupId, plans }: { groupId: string; plans: PlanSumm
   const Item = ({ p }: { p: PlanSummary }) => (
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/plan/[id]", params: { id: p.id } })}>
       <Card testID="route-card">
-        <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }}>{planLabel(t, i18n.language, p)}</Text>
+        <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }}>
+          {p.atHome ? "🏠 " : ""}
+          {planLabel(t, i18n.language, p)}
+        </Text>
         <Body muted>
           {[p.title.trim() && p.date ? dayLabel(t, i18n.language, p.date) : null, t("food:route.progress", { finished: p.finished, total: p.total }), p.currentName ? t("food:route.now", { name: p.currentName }) : null]
             .filter(Boolean)

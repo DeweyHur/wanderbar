@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { items, ratings, users, visits } from "../db/schema";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember } from "./groups";
+import { displayName, notifyGroup } from "./push";
 import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { cleanCategory, stars, summary } from "./restaurants";
 
@@ -65,6 +66,7 @@ export async function createDish(db: Db, groupId: string, userId: string, input:
     .insert(items)
     .values({ groupId, module: "food", type: "dish", name, category: cleanCategory(input.category) ?? null, memo: (input.memo ?? "").trim(), createdBy: userId })
     .returning();
+  notifyGroup(db, groupId, userId, { type: "dish", who: await displayName(db, userId), name, itemId: dish.id });
   return getDish(db, dish.id, userId);
 }
 
@@ -124,6 +126,8 @@ export async function rateDish(db: Db, id: string, userId: string, input: { star
   const score = input.stars * 2;
   if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
   const review = (input.review ?? "").trim();
+  const [before] = await db.select({ score: ratings.score }).from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
+  if (!before) notifyGroup(db, dish.groupId, userId, { type: "rating", who: await displayName(db, userId), name: dish.name, stars: input.stars, itemId: id, kind: "dish" });
   await db
     .insert(ratings)
     .values({ groupId: dish.groupId, itemId: id, userId, score, review })

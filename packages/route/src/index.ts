@@ -6,3 +6,4 @@ export * from "./routeMath";
 export * from "./sharedPlace";
 export * from "./googleHours";
 export * from "./restaurant";
+export * from "./reminders";

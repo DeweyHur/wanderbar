@@ -24,12 +24,17 @@ test("restaurant photo: resized without EXIF, private to the group, and its came
   await expect(page.getByTestId("restaurant-photo")).toBeVisible();
 
   const [photo] = (await (await page.request.get(`/api/items/${restaurant.id}/photos`)).json()).photos;
-  expect(photo).toMatchObject({ width: 1600, height: 1200, takenAt: "2026-10-11T02:30:00.000Z" });
+  // Stored as 1280px WebP (Chromium encodes WebP) plus a 360px thumbnail the strip shows.
+  expect(photo).toMatchObject({ width: 1280, height: 960, takenAt: "2026-10-11T02:30:00.000Z" });
   const img = await page.request.get(photo.url);
-  expect(img.headers()["content-type"]).toBe("image/jpeg");
+  expect(img.headers()["content-type"]).toBe("image/webp");
   const bytes = await img.body();
-  expect(bytes.length).toBeLessThan(400_000);
+  expect(bytes.length).toBeLessThan(250_000);
   expect(await exifr.parse(bytes).catch(() => undefined)).toBeFalsy();
+  const thumb = await page.request.get(photo.thumbUrl);
+  expect(thumb.headers()["content-type"]).toBe("image/webp");
+  expect((await thumb.body()).length).toBeLessThan(40_000);
+  expect((await thumb.body()).length).toBeLessThan(bytes.length);
 
   const other = await (await browser.newContext()).newPage();
   await signIn(other, "Outsider");

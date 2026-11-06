@@ -4,7 +4,7 @@ import { deletePlan, getPlan, updatePlan } from "@/lib/plans";
 
 export const GET = authed<{ planId: string }>(async (_req, { db, user, params }) => json(await getPlan(db, params.planId, user.id)));
 
-const Patch = z.object({ title: z.string().max(80).optional(), date: z.string().max(10).optional() });
+const Patch = z.object({ title: z.string().max(80).optional(), date: z.string().max(10).optional(), atHome: z.boolean().optional() });
 
 /** Rename and/or move to another day. */
 export const PATCH = authed<{ planId: string }>(async (req, { db, user, params }) =>

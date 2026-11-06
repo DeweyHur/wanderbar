@@ -1,12 +1,30 @@
 import exifr from "exifr";
 
-export type PickedPhoto = { part: Blob | { uri: string; name: string; type: string }; width: number; height: number; takenAt: Date | null };
+type Part = Blob | { uri: string; name: string; type: string };
+export type PickedPhoto = { part: Part; thumb: Part | null; width: number; height: number; takenAt: Date | null };
 
-const MAX = 1600;
+export const FULL = 1280;
+export const THUMB = 360;
+
+/** Redraw at most max px on the long side; WebP where the browser can encode it (Safari can't), else JPEG. */
+async function encode(bitmap: ImageBitmap, max: number, quality: number) {
+  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+  const as = (type: string, q: number) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, q));
+  const webp = await as("image/webp", quality);
+  const blob = webp?.type === "image/webp" ? webp : await as("image/jpeg", quality + 0.08);
+  if (!blob) throw new Error("encode");
+  return { blob, w, h };
+}
 
 export { exifTime } from "./photoTime";
 
-/** Choose files, read the camera time with exifr, then redraw at ≤1600px as JPEG (drops EXIF/GPS). */
+/** Choose files, read the camera time with exifr, then redraw (drops EXIF/GPS) as a 1280px photo and a 360px thumbnail. */
 export async function pickPhotos(): Promise<PickedPhoto[]> {
   const files = await new Promise<File[]>((resolve) => {
     const input = document.createElement("input");
@@ -34,15 +52,10 @@ export async function pickPhotos(): Promise<PickedPhoto[]> {
       takenAt = null;
     }
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const scale = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));
-    const w = Math.round(bitmap.width * scale);
-    const h = Math.round(bitmap.height * scale);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.82));
-    out.push({ part: blob, width: w, height: h, takenAt });
+    const full = await encode(bitmap, FULL, 0.72);
+    const small = await encode(bitmap, THUMB, 0.6);
+    bitmap.close();
+    out.push({ part: full.blob, thumb: small.blob, width: full.w, height: full.h, takenAt });
   }
   return out;
 }

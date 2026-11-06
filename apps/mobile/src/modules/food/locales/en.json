@@ -231,5 +231,32 @@
     "badgeMe": "✓ Been",
     "badgeGroup": "✓ Group's been",
     "badgeNotYet": "Not yet"
+  },
+  "meal": {
+    "atHome": "At home",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "none": "Nothing planned yet.",
+    "placeholder_lunch": "What's for lunch?",
+    "placeholder_dinner": "What's for dinner?",
+    "shop_zero": "Shopping",
+    "shop_one": "{{count}} to buy",
+    "shop_other": "{{count}} to buy",
+    "remove": "Remove {{name}}",
+    "deletedDish": "(deleted dish)"
+  },
+  "shopping": {
+    "title": "Shopping",
+    "placeholder": "Tofu, green onion, eggs",
+    "add": "Add to list",
+    "linkDish": "For a dish…",
+    "forDish": "For {{name}} ✕",
+    "noDishes": "No home cooking dishes yet.",
+    "empty": "Nothing to buy. Add things here, or under a meal on a day at home.",
+    "for": "for {{what}}",
+    "bought_one": "Bought ({{count}})",
+    "bought_other": "Bought ({{count}})",
+    "clear": "Clear bought",
+    "remove": "Remove {{name}}"
   }
 }

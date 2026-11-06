@@ -12,6 +12,9 @@ const androidMapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY ?? "";
 
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
 
+// Firebase config for push (group news). Not in git: CI writes it from a secret and points this at it.
+const googleServicesFile = process.env.GOOGLE_SERVICES_FILE || undefined;
+
 const config: ExpoConfig = {
   name: "wanderbar",
   slug: "wanderbar",
@@ -30,12 +33,13 @@ const config: ExpoConfig = {
     package: "app.wanderbar.mobile",
     versionCode: buildNumber,
     adaptiveIcon: {
-      backgroundColor: "#FFF3F6",
+      // Pin-chan on baby pink (assets are drawn by scripts/icon.cjs).
+      backgroundColor: "#FBD3E0",
       foregroundImage: "./assets/android-icon-foreground.png",
-      backgroundImage: "./assets/android-icon-background.png",
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
+    googleServicesFile,
   },
   web: {
     // One HTML page; the API's Next.js app serves it for every non-API path (see apps/api/next.config.ts).
@@ -44,6 +48,9 @@ const config: ExpoConfig = {
     favicon: "./assets/favicon.png",
   },
   plugins: [
+    // Reminders (scheduled on the phone) and group news (FCM push).
+    ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#D4618B" }],
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 220, resizeMode: "contain", backgroundColor: "#FFF3F6" }],
     // Photos for restaurants, menus and dishes (picked from the library; resized on the device).
     ["expo-image-picker", { photosPermission: "Pick photos of what you ate to add them to your group's log.", cameraPermission: false, microphonePermission: false }],
     "expo-router",

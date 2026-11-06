@@ -25,11 +25,12 @@ import { routeApi, type PlanSummary } from "@/modules/food/route/api";
 import { RouteList } from "@/modules/food/route/RouteList";
 import { dishApi, type DishSummary } from "@/modules/food/dishes/api";
 import { DishList } from "@/modules/food/dishes/DishList";
+import { ShoppingList } from "@/modules/food/shopping/ShoppingList";
 
-type Tab = "restaurants" | "home" | "routes";
-const TABS: Tab[] = ["restaurants", "home", "routes"];
-const TAB_LABEL: Record<Tab, string> = { restaurants: "food:restaurant.title", home: "food:dish.title", routes: "food:route.title" };
-const TAB_ICON: Record<Tab, string> = { restaurants: "🍜", home: "🍳", routes: "🚗" };
+type Tab = "restaurants" | "home" | "routes" | "shopping";
+const TABS: Tab[] = ["restaurants", "home", "routes", "shopping"];
+const TAB_LABEL: Record<Tab, string> = { restaurants: "food:restaurant.title", home: "food:dish.title", routes: "food:route.title", shopping: "food:shopping.title" };
+const TAB_ICON: Record<Tab, string> = { restaurants: "🍜", home: "🍳", routes: "🚗", shopping: "🛒" };
 const TAB_KEY = "group_home_tab";
 
 /** Group home: each module brings its own (food: restaurants, home cooking, routes; board game night). */
@@ -80,7 +81,7 @@ function SettingsLink() {
   );
 }
 
-/** Food group: saved restaurants, home cooking and day routes. */
+/** Food group: saved restaurants, home cooking, day routes and the shopping list. */
 function FoodHome({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const c = useColors();
@@ -183,6 +184,8 @@ function FoodHome({ id }: { id: string }) {
             <RestaurantList groupId={id} restaurants={restaurants} />
           ) : tab === "home" ? (
             <DishList groupId={id} dishes={dishes} />
+          ) : tab === "shopping" ? (
+            <ShoppingList groupId={id} dishes={dishes} />
           ) : (
             <RouteList groupId={id} plans={plans} />
           )}

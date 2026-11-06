@@ -1,10 +1,16 @@
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
-/** A photo ready to upload: resized to 1600px on the long side, re-encoded as JPEG (no EXIF/GPS left). */
-export type PickedPhoto = { part: Blob | { uri: string; name: string; type: string }; width: number; height: number; takenAt: Date | null };
+type Part = Blob | { uri: string; name: string; type: string };
 
-const MAX = 1600;
+/**
+ * A photo ready to upload: re-encoded as WebP (no EXIF/GPS left) at 1280px on the long side, plus a
+ * ~360px copy for lists. About 150KB + 15KB per photo, a third of a 1600px JPEG.
+ */
+export type PickedPhoto = { part: Part; thumb: Part | null; width: number; height: number; takenAt: Date | null };
+
+export const FULL = 1280;
+export const THUMB = 360;
 
 export { exifTime } from "./photoTime";
 import { exifTime } from "./photoTime";
@@ -15,9 +21,15 @@ export async function pickPhotos(): Promise<PickedPhoto[]> {
   if (res.canceled) return [];
   const out: PickedPhoto[] = [];
   for (const a of res.assets) {
-    const ref = await ImageManipulator.manipulate(a.uri, { maxWidth: MAX, maxHeight: MAX }).renderAsync();
-    const saved = await ref.saveAsync({ compress: 0.82, format: SaveFormat.JPEG });
-    out.push({ part: { uri: saved.uri, name: "photo.jpg", type: "image/jpeg" }, width: saved.width, height: saved.height, takenAt: exifTime(a.exif) });
+    const full = await (await ImageManipulator.manipulate(a.uri, { maxWidth: FULL, maxHeight: FULL }).renderAsync()).saveAsync({ compress: 0.72, format: SaveFormat.WEBP });
+    const small = await (await ImageManipulator.manipulate(a.uri, { maxWidth: THUMB, maxHeight: THUMB }).renderAsync()).saveAsync({ compress: 0.6, format: SaveFormat.WEBP });
+    out.push({
+      part: { uri: full.uri, name: "photo.webp", type: "image/webp" },
+      thumb: { uri: small.uri, name: "thumb.webp", type: "image/webp" },
+      width: full.width,
+      height: full.height,
+      takenAt: exifTime(a.exif),
+    });
   }
   return out;
 }

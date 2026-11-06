@@ -43,6 +43,17 @@ jobs:
 
       - run: npm ci
 
+      # Firebase config for push (group news), kept out of git. Without the secret the app builds without push.
+      - name: Firebase config
+        working-directory: apps/mobile
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > google-services.json
+            echo "GOOGLE_SERVICES_FILE=./google-services.json" >> "$GITHUB_ENV"
+          fi
+
       - name: Generate native Android project
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --no-install

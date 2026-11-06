@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { forgetDevice } from "@/core/notifications";
 import { Platform } from "react-native";
 import { api, ApiError, loadToken, mightHaveSession, saveToken, type GroupSummary, type Me, type User } from "./api";
 import i18n, { isLanguage, savedLanguage } from "./i18n";
@@ -67,6 +68,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    await forgetDevice().catch(() => {});
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     googleSignOut();
     await saveToken(null);

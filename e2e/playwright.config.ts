@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
+// Tests compute dates ("today", next Saturday) in the same time zone as the browser below; without this
+// they broke on CI between 00:00 and 08:00 UTC, when it is already tomorrow in UTC. Workers inherit it.
+process.env.TZ = "America/Los_Angeles";
 // PW_CHANNEL=chrome uses an installed Chrome instead of Playwright's own Chromium.
 const channel = process.env.PW_CHANNEL || undefined;
 // E2E_LIVE_GOOGLE=1 (with GOOGLE_SERVER_KEY set) talks to the real Google Places/Routes instead of canned answers.

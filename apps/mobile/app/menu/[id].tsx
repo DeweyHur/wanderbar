@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
+import { PhotoStrip } from "@/core/photos/PhotoStrip";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { restaurantApi, type MenuDetail } from "@/modules/food/restaurants/api";
@@ -77,6 +78,8 @@ export default function MenuScreen() {
           {m.rating.count ? <RatingBadge rating={m.rating} /> : <Body muted>{t("food:rating.none")}</Body>}
         </View>
       </Card>
+
+      <PhotoStrip itemId={m.id} />
 
       <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("food:rating.yours")}</Text>
       <StarInput value={stars} onChange={setStars} />

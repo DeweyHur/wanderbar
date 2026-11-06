@@ -1,7 +1,7 @@
 import { api } from "@/core/api";
 import type { RatingSummary } from "../restaurants/api";
 
-export type DishSummary = { id: string; name: string; category: string | null; memo: string; rating: RatingSummary; lastMadeAt: string | null; madeCount: number };
+export type DishSummary = { id: string; coverPhotoId: string | null; name: string; category: string | null; memo: string; rating: RatingSummary; lastMadeAt: string | null; madeCount: number };
 export type Dish = {
   id: string;
   groupId: string;

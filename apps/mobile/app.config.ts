@@ -44,6 +44,8 @@ const config: ExpoConfig = {
     favicon: "./assets/favicon.png",
   },
   plugins: [
+    // Photos for restaurants, menus and dishes (picked from the library; resized on the device).
+    ["expo-image-picker", { photosPermission: "Pick photos of what you ate to add them to your group's log.", cameraPermission: false, microphonePermission: false }],
     "expo-router",
     "expo-localization",
     [

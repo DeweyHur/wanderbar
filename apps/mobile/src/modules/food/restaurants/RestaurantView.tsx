@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Image, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
 import { apiImage } from "@/core/api";
+import { PhotoStrip } from "@/core/photos/PhotoStrip";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
@@ -35,6 +36,7 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
   const [notice, setNotice] = useState(existing ? t("food:restaurant.alreadySaved") : "");
   const [panel, setPanel] = useState<"none" | "route" | "edit">("none");
   const [photoOk, setPhotoOk] = useState(true);
+  const [reloads, setReloads] = useState(0);
 
   // Reload on focus and whenever the caller says something changed (e.g. the route stop was marked done).
   useFocusEffect(
@@ -43,7 +45,7 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
         .get(id)
         .then(setR)
         .catch((e) => setError(errorText(t, e)));
-    }, [id, t, refreshKey]),
+    }, [id, t, refreshKey, reloads]),
   );
 
   if (!r)
@@ -82,10 +84,11 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: r.name }} />
-      {r.hasPhoto && photoOk && (
+      {(r.coverPhotoId || r.hasPhoto) && photoOk && (
         <Image
           testID="restaurant-photo"
-          source={apiImage(`/api/restaurants/${r.id}/photo`)}
+          // The group's own newest photo first, else Google's.
+          source={apiImage(r.coverPhotoId ? `/api/photos/${r.coverPhotoId}` : `/api/restaurants/${r.id}/photo`)}
           onError={() => setPhotoOk(false)}
           style={{ width: "100%", aspectRatio: 16 / 9, borderRadius: 16, backgroundColor: c.card }}
           resizeMode="cover"
@@ -107,6 +110,8 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
           <Link label={t("food:route.yelp")} onPress={() => Linking.openURL(r.yelpUrl || Links.yelpSearch(r.name, r.address))} />
         </View>
       </Card>
+
+      <PhotoStrip itemId={r.id} onChange={() => setReloads((n) => n + 1)} />
 
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}>

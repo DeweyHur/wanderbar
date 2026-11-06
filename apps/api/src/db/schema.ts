@@ -203,6 +203,33 @@ export const visits = pgTable(
   (t) => [index("visits_item_idx").on(t.itemId, t.visitedAt), uniqueIndex("visits_stop_uq").on(t.stopId)],
 );
 
+/**
+ * A photo someone added to a restaurant, menu or dish. The file lives in the private Blob store under
+ * blobPath (resized, metadata stripped on the device); takenAt is the camera's time when known.
+ */
+export const photos = pgTable(
+  "photos",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    uploadedBy: text("uploaded_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blobPath: text("blob_path").notNull(),
+    contentType: text("content_type").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    takenAt: timestamp("taken_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("photos_item_idx").on(t.itemId, t.createdAt)],
+);
+
 export const menuDetails = pgTable("menu_details", {
   itemId: text("item_id")
     .primaryKey()

@@ -71,3 +71,20 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
 export function apiImage(path: string) {
   return { uri: API_URL + path, headers: token ? { authorization: `Bearer ${token}` } : undefined };
 }
+
+/** multipart/form-data POST (photo uploads); same sign-in and error handling as api(). */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  if (Platform.OS !== "web" && !API_URL) throw new ApiError(0, "config.api_url_missing");
+  const headers: Record<string, string> = {};
+  if (token) headers.authorization = `Bearer ${token}`;
+  if (sessionStore.mode === "cookie") headers["x-wanderbar-client"] = "web";
+  let res: Response;
+  try {
+    res = await fetch(API_URL + path, { method: "POST", headers, credentials: "same-origin", body: form });
+  } catch {
+    throw new ApiError(0, "network");
+  }
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) throw new ApiError(res.status, data.error ?? "unknown");
+  return data as T;
+}

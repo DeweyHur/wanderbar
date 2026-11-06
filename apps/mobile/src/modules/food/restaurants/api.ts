@@ -16,6 +16,7 @@ export type RestaurantSummary = {
   menuCount: number;
   rating: RatingSummary;
   hasPhoto: boolean;
+  coverPhotoId: string | null;
   lastVisitedAt: string | null;
 };
 export type Menu = { id: string; name: string; memo: string; priceMinor: number | null; currency: string; rating: RatingSummary; myStars: number | null };
@@ -43,6 +44,7 @@ export type Restaurant = {
   lng: number | null;
   googlePlaceId: string;
   hasPhoto: boolean;
+  coverPhotoId: string | null;
   visits: Visit[];
   yelpUrl: string;
   mapsUrl: string;

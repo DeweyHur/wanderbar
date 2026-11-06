@@ -5,6 +5,7 @@ import { externalLinks, groups, items, menuDetails, planStops, ratings, restaura
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
+import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { resolveShortLink } from "./shortLinks";
 import { findYelpUrl, yelpAvailable } from "./yelp";
 
@@ -238,11 +239,14 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .from(visits)
     .where(inArray(visits.itemId, ids))
     .groupBy(visits.itemId);
+  const covers = await coverPhotos(db, ids);
   return rows.map(({ item, detail }) => ({
     id: item.id,
     name: item.name,
     category: item.category,
     hasPhoto: !!detail.photoName,
+    /** The group's newest photo of it (or its menus); shown before Google's. */
+    coverPhotoId: covers.get(item.id) ?? null,
     lastVisitedAt: last.find((v) => v.itemId === item.id)?.at ?? null,
     address: detail.address,
     hoursRaw: detail.hoursRaw,
@@ -300,6 +304,7 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     lng: detail.lng,
     googlePlaceId: detail.googlePlaceKey ?? "",
     hasPhoto: !!detail.photoName,
+    coverPhotoId: (await coverPhotos(db, [id])).get(id) ?? null,
     visits: vs.map((v) => ({
       id: v.visit.id,
       userId: v.visit.userId,
@@ -439,6 +444,7 @@ export async function linkGoogle(db: Db, id: string, userId: string, placeId?: s
 export async function deleteRestaurant(db: Db, id: string, userId: string) {
   const { item, role } = await memberRestaurant(db, id, userId);
   if (item.createdBy !== userId && role !== "owner") throw forbidden("restaurant.delete_forbidden");
+  await deletePhotoFilesOf(db, [id]);
   await db.delete(items).where(eq(items.id, id));
 }
 
@@ -476,6 +482,7 @@ export async function updateMenu(db: Db, menuId: string, userId: string, input: 
 
 export async function deleteMenu(db: Db, menuId: string, userId: string) {
   const { menu } = await memberMenu(db, menuId, userId);
+  await deletePhotoFilesOf(db, [menuId]);
   await db.delete(items).where(eq(items.id, menuId));
   return getRestaurant(db, menu.parentId!, userId);
 }

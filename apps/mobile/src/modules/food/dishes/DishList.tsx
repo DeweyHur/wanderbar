@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { Body, Button, Card, ErrorText, Field, useColors } from "@/components/ui";
+import { apiImage } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { RatingBadge } from "../restaurants/Stars";
 import { dishApi, type DishSummary } from "./api";
@@ -46,9 +47,12 @@ export function DishList({ groupId, dishes }: { groupId: string; dishes: DishSum
       {shown.map((d) => (
         <Pressable key={d.id} accessibilityRole="button" accessibilityLabel={d.name} onPress={() => router.push({ pathname: "/dish/[id]", params: { id: d.id } })}>
           <Card testID="dish-card">
-            <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }} numberOfLines={1}>
-              {d.name}
-            </Text>
+            <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+              {d.coverPhotoId && <Image source={apiImage(`/api/photos/${d.coverPhotoId}`)} style={{ width: 56, height: 56, borderRadius: 12 }} resizeMode="cover" />}
+              <Text style={{ color: c.text, fontSize: 17, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+                {d.name}
+              </Text>
+            </View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
               <RatingBadge rating={d.rating} />
               {d.category ? <Body muted>{t(`food:category.${d.category}`)}</Body> : null}

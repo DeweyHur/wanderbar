@@ -141,6 +141,21 @@
       "picker_forbidden": "Only the current picker, the owner or a host can hand picking over",
       "picker_not_member": "That person isn't in this group",
       "lineup_forbidden": "Only this night's picker, the owner or a host can change the games. Queue it instead."
+    },
+    "photo": {
+      "item_not_found": "Not found",
+      "not_found": "Photo not found",
+      "type_invalid": "Only JPEG, PNG or WebP photos",
+      "too_large": "That photo is too big (4 MB max)",
+      "file_required": "Choose a photo",
+      "delete_forbidden": "Only whoever added it or the group owner can delete it"
     }
+  },
+  "photo": {
+    "add": "Add photos",
+    "uploading": "Uploading {{done}}/{{total}}…",
+    "open": "Open photo",
+    "delete": "Delete photo",
+    "confirmDelete": "Delete this photo?"
   }
 }

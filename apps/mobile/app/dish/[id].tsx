@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
+import { PhotoStrip } from "@/core/photos/PhotoStrip";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { dishApi, type Dish } from "@/modules/food/dishes/api";
@@ -77,6 +78,8 @@ export default function DishScreen() {
         </View>
         {d.memo ? <Body>{d.memo}</Body> : null}
       </Card>
+
+      <PhotoStrip itemId={d.id} onChange={() => dishApi.get(d.id).then(show, () => {})} />
 
       <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("food:dish.madeTitle")}</Text>
       {d.made.length === 0 && <Body muted>{t("food:dish.neverMade")}</Body>}

@@ -3,6 +3,7 @@ import type { Db } from "../db/client";
 import { items, ratings, users, visits } from "../db/schema";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember } from "./groups";
+import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { cleanCategory, stars, summary } from "./restaurants";
 
 /**
@@ -40,10 +41,12 @@ export async function listDishes(db: Db, groupId: string, userId: string) {
     .from(visits)
     .where(inArray(visits.itemId, ids))
     .groupBy(visits.itemId);
+  const covers = await coverPhotos(db, ids);
   return rows.map((d) => {
     const m = made.find((x) => x.itemId === d.id);
     return {
       id: d.id,
+      coverPhotoId: covers.get(d.id) ?? null,
       name: d.name,
       category: d.category,
       memo: d.memo,
@@ -112,6 +115,7 @@ export async function updateDish(db: Db, id: string, userId: string, input: Dish
 export async function deleteDish(db: Db, id: string, userId: string) {
   const { dish, role } = await memberDish(db, id, userId);
   if (dish.createdBy !== userId && role !== "owner") throw forbidden("dish.delete_forbidden");
+  await deletePhotoFilesOf(db, [id]);
   await db.delete(items).where(eq(items.id, id));
 }
 

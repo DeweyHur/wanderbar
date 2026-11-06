@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, Text, View } from "react-native";
-import { Card, Chip, useColors } from "@/components/ui";
+import { Linking, Pressable, View } from "react-native";
+import { Card, Chip, useColors, Text } from "@/components/ui";
 import type { GameLink, NightSummary, Rating } from "./api";
 import { nightWhen, scoreText } from "./format";
 

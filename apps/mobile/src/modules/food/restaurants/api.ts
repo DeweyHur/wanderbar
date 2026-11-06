@@ -18,6 +18,8 @@ export type RestaurantSummary = {
   hasPhoto: boolean;
   coverPhotoId: string | null;
   lastVisitedAt: string | null;
+  visitCount: number;
+  visitedByMe: boolean;
 };
 export type Menu = { id: string; name: string; memo: string; priceMinor: number | null; currency: string; rating: RatingSummary; myStars: number | null };
 export type MenuDetail = {
@@ -61,6 +63,8 @@ export type NewRestaurant = {
   googlePlaceId?: string;
   sessionToken?: string;
   category?: string | null;
+  /** "Been there" on this day (YYYY-MM-DD); omit for "want to go". */
+  visitedOn?: string;
 };
 export type RestaurantEdit = Partial<Pick<Restaurant, "name" | "address" | "hoursRaw" | "yelpUrl" | "mapsUrl" | "category" | "memo">>;
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };

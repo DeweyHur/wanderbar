@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import { Body, Button, ErrorText, Loading, Screen, useColors } from "@/components/ui";
+import { FlatList, StyleSheet, View } from "react-native";
+import { Body, Button, ErrorText, Loading, Screen, useColors, Text } from "@/components/ui";
 import { api, type GroupDetail } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { shareText } from "@/core/platform/share";

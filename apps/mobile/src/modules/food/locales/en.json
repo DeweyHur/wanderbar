@@ -220,5 +220,16 @@
     "memoPlaceholder": "Ingredients, steps, what to change next time",
     "delete": "Delete dish",
     "confirmDelete": "Delete \"{{name}}\" with its ratings and log?"
+  },
+  "been": {
+    "want": "Want to go",
+    "been": "Been there",
+    "on": "On {{date}}",
+    "all": "All {{count}}",
+    "beenCount": "Been {{count}}",
+    "notYetCount": "Not yet {{count}}",
+    "badgeMe": "✓ Been",
+    "badgeGroup": "✓ Group's been",
+    "badgeNotYet": "Not yet"
   }
 }

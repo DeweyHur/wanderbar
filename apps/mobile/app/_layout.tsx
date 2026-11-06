@@ -10,6 +10,10 @@ import {
   useIncomingShare,
 } from "@/core/platform/shareIntent";
 import { SessionProvider } from "@/core/session";
+import { Jua_400Regular } from "@expo-google-fonts/jua";
+import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
+import { useFonts } from "expo-font";
+import { fonts, palette } from "@/components/ui";
 
 /** A share from another app (Android intent / iOS extension) opens the share screen. */
 function ShareRedirect() {
@@ -23,12 +27,24 @@ function ShareRedirect() {
 
 export default function RootLayout() {
   const { t } = useTranslation();
+  // The round fonts are bundled with the app; wait for them so nothing flashes in a system font.
+  const [fontsReady, fontError] = useFonts({ Jua_400Regular, GowunDodum_400Regular });
+  if (!fontsReady && !fontError) return null;
   return (
     <IncomingShareProvider>
       <SessionProvider>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <ShareRedirect />
-        <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
+        <Stack
+          screenOptions={{
+            headerBackButtonDisplayMode: "minimal",
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: palette.bg },
+            headerTintColor: palette.accent,
+            headerTitleStyle: { fontFamily: fonts.heading, color: palette.text, fontSize: 20 },
+            contentStyle: { backgroundColor: palette.bg },
+          }}
+        >
           <Stack.Screen
             name="index"
             options={{ headerShown: false, title: t("appName") }}

@@ -1,9 +1,10 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, Text } from "react-native";
-import { Body, Button, ErrorText, Field, useColors } from "@/components/ui";
+import { ScrollView } from "react-native";
+import { Body, Button, ErrorText, Field, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
+import { BeenChoice } from "@/modules/food/restaurants/BeenChoice";
 import { CategoryPicker } from "@/modules/food/restaurants/CategoryPicker";
 import { restaurantApi, type NewRestaurant } from "@/modules/food/restaurants/api";
 import { takeSession, useGoogleAvailable } from "@/modules/food/route/google";
@@ -19,6 +20,7 @@ export default function NewRestaurant() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [visitedOn, setVisitedOn] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,7 +28,7 @@ export default function NewRestaurant() {
     setBusy(true);
     setError("");
     try {
-      const { restaurant, created } = await restaurantApi.create(groupId, r);
+      const { restaurant, created } = await restaurantApi.create(groupId, { ...r, ...(visitedOn ? { visitedOn } : {}) });
       router.replace({ pathname: "/restaurant/[id]", params: { id: restaurant.id, ...(created ? {} : { existing: "1" }) } });
     } catch (e) {
       setError(errorText(t, e));
@@ -37,6 +39,7 @@ export default function NewRestaurant() {
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("food:restaurant.add") }} />
+      <BeenChoice value={visitedOn} onChange={setVisitedOn} />
       {googleAvailable && (
         <>
           <PlaceSearch

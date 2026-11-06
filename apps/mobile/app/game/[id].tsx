@@ -1,8 +1,8 @@
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
+import { Pressable, ScrollView, View } from "react-native";
+import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";

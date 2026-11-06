@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
-import { useColors } from "@/components/ui";
+import { Pressable, View } from "react-native";
+import { useColors, Text } from "@/components/ui";
 import type { RatingSummary } from "./api";
 
 const GOLD = "#F5A524";

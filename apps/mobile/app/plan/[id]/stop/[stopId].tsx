@@ -2,8 +2,8 @@ import { Links, parseSharedText, TESLA_FORMATS, teslaShareText, type Destination
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, ScrollView, Text, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
+import { Linking, ScrollView, View } from "react-native";
+import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { canSendToTesla, sendToTesla } from "@/core/platform/tesla";

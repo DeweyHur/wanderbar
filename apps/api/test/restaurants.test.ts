@@ -364,3 +364,22 @@ describe("route stops become restaurants; visits", () => {
     for (const t of ["park", "museum", "tourist_attraction", "gas_station", "", null]) expect(isFoodPlace(t)).toBe(false);
   });
 });
+
+describe("been there / not yet", () => {
+  it("saving with visitedOn records your visit that day (once); the list says who has been", async () => {
+    const { restaurant: a } = await createRestaurant(db, groupId, me, { name: "Been", visitedOn: "2026-10-03" });
+    expect(a.visits.map((v) => [v.name, new Date(v.visitedAt).toISOString().slice(0, 10)])).toEqual([["me", "2026-10-03"]]);
+    await createRestaurant(db, groupId, me, { name: "Not yet" });
+    // Saving the same Yelp place again as been-there on the same day adds nothing new.
+    await createRestaurant(db, groupId, me, { name: "Y", yelpUrl: "https://www.yelp.com/biz/y", visitedOn: "2026-10-05" });
+    await createRestaurant(db, groupId, me, { name: "Y", yelpUrl: "https://www.yelp.com/biz/y", visitedOn: "2026-10-05" });
+    const list = await listRestaurants(db, groupId, friend);
+    expect(list.map((r) => [r.name, r.visitCount, r.visitedByMe])).toEqual([
+      ["Been", 1, false],
+      ["Not yet", 0, false],
+      ["Y", 1, false],
+    ]);
+    expect((await listRestaurants(db, groupId, me)).find((r) => r.name === "Been")?.visitedByMe).toBe(true);
+    for (const bad of ["2026-02-30", "yesterday", "2099-01-01"]) expect(await status(createRestaurant(db, groupId, me, { name: "x", visitedOn: bad }))).toBe(400);
+  });
+});

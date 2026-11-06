@@ -6,6 +6,7 @@ import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
 import { coverPhotos, deletePhotoFilesOf } from "./photos";
+import { isDay } from "./plans";
 import { resolveShortLink } from "./shortLinks";
 import { findYelpUrl, yelpAvailable } from "./yelp";
 
@@ -27,6 +28,8 @@ export type NewRestaurant = {
   sessionToken?: string;
   /** Google details already fetched (e.g. while checking a route stop), to skip another call. */
   prefetched?: PlaceDetails | null;
+  /** "Been there" when saving: the day you went (YYYY-MM-DD); records your visit. */
+  visitedOn?: string;
   category?: string | null;
   memo?: string;
 };
@@ -124,6 +127,25 @@ async function lookupGoogle(input: { placeId?: string; sessionToken?: string; na
  * or Google place matches (adding whichever link it was missing), so sharing twice never duplicates.
  */
 export async function createRestaurant(db: Db, groupId: string, userId: string, input: NewRestaurant) {
+  if (input.visitedOn !== undefined && !isDay(input.visitedOn)) throw badRequest("visit.date_invalid");
+  const r = await saveRestaurant(db, groupId, userId, input);
+  if (input.visitedOn) {
+    await visitOnDay(db, groupId, r.restaurant.id, userId, input.visitedOn);
+    return { ...r, restaurant: await getRestaurant(db, r.restaurant.id, userId) };
+  }
+  return r;
+}
+
+/** A visit on that day (noon UTC, the same calendar day across the Americas and Asia), unless you have one. */
+async function visitOnDay(db: Db, groupId: string, itemId: string, userId: string, day: string) {
+  const at = new Date(`${day}T12:00:00Z`);
+  if (at.getTime() > Date.now() + 86_400_000) throw badRequest("visit.date_invalid");
+  const mine = await db.select({ at: visits.visitedAt }).from(visits).where(and(eq(visits.itemId, itemId), eq(visits.userId, userId)));
+  if (mine.some((v) => v.at.toISOString().slice(0, 10) === day)) return;
+  await db.insert(visits).values({ groupId, itemId, userId, visitedAt: at });
+}
+
+async function saveRestaurant(db: Db, groupId: string, userId: string, input: NewRestaurant) {
   await requireMember(db, groupId, userId);
   const category = cleanCategory(input.category);
   let name = (input.name ?? "").trim();
@@ -235,7 +257,12 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .where(inArray(items.parentId, ids))
     .groupBy(items.parentId);
   const last = await db
-    .select({ itemId: visits.itemId, at: sql<string>`max(${visits.visitedAt})` })
+    .select({
+      itemId: visits.itemId,
+      at: sql<string>`max(${visits.visitedAt})`,
+      n: sql<number>`count(*)::int`,
+      mine: sql<number>`count(*) filter (where ${visits.userId} = ${userId})::int`,
+    })
     .from(visits)
     .where(inArray(visits.itemId, ids))
     .groupBy(visits.itemId);
@@ -248,6 +275,9 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     /** The group's newest photo of it (or its menus); shown before Google's. */
     coverPhotoId: covers.get(item.id) ?? null,
     lastVisitedAt: last.find((v) => v.itemId === item.id)?.at ?? null,
+    /** How many visits the group logged, and whether you've been. */
+    visitCount: last.find((v) => v.itemId === item.id)?.n ?? 0,
+    visitedByMe: (last.find((v) => v.itemId === item.id)?.mine ?? 0) > 0,
     address: detail.address,
     hoursRaw: detail.hoursRaw,
     lat: detail.lat,

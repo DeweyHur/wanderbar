@@ -1,14 +1,15 @@
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { SignIn } from "@/components/SignIn";
-import { Body, Button, Card, ErrorText, Field, Loading, useColors } from "@/components/ui";
+import { Body, Button, Card, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { loadLastGroup } from "@/core/lastGroup";
 import { useIncomingShare } from "@/core/platform/shareIntent";
 import { useSession } from "@/core/session";
 import { restaurantApi } from "@/modules/food/restaurants/api";
+import { BeenChoice } from "@/modules/food/restaurants/BeenChoice";
 import { routeApi, type PlanSummary } from "@/modules/food/route/api";
 import { planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
@@ -31,6 +32,7 @@ export default function ShareScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [routes, setRoutes] = useState(false);
   const [pickingDay, setPickingDay] = useState(false);
+  const [visitedOn, setVisitedOn] = useState<string | null>(null);
 
   useEffect(() => {
     if (incoming.share) {
@@ -86,6 +88,7 @@ export default function ShareScreen() {
         address: place.address,
         mapsUrl: place.mapsUrl,
         yelpUrl: place.yelpUrl,
+        ...(visitedOn ? { visitedOn } : {}),
       });
       incoming.clear();
       router.replace({ pathname: "/restaurant/[id]", params: { id: restaurant.id, ...(created ? {} : { existing: "1" }) } });
@@ -113,6 +116,7 @@ export default function ShareScreen() {
       )}
       {place && groupId && (
         <View style={{ gap: 6 }}>
+          <BeenChoice value={visitedOn} onChange={setVisitedOn} />
           <Button label={t("food:restaurant.saveRestaurant")} busy={busy === "restaurant"} disabled={!!busy || !place.name.trim()} onPress={saveRestaurant} />
           <Body muted>{t("food:restaurant.saveRestaurantHint")}</Body>
         </View>

@@ -1,8 +1,8 @@
 import { teslaShareText, teslaShareTextWithFallback, type Destination } from "@wanderbar/route";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Pressable, Text, View } from "react-native";
-import { Button, useColors } from "@/components/ui";
+import { Modal, Pressable, View } from "react-native";
+import { Button, useColors, Text } from "@/components/ui";
 import { copyText } from "@/core/platform/clipboard";
 import { shareToKakao } from "@/core/platform/kakao";
 import { shareText } from "@/core/platform/share";

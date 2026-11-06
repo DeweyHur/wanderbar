@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { Body, Chip, ErrorText, useColors } from "@/components/ui";
+import { Image, Modal, Pressable, ScrollView, View } from "react-native";
+import { Body, Chip, ErrorText, useColors, Text } from "@/components/ui";
 import { apiImage } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";

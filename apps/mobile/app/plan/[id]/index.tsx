@@ -2,8 +2,8 @@ import { formatDistance, hoursStatusFromText, Links, parseSharedText } from "@wa
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, ScrollView, Text, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Loading, useColors } from "@/components/ui";
+import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";

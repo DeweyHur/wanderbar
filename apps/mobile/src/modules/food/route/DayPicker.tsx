@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Pressable, Text, View } from "react-native";
-import { Chip, useColors } from "@/components/ui";
+import { Modal, Pressable, View } from "react-native";
+import { Chip, useColors, Text } from "@/components/ui";
 import { addDays, dayLabel, monthGrid, shiftMonth, today } from "./dates";
 
 /** Pick a day: quick chips for the next few days, or any day on a month calendar. */

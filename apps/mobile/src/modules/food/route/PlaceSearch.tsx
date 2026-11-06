@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import { Field, useColors } from "@/components/ui";
+import { Pressable, View } from "react-native";
+import { Field, useColors, Text } from "@/components/ui";
 import { placeDetails, suggestPlaces, useGoogleAvailable, type PlaceDetails, type Suggestion } from "./google";
 
 /**

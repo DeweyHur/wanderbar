@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
-import { Body, Button, Card, ErrorText, useColors } from "@/components/ui";
+import { Pressable, View } from "react-native";
+import { Body, Button, Card, ErrorText, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { routeApi, type PlanSummary } from "../route/api";
 import { planLabel, today } from "../route/dates";

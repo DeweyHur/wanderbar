@@ -273,3 +273,27 @@ test("the photo is served through our API only to members", async ({ page, brows
   await signIn(other, "Nosy");
   expect((await other.request.get(`/api/restaurants/${restaurant.id}/photo`, { maxRedirects: 0 })).status()).toBe(404);
 });
+
+test("save as been-there or want-to-go; the list badges and filters them", async ({ page }) => {
+  await signIn(page, "Been");
+  const groupId = await openHome(page);
+  await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
+  await page.getByRole("button", { name: "Been there", exact: true }).click();
+  await expect(page.getByTestId("been-choice").filter({ visible: true })).toContainText("On Today");
+  await page.getByLabel("Name", { exact: true }).fill("Old Favorite");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByTestId("visit-row").filter({ visible: true })).toContainText("Been");
+
+  await page.request.post(`/api/groups/${groupId}/restaurants`, { headers: WEB, data: { name: "Wishlist Spot" } });
+  await page.goto(`/group/${groupId}`);
+  const cards = page.getByTestId("restaurant-card").filter({ visible: true });
+  await expect(cards).toHaveCount(2);
+  await expect(cards.filter({ hasText: "Old Favorite" })).toContainText("✓ Been");
+  await expect(cards.filter({ hasText: "Wishlist Spot" })).toContainText("Not yet");
+  await page.getByRole("button", { name: "Not yet 1" }).click();
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText("Wishlist Spot");
+  await page.getByRole("button", { name: "Been 1" }).click();
+  await expect(cards).toContainText("Old Favorite");
+});

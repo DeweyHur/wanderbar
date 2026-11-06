@@ -19,7 +19,7 @@ const config: ExpoConfig = {
   version: "0.3.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
-  userInterfaceStyle: "automatic",
+  userInterfaceStyle: "light",
   ios: {
     // Different from the legacy Kotlin app (app.wanderbar) so both can be installed during the move.
     bundleIdentifier: "app.wanderbar.mobile",
@@ -30,7 +30,7 @@ const config: ExpoConfig = {
     package: "app.wanderbar.mobile",
     versionCode: buildNumber,
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#FFF3F6",
       foregroundImage: "./assets/android-icon-foreground.png",
       backgroundImage: "./assets/android-icon-background.png",
       monochromeImage: "./assets/android-icon-monochrome.png",

@@ -5,7 +5,7 @@ import { addInput, current, newRoute, openHome, row, signIn } from "./helpers";
 test("search-first adding: pick a suggestion, get address, hours and drive times", async ({ page }) => {
   await signIn(page, "Searcher");
   await openHome(page);
-  expect(await (await page.request.get("/api/config")).json()).toEqual({ googlePlaces: true });
+  expect(await (await page.request.get("/api/config")).json()).toMatchObject({ googlePlaces: true });
   await newRoute(page);
   await expect(addInput(page)).toHaveAttribute("placeholder", "Search a place, or type cafe, park, jazz bar");
 

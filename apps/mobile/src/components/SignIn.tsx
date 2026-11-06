@@ -42,9 +42,11 @@ export function SignIn({ message }: { message?: string }) {
   const { t } = useTranslation();
   const { signInWithIdToken } = useSession();
   // Web redirect sign-in comes back with ?signin=failed|csrf when Google's answer couldn't be used.
-  const [error, setError] = useState(() =>
+  // Kept apart from other errors so a later one (e.g. the Google button failing to load) doesn't hide it.
+  const [redirectError] = useState(() =>
     Platform.OS === "web" && /[?&]signin=(failed|csrf)/.test(globalThis.location?.search ?? "") ? t("errors.auth.invalid_google_token") : "",
   );
+  const [error, setError] = useState("");
   const onIdToken = useCallback(
     async (idToken: string) => {
       setError("");
@@ -59,6 +61,7 @@ export function SignIn({ message }: { message?: string }) {
       <Body muted>{message ?? t("tagline")}</Body>
       <GoogleSignInButton onIdToken={onIdToken} onError={onError} />
       <TestSignIn onError={onError} />
+      <ErrorText>{redirectError}</ErrorText>
       <ErrorText>{error}</ErrorText>
     </Screen>
   );

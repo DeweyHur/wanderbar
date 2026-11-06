@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, Pressable, Text, View } from "react-native";
-import { Body, Button, Card, ErrorText, Field, useColors } from "@/components/ui";
+import { Image, Pressable, View } from "react-native";
+import { Body, Button, Card, ErrorText, Field, useColors, Text } from "@/components/ui";
 import { apiImage } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { RatingBadge } from "../restaurants/Stars";

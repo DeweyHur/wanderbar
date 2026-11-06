@@ -7,16 +7,8 @@ import {
 } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import {
-  Body,
-  Button,
-  Card,
-  Chip,
-  ErrorText,
-  Loading,
-  useColors,
-} from "@/components/ui";
+import { Pressable, ScrollView, View } from "react-native";
+import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
 import { BoardGameHome } from "@/modules/boardgame/BoardGameHome";
@@ -37,6 +29,7 @@ import { DishList } from "@/modules/food/dishes/DishList";
 type Tab = "restaurants" | "home" | "routes";
 const TABS: Tab[] = ["restaurants", "home", "routes"];
 const TAB_LABEL: Record<Tab, string> = { restaurants: "food:restaurant.title", home: "food:dish.title", routes: "food:route.title" };
+const TAB_ICON: Record<Tab, string> = { restaurants: "🍜", home: "🍳", routes: "🚗" };
 const TAB_KEY = "group_home_tab";
 
 /** Group home: each module brings its own (food: restaurants, home cooking, routes; board game night). */
@@ -174,12 +167,13 @@ function FoodHome({ id }: { id: string }) {
         <>
           <View
             accessibilityRole="tablist"
-            style={{ flexDirection: "row", gap: 8 }}
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
           >
             {TABS.map((k) => (
               <Chip
                 key={k}
                 label={t(TAB_LABEL[k])}
+                icon={TAB_ICON[k]}
                 selected={tab === k}
                 onPress={() => pickTab(k)}
               />

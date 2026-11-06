@@ -1,7 +1,7 @@
 import { FOOD_CATEGORIES } from "@wanderbar/route";
 import { useTranslation } from "react-i18next";
-import { Text, View } from "react-native";
-import { Chip, useColors } from "@/components/ui";
+import { View } from "react-native";
+import { Chip, useColors, Text } from "@/components/ui";
 
 /** Pick one category (tap again to clear). */
 export function CategoryPicker({ value, onChange, label }: { value: string | null; onChange: (c: string | null) => void; label?: string }) {

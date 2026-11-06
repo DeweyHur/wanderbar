@@ -1,12 +1,58 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text as RNText,
+  TextInput as RNTextInput,
+  StyleSheet,
+  View,
+  type TextInputProps,
+  type TextProps,
+  type TextStyle,
+} from "react-native";
 
+/**
+ * The look: baby pink and soft. Blush paper, pink pills, cocoa ink, round fonts
+ * (Jua for headings and buttons, Gowun Dodum for reading). Light only: the pastel palette is the brand.
+ */
+export const palette = {
+  bg: "#FFF3F6", // blush paper
+  card: "#FFFFFF",
+  text: "#4B3340", // cocoa ink
+  muted: "#A08591",
+  accent: "#D4618B", // rose: links, highlights, selected days
+  pink: "#F8B4C9", // baby pink fills (primary buttons, selected chips)
+  pinkSoft: "#FFE4EC", // chips at rest, input focus
+  onPink: "#4B3340",
+  border: "#F5D3DF",
+  danger: "#D9506C",
+  ok: "#4FA985", // mint: open, been there
+  warn: "#D9952F", // honey
+};
 export function useColors() {
-  const dark = useColorScheme() === "dark";
-  return dark
-    ? { bg: "#111214", card: "#1C1D21", text: "#F2F2F3", muted: "#9A9BA1", accent: "#FF7A45", danger: "#FF6B6B", border: "#2C2D32", ok: "#4CC38A", warn: "#F5B547" }
-    : { bg: "#F7F6F3", card: "#FFFFFF", text: "#16171A", muted: "#6B6C72", accent: "#E8590C", danger: "#D63B3B", border: "#E4E2DD", ok: "#1F8A5B", warn: "#B7791F" };
+  return palette;
 }
+
+export const fonts = { heading: "Jua_400Regular", body: "GowunDodum_400Regular" };
+
+/** Bold text uses the round display face (custom fonts can't be faux-bolded nicely on Android). */
+function fontStyle(style: TextProps["style"]): TextStyle {
+  const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+  const w = flat.fontWeight;
+  const heavy = w === "bold" || w === "600" || w === "700" || w === "800" || w === "900" || w === 600 || w === 700 || w === 800;
+  return { fontFamily: heavy ? fonts.heading : fonts.body, fontWeight: "normal" };
+}
+
+/** Text in the app's fonts. Use instead of react-native's Text. */
+export function Text(props: TextProps) {
+  return <RNText {...props} style={[props.style, fontStyle(props.style)]} />;
+}
+
+export function TextInput(props: TextInputProps) {
+  return <RNTextInput {...props} style={[props.style, { fontFamily: fonts.body }]} />;
+}
+
+const squish = (pressed: boolean) => (pressed ? [{ scale: 0.96 }] : []);
 
 export function Screen({ children }: { children: ReactNode }) {
   const c = useColors();
@@ -50,15 +96,11 @@ export function Button({
       disabled={busy || disabled}
       style={({ pressed }) => [
         styles.button,
-        primary ? { backgroundColor: c.accent } : { borderColor: c.border, borderWidth: 1 },
-        { opacity: pressed || disabled ? 0.6 : 1 },
+        primary ? { backgroundColor: c.pink } : { backgroundColor: c.card, borderColor: c.pink, borderWidth: 2 },
+        { opacity: disabled ? 0.5 : 1, transform: squish(pressed) },
       ]}
     >
-      {busy ? (
-        <ActivityIndicator color={primary ? "#fff" : c.text} />
-      ) : (
-        <Text style={[styles.buttonText, { color: primary ? "#fff" : c.text }]}>{label}</Text>
-      )}
+      {busy ? <ActivityIndicator color={c.onPink} /> : <Text style={[styles.buttonText, { color: c.onPink }]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -74,10 +116,10 @@ export function Loading() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 20, gap: 14 },
-  title: { fontSize: 26, fontWeight: "700", marginTop: 12 },
-  body: { fontSize: 16, lineHeight: 23 },
-  button: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", paddingHorizontal: 18 },
-  buttonText: { fontSize: 17, fontWeight: "600" },
+  title: { fontSize: 28, fontWeight: "700", marginTop: 12 },
+  body: { fontSize: 16, lineHeight: 24 },
+  button: { minHeight: 54, borderRadius: 999, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
+  buttonText: { fontSize: 18, fontWeight: "700" },
 });
 
 export function Field({
@@ -114,9 +156,9 @@ export function Field({
           color: c.text,
           backgroundColor: c.card,
           borderColor: c.border,
-          borderWidth: 1,
-          borderRadius: 12,
-          paddingHorizontal: 14,
+          borderWidth: 1.5,
+          borderRadius: 18,
+          paddingHorizontal: 16,
           paddingVertical: 12,
           fontSize: 16,
           minHeight: multiline ? 80 : undefined,
@@ -135,10 +177,10 @@ export function Card({ children, highlight, testID }: { children: ReactNode; hig
       testID={testID}
       style={{
         backgroundColor: c.card,
-        borderColor: highlight ? c.accent : c.border,
-        borderWidth: highlight ? 2 : 1,
-        borderRadius: 16,
-        padding: 16,
+        borderColor: highlight ? c.pink : c.border,
+        borderWidth: highlight ? 2.5 : 1.5,
+        borderRadius: 24,
+        padding: 18,
         gap: 10,
       }}
     >
@@ -148,7 +190,7 @@ export function Card({ children, highlight, testID }: { children: ReactNode; hig
 }
 
 /** Small secondary action in a row of actions. */
-export function Chip({ label, onPress, disabled, selected }: { label: string; onPress: () => void; disabled?: boolean; selected?: boolean }) {
+export function Chip({ label, onPress, disabled, selected, icon }: { label: string; onPress: () => void; disabled?: boolean; selected?: boolean; icon?: string }) {
   const c = useColors();
   return (
     <Pressable
@@ -157,16 +199,20 @@ export function Chip({ label, onPress, disabled, selected }: { label: string; on
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => ({
-        borderColor: selected ? c.accent : c.border,
-        backgroundColor: selected ? c.accent : "transparent",
-        borderWidth: 1,
+        backgroundColor: selected ? c.pink : c.pinkSoft,
         borderRadius: 999,
-        paddingHorizontal: 14,
-        paddingVertical: 9,
-        opacity: pressed || disabled ? 0.5 : 1,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        opacity: disabled ? 0.45 : 1,
+        transform: squish(pressed),
       })}
     >
-      <Text style={{ color: selected ? "#fff" : c.text, fontSize: 15 }} numberOfLines={1}>
+      <Text style={{ color: c.onPink, fontSize: 15, fontWeight: selected ? "700" : "400" }} numberOfLines={1}>
+        {icon ? (
+          <RNText aria-hidden accessibilityElementsHidden importantForAccessibility="no">
+            {icon}{" "}
+          </RNText>
+        ) : null}
         {label}
       </Text>
     </Pressable>

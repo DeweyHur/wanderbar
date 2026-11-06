@@ -1,8 +1,8 @@
 import { clock, dayOfDate, hoursOnDay, hoursStatusFromText, type HoursStatus, type WallTime } from "@wanderbar/route";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { Text } from "react-native";
-import { useColors } from "@/components/ui";
+
+import { useColors, Text } from "@/components/ui";
 
 export function hoursLabel(t: TFunction, s: HoursStatus): string | null {
   switch (s.kind) {

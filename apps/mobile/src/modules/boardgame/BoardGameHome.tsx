@@ -1,8 +1,8 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, Text, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors } from "@/components/ui";
+import { Pressable, View } from "react-native";
+import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { prefs } from "@/core/platform/prefs";
 import { useSession } from "@/core/session";

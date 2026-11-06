@@ -7,7 +7,7 @@ test("live: autocomplete, place details and drive time from real Google", async 
   test.skip(!process.env.GOOGLE_SERVER_KEY, "needs GOOGLE_SERVER_KEY");
   await signIn(page, "Live");
   await openHome(page);
-  expect(await (await page.request.get("/api/config")).json()).toEqual({ googlePlaces: true });
+  expect(await (await page.request.get("/api/config")).json()).toMatchObject({ googlePlaces: true });
   await newRoute(page);
 
   await addInput(page).fill("Tartine Bakery Guerrero");

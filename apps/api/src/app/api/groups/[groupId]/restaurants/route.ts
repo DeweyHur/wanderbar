@@ -15,6 +15,7 @@ const Body = z.object({
   sessionToken: z.string().min(8).max(100).optional(),
   category: z.string().max(40).nullable().optional(),
   memo: z.string().max(2000).optional(),
+  visitedOn: z.string().max(10).optional(),
 });
 
 /** Save a restaurant (from a share, a Google pick or typing). 200 with created=false when it already exists. */

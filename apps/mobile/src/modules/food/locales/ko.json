@@ -220,5 +220,16 @@
     "memoPlaceholder": "재료, 순서, 다음엔 이렇게",
     "delete": "요리 삭제",
     "confirmDelete": "\"{{name}}\"과(와) 평점·기록을 모두 삭제할까요?"
+  },
+  "been": {
+    "want": "가 보고 싶어요",
+    "been": "가 봤어요",
+    "on": "{{date}}에",
+    "all": "전체 {{count}}",
+    "beenCount": "가 본 곳 {{count}}",
+    "notYetCount": "아직 {{count}}",
+    "badgeMe": "✓ 가 봄",
+    "badgeGroup": "✓ 그룹이 가 봄",
+    "badgeNotYet": "아직 안 감"
   }
 }

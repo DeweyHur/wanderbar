@@ -139,6 +139,11 @@ export function NightCard({ night, tz, highlight }: { night: NightSummary; tz: s
         {night.status !== "past" && (
           <Text style={{ color: c.text, fontSize: 14 }}>{night.picker ? t("boardgame:night.pickedBy", { name: night.picker.name }) : t("boardgame:night.nobodyPicking")}</Text>
         )}
+        {night.going + night.maybe > 0 && (
+          <Text style={{ color: c.text, fontSize: 14 }}>
+            👥 {night.maybe ? t("boardgame:rsvp.countMaybe", { going: night.going, maybe: night.maybe }) : t("boardgame:rsvp.count", { going: night.going })}
+          </Text>
+        )}
         {night.games.length ? (
           night.games.map((g) => (
             <View key={g.id} style={{ gap: 4 }}>

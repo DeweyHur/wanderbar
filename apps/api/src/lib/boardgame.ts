@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { externalLinks, gameDetails, gameQueue, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
+import { externalLinks, gameDetails, gameQueue, nightGuests, nightRsvps, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
 import { bggAvailable, bggIdFromUrl, getBggGame } from "./bgg";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember, type Role } from "./groups";
@@ -467,8 +467,13 @@ async function nightViews(db: Db, nights: NightRow[], userId: string, now: Date)
     .select({ id: meetupSeries.id, title: meetupSeries.title })
     .from(meetupSeries)
     .where(inArray(meetupSeries.id, [...new Set(nights.map((n) => n.seriesId).filter((x): x is string => !!x))].concat([""])));
+  const [rsvps, guests] = await Promise.all([
+    db.select().from(nightRsvps).where(inArray(nightRsvps.nightId, ids)),
+    db.select({ nightId: nightGuests.nightId }).from(nightGuests).where(inArray(nightGuests.nightId, ids)),
+  ]);
   return nights.map((n) => {
     const p = pickers.find((x) => x.id === n.pickerId);
+    const mine = rsvps.filter((r) => r.nightId === n.id);
     const t = n.startsAt.getTime();
     return {
       id: n.id,
@@ -479,6 +484,10 @@ async function nightViews(db: Db, nights: NightRow[], userId: string, now: Date)
       location: n.location,
       note: n.note,
       picker: p ? { id: p.id, name: who(p) } : null,
+      /** Members going plus guests; maybe on its own. */
+      going: mine.filter((r) => r.status === "going").length + guests.filter((g) => g.nightId === n.id).length,
+      maybe: mine.filter((r) => r.status === "maybe").length,
+      myRsvp: mine.find((r) => r.userId === userId)?.status ?? null,
       status: (now.getTime() < t ? "upcoming" : now.getTime() < t + LIVE_MS ? "live" : "past") as "upcoming" | "live" | "past",
       games: lineup
         .filter((l) => l.nightId === n.id)
@@ -507,7 +516,72 @@ export async function getNight(db: Db, id: string, userId: string, now = new Dat
     /** Reassigning the picker: the owner, hosts, or the current picker. Anyone can volunteer when nobody is. */
     canAssignPicker: manager(role) || night.pickerId === userId || night.pickerId === null,
     members: members.map((m) => ({ id: m.id, name: who(m) })),
+    attendance: await attendance(db, night.id, userId, manager(role) || night.pickerId === userId),
   };
+}
+
+// ---------- who's coming ----------
+
+export type Rsvp = "going" | "maybe" | "no";
+
+async function attendance(db: Db, nightId: string, userId: string, canEditOthers: boolean) {
+  const [rsvps, guests] = await Promise.all([
+    db
+      .select({ userId: nightRsvps.userId, status: nightRsvps.status, name: users.name, email: users.email })
+      .from(nightRsvps)
+      .innerJoin(users, eq(users.id, nightRsvps.userId))
+      .where(eq(nightRsvps.nightId, nightId))
+      .orderBy(asc(nightRsvps.updatedAt)),
+    db.select().from(nightGuests).where(eq(nightGuests.nightId, nightId)).orderBy(asc(nightGuests.createdAt)),
+  ]);
+  return {
+    rsvps: rsvps.map((r) => ({ userId: r.userId, name: who(r), status: r.status })),
+    guests: guests.map((g) => ({ id: g.id, name: g.name, canRemove: canEditOthers || g.addedBy === userId })),
+    /** The owner, hosts and the picker can record others (e.g. who actually came). */
+    canEditOthers,
+  };
+}
+
+/**
+ * My answer for a night, or (owner, host, picker) someone else's. null clears it.
+ * Works after the night too, to record who actually came.
+ */
+export async function setRsvp(db: Db, nightId: string, userId: string, input: { status: Rsvp | null; userId?: string }) {
+  const { night, role } = await memberNight(db, nightId, userId);
+  const target = input.userId ?? userId;
+  if (target !== userId) {
+    if (!manager(role) && night.pickerId !== userId) throw forbidden("night.rsvp_forbidden");
+    await requireMember(db, night.groupId, target).catch(() => {
+      throw badRequest("night.picker_not_member");
+    });
+  }
+  if (input.status === null) {
+    await db.delete(nightRsvps).where(and(eq(nightRsvps.nightId, nightId), eq(nightRsvps.userId, target)));
+  } else {
+    await db
+      .insert(nightRsvps)
+      .values({ nightId, userId: target, status: input.status })
+      .onConflictDoUpdate({ target: [nightRsvps.nightId, nightRsvps.userId], set: { status: input.status, updatedAt: new Date() } });
+  }
+  return getNight(db, nightId, userId);
+}
+
+/** Anyone in the group can bring a guest; they or the owner, hosts and picker can take the name off. */
+export async function addGuest(db: Db, nightId: string, userId: string, name: string) {
+  await memberNight(db, nightId, userId);
+  const n = name.replace(/\s+/g, " ").trim().slice(0, 60);
+  if (!n) throw badRequest("night.guest_name_required");
+  await db.insert(nightGuests).values({ nightId, name: n, addedBy: userId });
+  return getNight(db, nightId, userId);
+}
+
+export async function removeGuest(db: Db, nightId: string, guestId: string, userId: string) {
+  const { night, role } = await memberNight(db, nightId, userId);
+  const [g] = await db.select().from(nightGuests).where(and(eq(nightGuests.id, guestId), eq(nightGuests.nightId, nightId)));
+  if (!g) throw notFound("night.guest_not_found");
+  if (g.addedBy !== userId && !manager(role) && night.pickerId !== userId) throw forbidden("night.rsvp_forbidden");
+  await db.delete(nightGuests).where(eq(nightGuests.id, guestId));
+  return getNight(db, nightId, userId);
 }
 
 /** A one-off night (not from a series). */

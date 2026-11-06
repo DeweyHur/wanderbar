@@ -1,3 +1,4 @@
+import { Attendance, playerWarning } from "@/modules/boardgame/Attendance";
 import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
@@ -113,6 +114,8 @@ export default function NightScreen() {
         </View>
       )}
 
+      <Attendance night={n} me={me} onChange={show} />
+
       <SectionTitle>{t("boardgame:night.games")}</SectionTitle>
       {n.games.length === 0 && <Body muted>{t("boardgame:night.noGames")}</Body>}
       {n.games.map((g) => (
@@ -129,6 +132,9 @@ export default function NightScreen() {
             <ScoreBadge rating={g.rating} />
           </View>
           <GameLinks links={g.links} />
+          {n.status !== "past" && playerWarning(n.going, g.bgg, t) ? (
+            <Text testID="player-warning" style={{ color: c.warn, fontSize: 14 }}>⚠ {playerWarning(n.going, g.bgg, t)}</Text>
+          ) : null}
           {n.status !== "upcoming" && <RateGame game={g} onSaved={load} />}
           {n.canEditLineup && n.status !== "past" && (
             <View style={{ flexDirection: "row" }}>

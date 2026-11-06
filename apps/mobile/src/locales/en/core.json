@@ -158,7 +158,10 @@
       "time_invalid": "Enter the date as YYYY-MM-DD and the time as HH:MM",
       "picker_forbidden": "Only the current picker, the owner or a host can hand picking over",
       "picker_not_member": "That person isn't in this group",
-      "lineup_forbidden": "Only this night's picker, the owner or a host can change the games. Queue it instead."
+      "lineup_forbidden": "Only this night's picker, the owner or a host can change the games. Queue it instead.",
+      "rsvp_forbidden": "Only the owner, a host or this night's picker can record others",
+      "guest_name_required": "Enter the guest's name",
+      "guest_not_found": "Guest not found"
     },
     "photo": {
       "item_not_found": "Not found",

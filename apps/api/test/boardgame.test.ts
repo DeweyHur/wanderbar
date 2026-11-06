@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
 import { signIn } from "@/lib/auth";
 import {
+  addGuest,
   addNightGame,
   boardgameHome,
   createGame,
@@ -14,7 +15,9 @@ import {
   listGames,
   queueGame,
   rateGame,
+  removeGuest,
   removeNightGame,
+  setRsvp,
   unqueueGame,
   updateGame,
   updateNight,
@@ -239,5 +242,36 @@ describe("queue and leaderboard data", () => {
     const home = await boardgameHome(db, groupId, me, NOW);
     expect(home.past.map((n) => n.id)).toEqual([past2.id, past1.id]);
     expect(home.upcoming.map((n) => n.id)).toEqual([next.id]);
+  });
+});
+
+describe("who's coming", () => {
+  it("members answer going / maybe / can't; guests count as going; counts show on the night", async () => {
+    const night = await createNight(db, groupId, me, { startsAt: hours(48) });
+    await setRsvp(db, night.id, me, { status: "going" });
+    await setRsvp(db, night.id, amy, { status: "maybe" });
+    let n = await setRsvp(db, night.id, ben, { status: "no" });
+    n = await addGuest(db, night.id, amy, "  Amy's   friend Jo ");
+    expect(n.attendance.guests.map((g) => g.name)).toEqual(["Amy's friend Jo"]);
+    expect(n.attendance.rsvps.map((r) => `${r.name}:${r.status}`).sort()).toEqual(["amy:maybe", "ben:no", "me:going"]);
+    const [summary] = (await boardgameHome(db, groupId, amy, NOW)).upcoming;
+    expect(summary).toMatchObject({ going: 2, maybe: 1, myRsvp: "maybe" });
+    // Changing your mind, and clearing.
+    expect((await setRsvp(db, night.id, amy, { status: "going" })).going).toBe(3);
+    expect((await setRsvp(db, night.id, amy, { status: null })).going).toBe(2);
+  });
+
+  it("only the owner, a host or the picker records others; guests come off by whoever added them or a manager", async () => {
+    const night = await createNight(db, groupId, me, { startsAt: hours(-24), pickerId: amy });
+    expect(await status(setRsvp(db, night.id, ben, { status: "going", userId: amy }))).toBe(403);
+    // After the night, the picker records who came.
+    expect((await setRsvp(db, night.id, amy, { status: "going", userId: ben })).attendance.rsvps).toMatchObject([{ name: "ben", status: "going" }]);
+    const withGuest = await addGuest(db, night.id, ben, "Sam");
+    const guestId = withGuest.attendance.guests[0].id;
+    expect((await getNight(db, night.id, me)).attendance.guests[0].canRemove).toBe(true);
+    const stranger = (await signIn(db, profile("stranger2"))).user.id;
+    expect(await status(addGuest(db, night.id, stranger, "x"))).toBe(404);
+    expect(await status(addGuest(db, night.id, ben, "  "))).toBe(400);
+    expect((await removeGuest(db, night.id, guestId, me)).attendance.guests).toEqual([]);
   });
 });

@@ -212,3 +212,62 @@ test("BoardGameGeek: search by name, pick a game, and its box art and player cou
   await expect(visible(page, "bgg-picked")).toContainText("1–4 players · 45 min");
   await expect(field(page, "Name")).toHaveValue("Cascadia");
 });
+
+test("who's coming: answer, bring guests, see too many players; afterwards record who came", async ({ page, browser }) => {
+  await signIn(page, "Host");
+  const groupId = await newBoardGameGroup(page, "RSVP Club");
+  const brass = (await (
+    await page.request.post(`/api/groups/${groupId}/games`, {
+      headers: WEB,
+      data: { name: "Brass: Birmingham", links: [{ kind: "bgg", url: "https://boardgamegeek.com/boardgame/224517" }] },
+    })
+  ).json()) as { id: string };
+  const night = (await (await page.request.post(`/api/groups/${groupId}/nights`, { headers: WEB, data: { date: "2030-01-05", time: "19:00" } })).json()) as { id: string };
+  await page.request.post(`/api/nights/${night.id}/games`, { headers: WEB, data: { gameId: brass.id } });
+
+  // A friend joins and says maybe.
+  const { url } = await (await page.request.post(`/api/groups/${groupId}/invites`, { headers: WEB })).json();
+  const friend = await (await browser.newContext({ locale: "en-US" })).newPage();
+  await signIn(friend, "Pat");
+  await friend.goto(new URL(url).pathname);
+  await friend.getByRole("button", { name: "Join" }).click();
+  await expect(button(friend, "Next night")).toBeVisible();
+  await friend.goto(`/night/${night.id}`);
+  await visible(friend, "attendance").getByRole("button", { name: "Maybe", exact: true }).click();
+  await expect(visible(friend, "attendance")).toContainText("Maybe (1)");
+
+  await page.goto(`/night/${night.id}`);
+  const att = visible(page, "attendance");
+  await att.getByRole("button", { name: "Going", exact: true }).click();
+  await expect(att).toContainText("Going (1)");
+  for (const name of ["Jo", "Sam", "Lee", "Kim"]) {
+    await att.getByRole("textbox", { name: "Bring a guest (name)" }).fill(name);
+    await att.getByRole("button", { name: "Add guest" }).click();
+    await expect(att.getByRole("textbox", { name: "Bring a guest (name)" })).toHaveValue("");
+  }
+  await expect(att).toContainText("Going (5)");
+  await expect(att).toContainText("Jo (guest)");
+  await expect(att).toContainText("Maybe (1)  Pat");
+  // Brass seats 2–4 (from BGG): 5 coming is too many.
+  await expect(visible(page, "player-warning")).toContainText("Up to 4 players · 5 coming");
+  await att.getByRole("button", { name: "Kim ✕" }).click();
+  await expect(att).toContainText("Going (4)");
+  await expect(visible(page, "player-warning")).toHaveCount(0);
+
+  // The night card on the home shows the count.
+  await page.goto(`/group/${groupId}`);
+  await expect(visible(page, "night-card").first()).toContainText("4 going · 1 maybe");
+
+  // After a night, the host records who actually came.
+  const past = (await (await page.request.post(`/api/groups/${groupId}/nights`, { headers: WEB, data: { date: "2026-10-03", time: "19:00" } })).json()) as { id: string };
+  await page.goto(`/night/${past.id}`);
+  const after = visible(page, "attendance");
+  await expect(after).toContainText("Who came");
+  await after.getByRole("button", { name: "I came" }).click();
+  await after.getByRole("button", { name: "Record for others" }).click();
+  await visible(page, "rsvp-member").filter({ hasText: "Pat" }).getByRole("button", { name: "Didn't" }).click();
+  await expect(after).toContainText("Came (1)");
+  await expect(after).toContainText("Didn't come (1)  Pat");
+  // Pat can't record others.
+  expect((await friend.request.put(`/api/nights/${past.id}/rsvp`, { headers: WEB, data: { status: "going", userId: (await me(page.request)).user.id } })).status()).toBe(403);
+});

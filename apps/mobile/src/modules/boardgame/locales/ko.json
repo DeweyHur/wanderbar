@@ -156,5 +156,32 @@
     "searchPlaceholder": "이름을 입력하면 BoardGameGeek에서 찾아요",
     "refresh": "BGG에서 사진 가져오기",
     "noPicture": "BGG 링크를 넣으면 박스 사진이 보여요."
+  },
+  "rsvp": {
+    "titleUpcoming": "누가 오나요",
+    "titlePast": "누가 왔나요",
+    "going": "갈게요",
+    "maybe": "아마도",
+    "no": "못 가요",
+    "came": "왔어요",
+    "didntCome": "못 왔어요",
+    "goingList": "참석",
+    "maybeList": "미정",
+    "noList": "불참",
+    "cameList": "왔음",
+    "missedList": "못 옴",
+    "count": "{{going}}명 참석",
+    "countMaybe": "{{going}}명 참석 · {{maybe}}명 미정",
+    "nobody": "아직 답한 사람이 없어요.",
+    "guest": "게스트",
+    "addGuest": "게스트 데려오기 (이름)",
+    "addGuestButton": "게스트 추가",
+    "guestTag": "게스트",
+    "recordOthers": "다른 사람 기록하기",
+    "markCame": "왔음",
+    "markNo": "못 옴",
+    "tooMany": "최대 {{max}}인 · {{going}}명 참석",
+    "tooFew": "{{min}}인 이상 · {{going}}명 참석",
+    "you": "나: {{answer}}"
   }
 }

@@ -508,3 +508,38 @@ export const bggCache = pgTable("bgg_cache", {
   body: jsonb("body").notNull(),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---- Board game module: who's coming ----
+
+export const rsvpStatus = pgEnum("rsvp_status", ["going", "maybe", "no"]);
+
+/** A member's answer for a night. Before it: coming or not; after it, "going" means they came. */
+export const nightRsvps = pgTable(
+  "night_rsvps",
+  {
+    nightId: text("night_id")
+      .notNull()
+      .references(() => meetupNights.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: rsvpStatus("status").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.nightId, t.userId] })],
+);
+
+/** People without the app who come along (by name). */
+export const nightGuests = pgTable(
+  "night_guests",
+  {
+    id: id(),
+    nightId: text("night_id")
+      .notNull()
+      .references(() => meetupNights.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    addedBy: text("added_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("night_guests_night_idx").on(t.nightId)],
+);

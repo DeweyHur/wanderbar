@@ -44,6 +44,12 @@ export type Game = GameSummary & {
 export type GameInput = { name?: string; memo?: string; links?: { kind: LinkKind; url: string; label?: string | null }[]; tags?: string[] };
 
 export type NightStatus = "upcoming" | "live" | "past";
+export type Rsvp = "going" | "maybe" | "no";
+export type Attendance = {
+  rsvps: { userId: string; name: string; status: Rsvp }[];
+  guests: { id: string; name: string; canRemove: boolean }[];
+  canEditOthers: boolean;
+};
 export type NightGame = { id: string; name: string; links: GameLink[]; tags: string[]; rating: Rating; myScore: number | null; myReview: string | null; bgg: BggInfo | null };
 export type NightSummary = {
   id: string;
@@ -54,6 +60,10 @@ export type NightSummary = {
   location: string;
   note: string;
   picker: Person | null;
+  /** Members going plus guests. */
+  going: number;
+  maybe: number;
+  myRsvp: Rsvp | null;
   status: NightStatus;
   games: NightGame[];
 };
@@ -63,6 +73,7 @@ export type Night = NightSummary & {
   canEditLineup: boolean;
   canAssignPicker: boolean;
   members: Person[];
+  attendance: Attendance;
 };
 export type Series = { id: string; title: string; weekday: number; time: string; everyWeeks: number; startDate: string; location: string };
 export type SeriesInput = Partial<Omit<Series, "id">>;
@@ -100,5 +111,8 @@ export const bgApi = {
   updateNight: (id: string, n: NightInput) => api<Night>(`/api/nights/${id}`, { method: "PATCH", body: n }),
   deleteNight: (id: string) => api(`/api/nights/${id}`, { method: "DELETE" }),
   addGame: (nightId: string, gameId: string) => api<Night>(`/api/nights/${nightId}/games`, { body: { gameId } }),
+  rsvp: (nightId: string, status: Rsvp | null, userId?: string) => api<Night>(`/api/nights/${nightId}/rsvp`, { method: "PUT", body: { status, userId } }),
+  addGuest: (nightId: string, name: string) => api<Night>(`/api/nights/${nightId}/guests`, { body: { name } }),
+  removeGuest: (nightId: string, guestId: string) => api<Night>(`/api/nights/${nightId}/guests/${guestId}`, { method: "DELETE" }),
   removeGame: (nightId: string, gameId: string) => api<Night>(`/api/nights/${nightId}/games/${gameId}`, { method: "DELETE" }),
 };

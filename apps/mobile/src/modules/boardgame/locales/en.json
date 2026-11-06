@@ -161,5 +161,32 @@
     "searchPlaceholder": "Type a name to search BoardGameGeek",
     "refresh": "Get picture from BGG",
     "noPicture": "Add a BGG link to show the box art."
+  },
+  "rsvp": {
+    "titleUpcoming": "Who's coming",
+    "titlePast": "Who came",
+    "going": "Going",
+    "maybe": "Maybe",
+    "no": "Can't",
+    "came": "I came",
+    "didntCome": "I didn't",
+    "goingList": "Going",
+    "maybeList": "Maybe",
+    "noList": "Can't make it",
+    "cameList": "Came",
+    "missedList": "Didn't come",
+    "count": "{{going}} going",
+    "countMaybe": "{{going}} going · {{maybe}} maybe",
+    "nobody": "No answers yet.",
+    "guest": "Guest",
+    "addGuest": "Bring a guest (name)",
+    "addGuestButton": "Add guest",
+    "guestTag": "guest",
+    "recordOthers": "Record for others",
+    "markCame": "Came",
+    "markNo": "Didn't",
+    "tooMany": "Up to {{max}} players · {{going}} coming",
+    "tooFew": "Needs {{min}}+ players · {{going}} coming",
+    "you": "You: {{answer}}"
   }
 }

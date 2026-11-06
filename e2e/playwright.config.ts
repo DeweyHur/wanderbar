@@ -1,9 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
-// Tests compute dates ("today", next Saturday) in the same time zone as the browser below; without this
-// they broke on CI between 00:00 and 08:00 UTC, when it is already tomorrow in UTC. Workers inherit it.
-process.env.TZ = "America/Los_Angeles";
+/** The browser's time zone. Tests compute "today" with Node's Date, so Node uses the same zone
+ * (otherwise from 4 pm Pacific on, the UTC runner is already on tomorrow). */
+const TIME_ZONE = "America/Los_Angeles";
+process.env.TZ = TIME_ZONE;
 // PW_CHANNEL=chrome uses an installed Chrome instead of Playwright's own Chromium.
 const channel = process.env.PW_CHANNEL || undefined;
 // E2E_LIVE_GOOGLE=1 (with GOOGLE_SERVER_KEY set) talks to the real Google Places/Routes instead of canned answers.
@@ -19,7 +20,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: `http://localhost:${PORT}`, locale: "en-US", timezoneId: "America/Los_Angeles", trace: "retain-on-failure" },
+  use: { baseURL: `http://localhost:${PORT}`, locale: "en-US", timezoneId: TIME_ZONE, trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], channel } },
     { name: "phone", use: { ...devices["Pixel 7"], channel } },
@@ -32,6 +33,8 @@ export default defineConfig({
     timeout: 400_000,
     stdout: "pipe",
     env: {
+      // The server runs in UTC, like on Vercel.
+      TZ: "UTC",
       DATABASE_URL: "pglite:memory",
       E2E_TEST_LOGIN: "1",
       // Canned Google Places/Routes answers (server-side; never reaches Google).

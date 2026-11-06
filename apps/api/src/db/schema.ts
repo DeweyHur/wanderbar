@@ -62,6 +62,8 @@ export const memberships = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     role: memberRole("role").notNull().default("member"),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When this member last opened the group chat (unread = newer messages from others). */
+    chatReadAt: timestamp("chat_read_at", { withTimezone: true }),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index("memberships_user_idx").on(t.userId)],
 );
@@ -542,4 +544,22 @@ export const nightGuests = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("night_guests_night_idx").on(t.nightId)],
+);
+
+// ---- Group chat ----
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+    /** Deleted messages keep their place ("message deleted") with the text gone. */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("chat_messages_group_idx").on(t.groupId, t.createdAt)],
 );

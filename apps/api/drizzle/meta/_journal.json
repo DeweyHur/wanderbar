@@ -99,6 +99,13 @@
       "when": 1793948932594,
       "tag": "0013_rsvp",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793993852592,
+      "tag": "0014_chat",
+      "breakpoints": true
     }
   ]
 }

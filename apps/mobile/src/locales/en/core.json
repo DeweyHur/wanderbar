@@ -177,6 +177,12 @@
       "failed": "Couldn't reach BoardGameGeek",
       "not_found": "Game not found on BoardGameGeek",
       "bad_id": "That isn't a BoardGameGeek game"
+    },
+    "chat": {
+      "empty": "Write something first.",
+      "too_long": "That message is too long (2,000 characters max).",
+      "not_found": "That message is gone.",
+      "delete_forbidden": "You can only delete your own messages."
     }
   },
   "photo": {
@@ -197,5 +203,19 @@
     "shopTodayTitle": "Still to buy today 🛒",
     "shopBody_one": "1 thing left on the list for your meals",
     "shopBody_other": "{{count}} things left on the list for your meals"
+  },
+  "chat": {
+    "title": "Group chat",
+    "open": "Open group chat",
+    "openUnread_one": "Open group chat, {{count}} new message",
+    "openUnread_other": "Open group chat, {{count}} new messages",
+    "placeholder": "Message",
+    "send": "Send",
+    "earlier": "Load earlier messages",
+    "empty": "No messages yet. Say hi!",
+    "deleted": "Message deleted",
+    "someone": "Former member",
+    "confirmDelete": "Delete this message?",
+    "deleteHint": "Long-press to delete"
   }
 }

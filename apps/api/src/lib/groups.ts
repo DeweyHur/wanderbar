@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { groups, invites, memberships, users } from "../db/schema";
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
+import { unreadCounts } from "./chat";
 import { hashToken, newToken } from "./tokens";
 
 const INVITE_DAYS = 7;
@@ -39,6 +40,11 @@ export async function createGroup(db: Db, userId: string, input: NewGroup) {
 }
 
 export async function myGroups(db: Db, userId: string) {
+  const [rows, unread] = await Promise.all([groupsOf(db, userId), unreadCounts(db, userId)]);
+  return rows.map((g) => ({ ...g, unread: unread.get(g.id) ?? 0 }));
+}
+
+function groupsOf(db: Db, userId: string) {
   return db
     .select({ id: groups.id, name: groups.name, module: groups.module, theme: groups.theme, role: memberships.role })
     .from(memberships)

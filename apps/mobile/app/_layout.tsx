@@ -117,6 +117,10 @@ function AppStack() {
             options={{ title: t("food:menu.title") }}
           />
           <Stack.Screen
+            name="group/[id]/chat"
+            options={{ title: t("chat.title") }}
+          />
+          <Stack.Screen
             name="groups"
             options={{ title: t("group.mine") }}
           />

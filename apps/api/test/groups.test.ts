@@ -23,7 +23,7 @@ describe("groups", () => {
   it("creator becomes the owner", async () => {
     const g = await createGroup(db, owner, { name: "  맛집 탐방대 ", defaultLocale: "ko" });
     expect(g).toMatchObject({ name: "맛집 탐방대", module: "food", role: "owner" });
-    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", theme: "pink", role: "owner" }]);
+    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", theme: "pink", role: "owner", unread: 0 }]);
     expect((await groupDetail(db, g.id, owner)).defaultLocale).toBe("ko");
   });
 

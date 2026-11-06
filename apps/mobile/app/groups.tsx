@@ -50,6 +50,7 @@ export default function Groups() {
                   {g.role !== "member" ? ` · ${t(`group.role.${g.role}`)}` : ""}
                 </Body>
               </View>
+              {g.unread ? <Text style={{ color: c.accent, fontSize: 14, fontWeight: "700" }}>💬 {g.unread > 99 ? "99+" : g.unread}</Text> : null}
             </View>
           </Card>
         </Pressable>

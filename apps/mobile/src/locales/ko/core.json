@@ -176,6 +176,12 @@
       "failed": "BoardGameGeek에 연결하지 못했어요",
       "not_found": "BoardGameGeek에서 게임을 찾을 수 없어요",
       "bad_id": "BoardGameGeek 게임이 아니에요"
+    },
+    "chat": {
+      "empty": "메시지를 입력해 주세요.",
+      "too_long": "메시지가 너무 길어요 (최대 2,000자).",
+      "not_found": "없는 메시지예요.",
+      "delete_forbidden": "내 메시지만 삭제할 수 있어요."
     }
   },
   "photo": {
@@ -196,5 +202,18 @@
     "shopTodayTitle": "오늘 장볼 거 남았어요 🛒",
     "shopBody_one": "메뉴에 필요한 게 1개 남았어요",
     "shopBody_other": "메뉴에 필요한 게 {{count}}개 남았어요"
+  },
+  "chat": {
+    "title": "그룹 채팅",
+    "open": "그룹 채팅 열기",
+    "openUnread_other": "그룹 채팅 열기, 새 메시지 {{count}}개",
+    "placeholder": "메시지",
+    "send": "보내기",
+    "earlier": "이전 메시지 더 보기",
+    "empty": "아직 메시지가 없어요. 먼저 인사해 보세요!",
+    "deleted": "삭제된 메시지예요",
+    "someone": "나간 멤버",
+    "confirmDelete": "이 메시지를 삭제할까요?",
+    "deleteHint": "길게 눌러 삭제"
   }
 }

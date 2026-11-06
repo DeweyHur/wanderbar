@@ -17,7 +17,7 @@ describe("testLoginEnabled", () => {
   it("is on only with the flag and the in-memory database", () => {
     expect(testLoginEnabled({ E2E_TEST_LOGIN: "1", DATABASE_URL: "pglite:memory" })).toBe(true);
   });
-  const staging = { STAGING_TEST_LOGIN: "1", VERCEL: "1", VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "staging", DATABASE_URL: "postgresql://x@ep-staging.neon.tech/db" };
+  const staging = { STAGING_TEST_LOGIN: "1", VERCEL: "1", VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "staging", DATABASE_URL: "postgresql://u:p@ep-proud-frost-b8uxdldk.c-14.us-east-1.aws.neon.tech/neondb?sslmode=require" };
   it("is on for the staging branch preview", () => {
     expect(testLoginEnabled(staging)).toBe(true);
   });
@@ -26,5 +26,7 @@ describe("testLoginEnabled", () => {
     expect(testLoginEnabled({ ...staging, VERCEL_GIT_COMMIT_REF: "main" })).toBe(false);
     expect(testLoginEnabled({ ...staging, STAGING_TEST_LOGIN: undefined })).toBe(false);
     expect(testLoginEnabled({ ...staging, VERCEL: undefined })).toBe(false);
+    // The staging preview pointed at production's database (e.g. its own DATABASE_URL missing).
+    expect(testLoginEnabled({ ...staging, DATABASE_URL: "postgresql://u:p@ep-other-12345-pooler.c-14.us-east-1.aws.neon.tech/neondb" })).toBe(false);
   });
 });

@@ -15,7 +15,7 @@ import { AppState } from "react-native";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { useFonts } from "expo-font";
-import { fonts, palette } from "@/components/ui";
+import { fonts, ThemeProvider, useColors } from "@/components/ui";
 
 /** A share from another app (Android intent / iOS extension) opens the share screen. */
 function ShareRedirect() {
@@ -47,14 +47,23 @@ function Notifications() {
 }
 
 export default function RootLayout() {
-  const { t } = useTranslation();
   // The round fonts are bundled with the app; wait for them so nothing flashes in a system font.
   const [fontsReady, fontError] = useFonts({ Jua_400Regular, GowunDodum_400Regular });
   if (!fontsReady && !fontError) return null;
   return (
+    <ThemeProvider>
+      <AppStack />
+    </ThemeProvider>
+  );
+}
+
+function AppStack() {
+  const { t } = useTranslation();
+  const palette = useColors();
+  return (
     <IncomingShareProvider>
       <SessionProvider>
-        <StatusBar style="dark" />
+        <StatusBar style={palette.dark ? "light" : "dark"} />
         <ShareRedirect />
         <Notifications />
         <Stack

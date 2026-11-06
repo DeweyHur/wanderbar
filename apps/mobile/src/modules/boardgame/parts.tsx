@@ -105,7 +105,7 @@ export function ScoreInput({ value, onChange }: { value: number; onChange: (n: n
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text style={{ color: on ? "#fff" : c.text, fontSize: 15, fontWeight: "600" }}>{n}</Text>
+            <Text style={{ color: on ? (c.dark ? c.onPink : "#fff") : c.text, fontSize: 15, fontWeight: "600" }}>{n}</Text>
           </Pressable>
         );
       })}

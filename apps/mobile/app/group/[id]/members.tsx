@@ -7,6 +7,7 @@ import { api, type GroupDetail } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { shareText } from "@/core/platform/share";
 import { useSession } from "@/core/session";
+import { ThemePicker } from "@/components/ThemePicker";
 
 export default function MembersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -60,6 +61,7 @@ export default function MembersScreen() {
         )}
         contentContainerStyle={{ gap: 8 }}
       />
+      {group.myRole === "owner" && <ThemePicker groupId={group.id} current={group.theme} onError={setError} />}
       {group.myRole === "owner" && <Button label={t("group.invite")} busy={inviting} onPress={invite} />}
       {notice ? <Body muted>{notice}</Body> : null}
       {otherGroups.length > 0 && <Body muted>{t("group.others")}</Body>}

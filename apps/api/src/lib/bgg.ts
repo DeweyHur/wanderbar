@@ -169,7 +169,7 @@ const FAKE: BggGame[] = [
   { id: 290236, name: "Canvas", year: 2021, minPlayers: 1, maxPlayers: 5, playingTime: 45, weight: 1.84 },
 ].map((g) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#8fb8de"/><text x="100" y="115" font-size="48" text-anchor="middle" fill="#fff">${g.name[0]}</text></svg>`;
-  const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  const uri = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   return { ...g, image: uri, thumbnail: uri };
 });
 

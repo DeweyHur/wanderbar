@@ -7,6 +7,9 @@ import { hashToken, newToken } from "./tokens";
 const INVITE_DAYS = 7;
 
 export type Role = "owner" | "host" | "member";
+/** Color themes the apps can draw. Stored as an id; the apps own the colors. */
+export const GROUP_THEMES = ["pink", "mint", "sky", "lavender", "peach", "night"] as const;
+export type GroupTheme = (typeof GROUP_THEMES)[number];
 export type GroupModule = "food" | "boardgame";
 
 export type NewGroup = {
@@ -37,7 +40,7 @@ export async function createGroup(db: Db, userId: string, input: NewGroup) {
 
 export async function myGroups(db: Db, userId: string) {
   return db
-    .select({ id: groups.id, name: groups.name, module: groups.module, role: memberships.role })
+    .select({ id: groups.id, name: groups.name, module: groups.module, theme: groups.theme, role: memberships.role })
     .from(memberships)
     .innerJoin(groups, eq(groups.id, memberships.groupId))
     .where(eq(memberships.userId, userId))
@@ -74,6 +77,7 @@ export async function groupDetail(db: Db, groupId: string, userId: string) {
     defaultLocale: group.defaultLocale,
     timezone: group.timezone,
     currency: group.currency,
+    theme: group.theme,
     myRole: role,
     members,
   };
@@ -126,4 +130,18 @@ export async function revokeInvites(db: Db, groupId: string, userId: string, now
   const role = await requireMember(db, groupId, userId);
   if (role !== "owner") throw forbidden("invite.owner_only");
   await db.update(invites).set({ revokedAt: now }).where(eq(invites.groupId, groupId));
+}
+
+/** Rename the group or change its color theme. Owners only. */
+export async function updateGroup(db: Db, groupId: string, userId: string, input: { name?: string; theme?: GroupTheme }) {
+  const role = await requireMember(db, groupId, userId);
+  if (role !== "owner") throw forbidden("group.owner_only");
+  const set: Partial<typeof groups.$inferInsert> = {};
+  if (input.name !== undefined) {
+    if (!input.name.trim()) throw badRequest("group.name_required");
+    set.name = input.name.trim();
+  }
+  if (input.theme !== undefined) set.theme = input.theme;
+  if (Object.keys(set).length) await db.update(groups).set(set).where(eq(groups.id, groupId));
+  return groupDetail(db, groupId, userId);
 }

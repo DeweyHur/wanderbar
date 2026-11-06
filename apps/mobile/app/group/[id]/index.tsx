@@ -8,7 +8,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
+import { Body, Button, Card, Chip, ErrorText, isThemeId, Loading, useColors, useTheme, Text } from "@/components/ui";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
 import { GroupTitle } from "@/components/GroupSwitcher";
@@ -38,7 +38,16 @@ const TAB_KEY = "group_home_tab";
 export default function GroupHome() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { state } = useSession();
-  const known = state.status === "signedIn" ? state.groups.find((g) => g.id === id)?.module : undefined;
+  const summary = state.status === "signedIn" ? state.groups.find((g) => g.id === id) : undefined;
+  const known = summary?.module;
+  // The group's color theme colors the app while you're in it.
+  const { setThemeId } = useTheme();
+  const theme = summary?.theme;
+  useFocusEffect(
+    useCallback(() => {
+      if (summary) setThemeId(isThemeId(theme) ? theme : "pink");
+    }, [summary, theme, setThemeId]),
+  );
   const [module, setModule] = useState<GroupModuleId | null>(known ?? null);
   useEffect(() => {
     if (known) setModule(known);
@@ -60,7 +69,7 @@ function BoardGameGroup({ id }: { id: string }) {
     }, [id]),
   );
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <ScrollView testID="group-home" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: name, headerTitle: () => <GroupTitle name={name} />, headerRight: () => <SettingsLink /> }} />
       <BoardGameHome groupId={id} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -160,6 +169,7 @@ function FoodHome({ id }: { id: string }) {
   const mod = getModule(group.module);
   return (
     <ScrollView
+      testID="group-home"
       style={{ backgroundColor: c.bg }}
       contentContainerStyle={{ padding: 20, gap: 14 }}
     >

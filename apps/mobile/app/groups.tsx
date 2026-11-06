@@ -2,7 +2,7 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
-import { Body, Button, Card, Text, useColors } from "@/components/ui";
+import { Body, Button, Card, isThemeId, Text, THEMES, useColors } from "@/components/ui";
 import { loadLastGroup, saveLastGroup } from "@/core/lastGroup";
 import { useSession } from "@/core/session";
 
@@ -38,7 +38,9 @@ export default function Groups() {
         <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={g.name} onPress={() => open(g.id)}>
           <Card testID="group-row" highlight={g.id === currentId}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Text style={{ fontSize: 26 }}>{ICON[g.module] ?? "•"}</Text>
+              <View style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: (isThemeId(g.theme) ? THEMES[g.theme] : THEMES.pink).pink }}>
+                <Text style={{ fontSize: 22 }}>{ICON[g.module] ?? "•"}</Text>
+              </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: c.text, fontSize: 17, fontWeight: "700" }} numberOfLines={1}>
                   {g.name}

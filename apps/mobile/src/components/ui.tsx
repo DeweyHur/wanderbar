@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { prefs } from "@/core/platform/prefs";
 import {
   ActivityIndicator,
   Pressable,
@@ -29,8 +30,42 @@ export const palette = {
   ok: "#4FA985", // mint: open, been there
   warn: "#D9952F", // honey
 };
-export function useColors() {
-  return palette;
+export type Palette = typeof palette & { dark?: boolean };
+
+/** Group color themes. Ids match the server's GROUP_THEMES; the keys keep their names ("pink" = the fill color). */
+export const THEMES = {
+  pink: palette,
+  mint: { ...palette, bg: "#EFFAF5", text: "#24413A", muted: "#7F9C93", accent: "#2E9C7A", pink: "#A8E3CF", pinkSoft: "#DDF4EB", onPink: "#24413A", border: "#CDEBDF" },
+  sky: { ...palette, bg: "#F1F6FD", text: "#263A55", muted: "#8090A8", accent: "#3B7BD4", pink: "#B5D3F7", pinkSoft: "#E1EDFC", onPink: "#263A55", border: "#D2E2F6" },
+  lavender: { ...palette, bg: "#F6F2FD", text: "#3E3354", muted: "#948AA8", accent: "#7C5CC4", pink: "#D4C6F4", pinkSoft: "#EDE6FB", onPink: "#3E3354", border: "#E2D8F6" },
+  peach: { ...palette, bg: "#FFF5EE", text: "#4D3426", muted: "#A88C7C", accent: "#D9692E", pink: "#FFC9A6", pinkSoft: "#FFE8D8", onPink: "#4D3426", border: "#F7DCC9" },
+  // Game night after dark.
+  night: { bg: "#1D1B26", card: "#282536", text: "#EEE9F7", muted: "#A39DB8", accent: "#F2A7C3", pink: "#F2A7C3", pinkSoft: "#3A3550", onPink: "#2A2333", border: "#3A3550", danger: "#FF7A8A", ok: "#6CD4A6", warn: "#F5C26B", dark: true },
+} satisfies Record<string, Palette>;
+export type ThemeId = keyof typeof THEMES;
+export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
+export const isThemeId = (x: unknown): x is ThemeId => typeof x === "string" && x in THEMES;
+
+const ThemeContext = createContext<{ themeId: ThemeId; setThemeId: (t: ThemeId) => void }>({ themeId: "pink", setThemeId: () => {} });
+
+/** The current group's theme colors everything; the last one is remembered so the app opens without a flash. */
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [themeId, setId] = useState<ThemeId>("pink");
+  useEffect(() => {
+    prefs.get("theme").then((v) => isThemeId(v) && setId(v), () => {});
+  }, []);
+  const setThemeId = useCallback((t: ThemeId) => {
+    setId(t);
+    prefs.set("theme", t).catch(() => {});
+  }, []);
+  const value = useMemo(() => ({ themeId, setThemeId }), [themeId, setThemeId]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export const useTheme = () => useContext(ThemeContext);
+
+export function useColors(): Palette {
+  return THEMES[useContext(ThemeContext).themeId];
 }
 
 export const fonts = { heading: "Jua_400Regular", body: "GowunDodum_400Regular" };
@@ -100,7 +135,11 @@ export function Button({
         { opacity: disabled ? 0.5 : 1, transform: squish(pressed) },
       ]}
     >
-      {busy ? <ActivityIndicator color={c.onPink} /> : <Text style={[styles.buttonText, { color: c.onPink }]}>{label}</Text>}
+      {busy ? (
+        <ActivityIndicator color={primary ? c.onPink : c.text} />
+      ) : (
+        <Text style={[styles.buttonText, { color: primary ? c.onPink : c.text }]}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -207,7 +246,7 @@ export function Chip({ label, onPress, disabled, selected, icon }: { label: stri
         transform: squish(pressed),
       })}
     >
-      <Text style={{ color: c.onPink, fontSize: 15, fontWeight: selected ? "700" : "400" }} numberOfLines={1}>
+      <Text style={{ color: selected ? c.onPink : c.text, fontSize: 15, fontWeight: selected ? "700" : "400" }} numberOfLines={1}>
         {icon ? (
           <RNText aria-hidden accessibilityElementsHidden importantForAccessibility="no">
             {icon}{" "}

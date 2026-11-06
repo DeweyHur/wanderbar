@@ -40,7 +40,16 @@
     "create": "그룹 만들기",
     "others": "내 다른 그룹",
     "switch": "그룹 바꾸기",
-    "mine": "내 그룹"
+    "mine": "내 그룹",
+    "theme": "테마",
+    "themes": {
+      "pink": "핑크",
+      "mint": "민트",
+      "sky": "하늘",
+      "lavender": "라벤더",
+      "peach": "피치",
+      "night": "나이트"
+    }
   },
   "invite": {
     "title": "그룹 초대",
@@ -75,7 +84,8 @@
     },
     "group": {
       "not_found": "그룹을 찾을 수 없어요",
-      "name_required": "그룹 이름을 입력해 주세요"
+      "name_required": "그룹 이름을 입력해 주세요",
+      "owner_only": "그룹장만 바꿀 수 있어요"
     },
     "invite": {
       "not_found": "초대 링크를 찾을 수 없어요",

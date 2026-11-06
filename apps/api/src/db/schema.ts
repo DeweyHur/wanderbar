@@ -43,6 +43,8 @@ export const groups = pgTable("groups", {
   defaultLocale: text("default_locale").notNull().default("en"),
   timezone: text("timezone").notNull().default("UTC"),
   currency: text("currency").notNull().default("USD"),
+  /** The group's color theme (an id the apps know, e.g. "pink", "night"). */
+  theme: text("theme").notNull().default("pink"),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id),

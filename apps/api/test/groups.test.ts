@@ -23,7 +23,7 @@ describe("groups", () => {
   it("creator becomes the owner", async () => {
     const g = await createGroup(db, owner, { name: "  맛집 탐방대 ", defaultLocale: "ko" });
     expect(g).toMatchObject({ name: "맛집 탐방대", module: "food", role: "owner" });
-    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", role: "owner" }]);
+    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", theme: "pink", role: "owner" }]);
     expect((await groupDetail(db, g.id, owner)).defaultLocale).toBe("ko");
   });
 
@@ -81,5 +81,23 @@ describe("invites", () => {
     expect(await status(acceptInvite(db, "made-up", friend))).toBe(404);
     expect(await code(acceptInvite(db, "made-up", friend))).toBe("invite.not_found");
     expect(await code(acceptInvite(db, fresh.token, friend))).toBe("invite.expired");
+  });
+});
+
+describe("group theme", () => {
+  it("the owner picks a color theme; members see it; others can't change it", async () => {
+    const { signIn } = await import("@/lib/auth");
+    const { acceptInvite, createGroup, createInvite, groupDetail, myGroups, updateGroup } = await import("@/lib/groups");
+    const { profile, testDb } = await import("./db");
+    const db = await testDb();
+    const owner = (await signIn(db, profile("owner"))).user.id;
+    const member = (await signIn(db, profile("member"))).user.id;
+    const g = await createGroup(db, owner, { name: "Games", module: "boardgame" });
+    await acceptInvite(db, (await createInvite(db, g.id, owner)).token, member);
+    expect((await groupDetail(db, g.id, owner)).theme).toBe("pink");
+    expect((await updateGroup(db, g.id, owner, { theme: "night", name: " Game Night " })).theme).toBe("night");
+    expect((await myGroups(db, member))[0]).toMatchObject({ name: "Game Night", theme: "night" });
+    await expect(updateGroup(db, g.id, member, { theme: "mint" })).rejects.toMatchObject({ status: 403 });
+    await expect(updateGroup(db, g.id, owner, { name: "  " })).rejects.toMatchObject({ status: 400 });
   });
 });

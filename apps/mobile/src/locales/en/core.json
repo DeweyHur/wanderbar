@@ -41,7 +41,16 @@
     "create": "Create group",
     "others": "Your other groups",
     "switch": "Switch group",
-    "mine": "Your groups"
+    "mine": "Your groups",
+    "theme": "Theme",
+    "themes": {
+      "pink": "Pink",
+      "mint": "Mint",
+      "sky": "Sky",
+      "lavender": "Lavender",
+      "peach": "Peach",
+      "night": "Night"
+    }
   },
   "invite": {
     "title": "Group invite",
@@ -76,7 +85,8 @@
     },
     "group": {
       "not_found": "Group not found",
-      "name_required": "Enter a group name"
+      "name_required": "Enter a group name",
+      "owner_only": "Only the group owner can change this"
     },
     "invite": {
       "not_found": "Invite link not found",

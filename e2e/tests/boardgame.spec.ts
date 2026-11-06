@@ -27,7 +27,7 @@ test("board game night: regular meetup, who picks, games with links, the queue",
 
   // Weekly on Saturday at 7 pm, at Ben's place.
   await button(page, "Set up a regular meetup").click();
-  await button(page, "Add a regular meetup").click();
+  // With no meetup yet, the form is already open.
   const form = visible(page, "series-form");
   await form.getByRole("button", { name: "Saturday", exact: true }).click();
   await form.getByRole("textbox", { name: "Time", exact: true }).fill("19:00");
@@ -49,7 +49,8 @@ test("board game night: regular meetup, who picks, games with links, the queue",
   await button(page, "I'll pick").click();
   await expect(page.getByText("Host picks").filter({ visible: true })).toBeVisible();
   await button(page, "New game").click();
-  await field(page, "BoardGameGeek link").fill("https://boardgamegeek.com/boardgame/295947/cascadia");
+  // Typed key by key (not pasted), the name still ends up as the whole game name.
+  await field(page, "BoardGameGeek link").pressSequentially("https://boardgamegeek.com/boardgame/295947/cascadia", { delay: 15 });
   await expect(field(page, "Name")).toHaveValue("Cascadia");
   await field(page, "Tabletop Simulator link").fill("https://steamcommunity.com/sharedfiles/filedetails/?id=2312");
   await field(page, "Rulebook link").fill("https://example.com/cascadia-rules.pdf");

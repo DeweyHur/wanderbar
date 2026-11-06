@@ -11,6 +11,8 @@ type Initial = { name: string; memo: string; links: GameLink[]; tags: string[] }
 export function GameForm({ initial, knownTags, busy, onSave }: { initial?: Initial; knownTags: string[]; busy?: boolean; onSave: (g: GameInput) => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState(initial?.name ?? "");
+  /** The name last filled in from a link (typing "…/266192/w", "…/wi", … keeps it in step). */
+  const [autoName, setAutoName] = useState<string | null>(null);
   const [links, setLinks] = useState<Record<LinkKind, string>>(
     () => Object.fromEntries(LINK_KINDS.map((k) => [k, initial?.links.find((l) => l.kind === k)?.url ?? ""])) as Record<LinkKind, string>,
   );
@@ -20,10 +22,13 @@ export function GameForm({ initial, knownTags, busy, onSave }: { initial?: Initi
 
   const setLink = (kind: LinkKind, url: string) => {
     setLinks((l) => ({ ...l, [kind]: url }));
-    // A pasted BGG / BGA link names the game when the name is still empty.
-    if ((kind === "bgg" || kind === "bga") && !name.trim()) {
+    // A BGG / BGA link names the game, unless the name was typed in by hand.
+    if (kind === "bgg" || kind === "bga") {
       const guess = nameFromLink(url);
-      if (guess) setName(guess);
+      if (guess && (!name.trim() || name === autoName)) {
+        setName(guess);
+        setAutoName(guess);
+      }
     }
   };
   const current = splitTags(tags);

@@ -212,6 +212,10 @@ describe("queue and leaderboard data", () => {
     await addNightGame(db, night.id, a.id, me);
     home = await boardgameHome(db, groupId, me, NOW);
     expect(home.queue.map((q) => q.name)).toEqual(["Wingspan"]);
+    // Recording a game on a night that already happened leaves the queue alone.
+    const past = await createNight(db, groupId, me, { startsAt: hours(-48) });
+    await addNightGame(db, past.id, b.id, me, NOW);
+    expect((await boardgameHome(db, groupId, me, NOW)).queue.map((q) => q.name)).toEqual(["Wingspan"]);
   });
 
   it("library counts plays from nights that have happened, with averages and tags for the leaderboard", async () => {

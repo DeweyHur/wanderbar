@@ -22,7 +22,10 @@ export default function Schedule() {
   const load = useCallback(() => {
     bgApi
       .home(groupId)
-      .then(setHome)
+      .then((h) => {
+        setHome(h);
+        if (h.canManage && h.series.length === 0) setEditing((e) => e ?? "new");
+      })
       .catch((e) => setError(errorText(t, e)));
   }, [groupId, t]);
   useFocusEffect(load);

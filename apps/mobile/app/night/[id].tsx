@@ -74,7 +74,8 @@ export default function NightScreen() {
   const inLineup = new Set(n.games.map((g) => g.id));
   const s = search.trim().toLowerCase();
   const matches = s ? library.filter((g) => !inLineup.has(g.id) && g.name.toLowerCase().includes(s)).slice(0, 8) : [];
-  const queued = queue.filter((q) => !inLineup.has(q.id));
+  // The queue is for picking what to play next, not for recording a night that already happened.
+  const queued = n.status === "past" ? [] : queue.filter((q) => !inLineup.has(q.id));
   const canNote = n.canManage || n.picker?.id === me;
 
   return (

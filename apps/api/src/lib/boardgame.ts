@@ -498,15 +498,16 @@ export async function deleteNight(db: Db, id: string, userId: string) {
   await db.delete(meetupNights).where(eq(meetupNights.id, id));
 }
 
-/** Adds a game to the night's lineup. It got picked, so it leaves the queue. */
-export async function addNightGame(db: Db, id: string, gameId: string, userId: string) {
+/** Adds a game to the night's lineup. For an upcoming night it got picked, so it leaves the queue. */
+export async function addNightGame(db: Db, id: string, gameId: string, userId: string, now = new Date()) {
   const { night, role } = await memberNight(db, id, userId);
   if (!canEditLineup(night, role, userId)) throw forbidden("night.lineup_forbidden");
   const { game } = await memberGame(db, gameId, userId);
   if (game.groupId !== night.groupId) throw notFound("game.not_found");
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(nightGames).where(eq(nightGames.nightId, id));
   await db.insert(nightGames).values({ nightId: id, itemId: gameId, orderIndex: n, addedBy: userId }).onConflictDoNothing();
-  await db.delete(gameQueue).where(eq(gameQueue.itemId, gameId));
+  // Picked for a night still to come: it leaves the queue. Recording what a past night played doesn't.
+  if (night.startsAt.getTime() > now.getTime()) await db.delete(gameQueue).where(eq(gameQueue.itemId, gameId));
   return getNight(db, id, userId);
 }
 

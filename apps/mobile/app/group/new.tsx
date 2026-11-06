@@ -26,7 +26,7 @@ export default function NewGroup() {
     try {
       const g = await api<GroupSummary>("/api/groups", {
         body: {
-          name: name.trim(),
+          name: name.trim() || (module === "boardgame" ? t("group.kindBoardgame") : t("group.kindFood")),
           module,
           defaultLocale: lang,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -57,7 +57,7 @@ export default function NewGroup() {
         <Chip label="한국어" selected={lang === "ko"} onPress={() => setLang("ko")} />
       </View>
       <Body muted>{t("group.language_hint")}</Body>
-      <Button label={t("group.create")} busy={busy} disabled={!name.trim()} onPress={create} />
+      <Button label={t("group.create")} busy={busy} onPress={create} />
       <ErrorText>{error}</ErrorText>
     </ScrollView>
   );

@@ -1,0 +1,25 @@
+name: Keep staging in step with main
+
+# The staging site (wanderbar-staging.vercel.app) is the Vercel preview of the `staging` branch,
+# running on a Neon branch copied from production, with passwordless test sign-in. Every push to
+# main moves `staging` to the same commit so the staging site always runs what production runs.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staging-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git push --force origin HEAD:refs/heads/staging

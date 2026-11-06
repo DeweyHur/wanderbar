@@ -7,7 +7,7 @@ import { testLoginEnabled } from "@/lib/testLogin";
 
 const Body = z.object({ email: z.string().email(), name: z.string().min(1).max(80) });
 
-/** End-to-end tests only (see testLoginEnabled). Everywhere else this route doesn't exist (404). */
+/** End-to-end tests and the staging site only (see testLoginEnabled). Everywhere else this route doesn't exist (404). */
 export async function POST(req: Request) {
   if (!testLoginEnabled()) return json({ error: "not_found" }, 404);
   try {

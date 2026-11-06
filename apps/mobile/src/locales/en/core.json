@@ -3,7 +3,9 @@
   "tagline": "A private log for your people: rate dishes, not just restaurants, and plan the day from places you saved.",
   "signIn": {
     "google": "Continue with Google",
-    "inviteFirst": "Sign in with Google to accept the group invite."
+    "inviteFirst": "Sign in with Google to accept the group invite.",
+    "testHint": "Staging: sign in as a test user (no password). Data here is a copy and never reaches the real app.",
+    "testAs": "Sign in as {{name}}"
   },
   "common": {
     "retry": "Try again",

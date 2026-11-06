@@ -17,4 +17,14 @@ describe("testLoginEnabled", () => {
   it("is on only with the flag and the in-memory database", () => {
     expect(testLoginEnabled({ E2E_TEST_LOGIN: "1", DATABASE_URL: "pglite:memory" })).toBe(true);
   });
+  const staging = { STAGING_TEST_LOGIN: "1", VERCEL: "1", VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "staging", DATABASE_URL: "postgresql://x@ep-staging.neon.tech/db" };
+  it("is on for the staging branch preview", () => {
+    expect(testLoginEnabled(staging)).toBe(true);
+  });
+  it("is never on in production, other previews, or without the staging flag", () => {
+    expect(testLoginEnabled({ ...staging, VERCEL_ENV: "production" })).toBe(false);
+    expect(testLoginEnabled({ ...staging, VERCEL_GIT_COMMIT_REF: "main" })).toBe(false);
+    expect(testLoginEnabled({ ...staging, STAGING_TEST_LOGIN: undefined })).toBe(false);
+    expect(testLoginEnabled({ ...staging, VERCEL: undefined })).toBe(false);
+  });
 });

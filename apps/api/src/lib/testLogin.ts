@@ -1,11 +1,21 @@
 import { isInMemoryDb } from "../db/client";
 
+type Env = Record<string, string | undefined>;
+
+/** End-to-end tests: the flag AND the throwaway in-memory database, never on Vercel. */
+const e2e = (env: Env) => env.E2E_TEST_LOGIN === "1" && (env.DATABASE_URL ?? "").startsWith("pglite:") && env.VERCEL !== "1";
+
 /**
- * Sign-in without Google, for end-to-end tests only. On only when BOTH the E2E flag is set AND the server
- * runs on the throwaway in-memory database, so it can never be switched on against real data.
+ * Staging: a Vercel preview of the `staging` git branch, whose DATABASE_URL points at a Neon branch
+ * (a copy of production that is reset from it). STAGING_TEST_LOGIN is set only for that branch.
+ * Production deployments never qualify.
  */
-export function testLoginEnabled(env: Record<string, string | undefined> = process.env) {
-  return env.E2E_TEST_LOGIN === "1" && (env.DATABASE_URL ?? "").startsWith("pglite:") && env.VERCEL !== "1";
+const staging = (env: Env) =>
+  env.STAGING_TEST_LOGIN === "1" && env.VERCEL === "1" && env.VERCEL_ENV === "preview" && env.VERCEL_GIT_COMMIT_REF === "staging";
+
+/** Sign-in without Google (no password): only for end-to-end tests and the staging site. */
+export function testLoginEnabled(env: Env = process.env) {
+  return e2e(env) || staging(env);
 }
 
 export { isInMemoryDb };

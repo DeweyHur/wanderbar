@@ -1,3 +1,4 @@
+import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -73,6 +74,7 @@ export default function GameScreen() {
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: g.name }} />
+      <GroupBar groupId={g.groupId} />
       <Card testID="game-info">
         {g.bgg?.image || g.bgg?.thumbnail ? (
           <View style={{ alignItems: "center" }}>

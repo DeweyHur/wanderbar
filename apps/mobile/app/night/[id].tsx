@@ -1,3 +1,4 @@
+import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -81,6 +82,7 @@ export default function NightScreen() {
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:night.title") }} />
+      <GroupBar groupId={n.groupId} />
       <Card testID="night-info">
         <Text style={{ color: n.status === "past" ? c.muted : c.accent, fontSize: 13, fontWeight: "700" }}>{t(`boardgame:night.status.${n.status}`)}</Text>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{nightWhen(n.startsAt, n.timezone, i18n.language)}</Text>

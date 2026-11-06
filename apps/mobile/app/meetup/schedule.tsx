@@ -1,3 +1,4 @@
+import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,7 @@ export default function Schedule() {
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:schedule.title") }} />
+      <GroupBar groupId={groupId} />
       {!home.canManage && <Body muted>{t("boardgame:schedule.managersOnly")}</Body>}
       {home.series.length === 0 && <Body muted>{t("boardgame:schedule.none")}</Body>}
       {home.series.map((s) =>

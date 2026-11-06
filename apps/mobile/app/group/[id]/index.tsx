@@ -11,7 +11,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, isThemeId, Loading, useColors, useTheme, Text } from "@/components/ui";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
-import { GroupTitle } from "@/components/GroupSwitcher";
+import { GroupBar } from "@/components/GroupSwitcher";
 import { BoardGameHome } from "@/modules/boardgame/BoardGameHome";
 import { errorText } from "@/core/errors";
 import { saveLastGroup } from "@/core/lastGroup";
@@ -70,7 +70,8 @@ function BoardGameGroup({ id }: { id: string }) {
   );
   return (
     <ScrollView testID="group-home" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: name, headerTitle: () => <GroupTitle name={name} />, headerRight: () => <SettingsLink /> }} />
+      <Stack.Screen options={{ title: name, headerTitle: () => null, headerRight: () => <SettingsLink /> }} />
+      <GroupBar groupId={id} />
       <BoardGameHome groupId={id} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
@@ -138,7 +139,7 @@ function FoodHome({ id }: { id: string }) {
     <Stack.Screen
       options={{
         title: group?.name ?? "",
-        headerTitle: () => <GroupTitle name={group?.name ?? ""} />,
+        headerTitle: () => null,
         headerRight: () => (
           <Link href="/settings" asChild>
             <Pressable
@@ -174,6 +175,7 @@ function FoodHome({ id }: { id: string }) {
       contentContainerStyle={{ padding: 20, gap: 14 }}
     >
       {header}
+      <GroupBar groupId={id} />
       {!mod ? (
         <Body muted>{t("group.moduleUnavailable")}</Body>
       ) : (

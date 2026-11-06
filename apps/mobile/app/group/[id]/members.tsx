@@ -1,3 +1,4 @@
+import { GroupBar } from "@/components/GroupSwitcher";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -49,6 +50,7 @@ export default function MembersScreen() {
 
   return (
     <Screen>
+      <GroupBar groupId={id} />
       <Body muted>{solo ? t("group.solo") : t("group.members", { count: group.members.length })}</Body>
       <FlatList
         data={group.members}

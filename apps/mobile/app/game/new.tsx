@@ -1,3 +1,4 @@
+import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,6 +42,7 @@ export default function NewGame() {
   return (
     <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:game.add") }} />
+      <GroupBar groupId={groupId} />
       <GameForm knownTags={tags} busy={busy} onSave={save} />
       <ErrorText>{error}</ErrorText>
     </ScrollView>

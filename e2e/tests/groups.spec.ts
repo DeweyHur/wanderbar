@@ -10,7 +10,7 @@ test("switch between groups from the title: food log and board game night", asyn
 
   // From the food group's title to the board game group.
   await page.goto(`/group/${foodId}`);
-  await page.getByTestId("group-switcher").filter({ visible: true }).click();
+  await page.getByTestId("group-bar").filter({ visible: true }).click();
   const rows = page.getByTestId("group-row").filter({ visible: true });
   await expect(rows).toHaveCount(2);
   await expect(rows.filter({ hasText: "My log" })).toContainText("Food & day routes");
@@ -20,14 +20,14 @@ test("switch between groups from the title: food log and board game night", asyn
   await expect(page.getByRole("button", { name: "Next night", exact: true }).filter({ visible: true })).toBeVisible();
 
   // And back; the app reopens the last group used.
-  await page.getByTestId("group-switcher").filter({ visible: true }).click();
+  await page.getByTestId("group-bar").filter({ visible: true }).click();
   await page.getByTestId("group-row").filter({ visible: true }).filter({ hasText: "My log" }).click();
   await expect(page).toHaveURL(new RegExp(`/group/${foodId}$`));
   await page.goto("/");
   await expect(page).toHaveURL(new RegExp(`/group/${foodId}$`));
 
   // A new group is one tap away from the list.
-  await page.getByTestId("group-switcher").filter({ visible: true }).click();
+  await page.getByTestId("group-bar").filter({ visible: true }).click();
   await page.getByRole("button", { name: "New group", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/group\/new$/);
 });
@@ -54,7 +54,7 @@ test("each group has its own color theme, set by the owner", async ({ page, brow
   await page.goto(`/group/${bg.id}`);
   await expect.poll(homeBg).toBe("rgb(29, 27, 38)");
   // Switching back to the food group brings its pink back.
-  await page.getByTestId("group-switcher").filter({ visible: true }).click();
+  await page.getByTestId("group-bar").filter({ visible: true }).click();
   await page.getByTestId("group-row").filter({ visible: true }).filter({ hasText: "My log" }).click();
   await expect(page).toHaveURL(new RegExp(`/group/${foodId}$`));
   await expect.poll(homeBg).toBe("rgb(255, 243, 246)");
@@ -70,4 +70,25 @@ test("each group has its own color theme, set by the owner", async ({ page, brow
   await friend.goto(`/group/${bg.id}/members`);
   await expect(friend.getByTestId("theme-mint")).toHaveCount(0);
   expect((await friend.request.patch(`/api/groups/${bg.id}`, { headers: WEB, data: { theme: "mint" } })).status()).toBe(403);
+});
+
+test("the group bar is on game night screens too: see the group, switch from there", async ({ page }) => {
+  await signIn(page, "Nighthawk");
+  const foodId = await openHome(page);
+  const bg = (await (
+    await page.request.post("/api/groups", { headers: WEB, data: { name: "Friday Games", module: "boardgame", timezone: "America/Los_Angeles" } })
+  ).json()) as { id: string };
+  const night = (await (await page.request.post(`/api/groups/${bg.id}/nights`, { headers: WEB, data: { date: "2030-01-04", time: "19:00" } })).json()) as { id: string };
+  const game = (await (await page.request.post(`/api/groups/${bg.id}/games`, { headers: WEB, data: { name: "Azul" } })).json()) as { id: string };
+
+  for (const path of [`/night/${night.id}`, `/game/${game.id}`, `/meetup/schedule?groupId=${bg.id}`, `/group/${bg.id}/members`]) {
+    await page.goto(path);
+    await expect(page.getByTestId("group-bar").filter({ visible: true })).toContainText("Friday Games");
+  }
+  // From a game night straight to the other group.
+  await page.goto(`/night/${night.id}`);
+  await page.getByTestId("group-bar").filter({ visible: true }).click();
+  await page.getByTestId("group-row").filter({ visible: true }).filter({ hasText: "My log" }).click();
+  await expect(page).toHaveURL(new RegExp(`/group/${foodId}$`));
+  await expect(page.getByTestId("group-bar").filter({ visible: true })).toContainText("My log");
 });

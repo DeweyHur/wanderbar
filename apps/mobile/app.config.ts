@@ -12,12 +12,17 @@ const androidMapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY ?? "";
 
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
 
+// Expo project for iOS builds (EAS Build → TestFlight); from expo.dev → project → Project ID. Not secret.
+const easProjectId = "REPLACE_WITH_EAS_PROJECT_ID";
+const easOwner = "REPLACE_WITH_EXPO_USERNAME";
+
 // Firebase config for push (group news). Not in git: CI writes it from a secret and points this at it.
 const googleServicesFile = process.env.GOOGLE_SERVICES_FILE || undefined;
 
 const config: ExpoConfig = {
   name: "wanderbar",
   slug: "wanderbar",
+  ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
   version: "0.3.0",
   orientation: "portrait",
@@ -28,6 +33,8 @@ const config: ExpoConfig = {
     bundleIdentifier: "app.wanderbar.mobile",
     buildNumber: String(buildNumber),
     supportsTablet: false,
+    // No custom encryption (HTTPS only), so TestFlight doesn't ask about export compliance each build.
+    infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
   android: {
     package: "app.wanderbar.mobile",
@@ -77,6 +84,7 @@ const config: ExpoConfig = {
     ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey }],
   ],
   experiments: { typedRoutes: true },
+  ...(easProjectId.startsWith("REPLACE") ? {} : { extra: { eas: { projectId: easProjectId } } }),
 };
 
 export default config;

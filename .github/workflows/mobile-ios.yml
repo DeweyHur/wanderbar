@@ -27,6 +27,9 @@ jobs:
 
       - run: npm ci
 
+      # A native package the app doesn't list itself isn't linked and crashes the app when used.
+      - run: node scripts/check-native-peers.mjs
+
       - name: Check setup
         run: |
           missing=""
@@ -53,9 +56,19 @@ jobs:
           EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -n "$ASC_API_KEY_P8" ]; then printf '%s\n' "$ASC_API_KEY_P8" > "$RUNNER_TEMP/asc.p8"
-          else printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \n\r' | base64 -d > "$RUNNER_TEMP/asc.p8"; fi
-          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/asc.p8" || { echo "::error::The App Store Connect key isn't a .p8 private key"; exit 1; }
+          # The key as the .p8 text, or base64 of it (standard or URL-safe, with or without line breaks).
+          node -e '
+            const raw = (process.env.ASC_API_KEY_P8 || process.env.ASC_KEY_P8_BASE64 || "").trim();
+            let pem = raw.includes("BEGIN PRIVATE KEY") ? raw : Buffer.from(raw.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+            if (!pem.includes("BEGIN PRIVATE KEY")) {
+              const der = Buffer.from(raw.replace(/\s+/g, ""), "base64");
+              // base64 of the binary (DER) key rather than of the .p8 text
+              if (der[0] === 0x30) pem = "-----BEGIN PRIVATE KEY-----\n" + der.toString("base64").match(/.{1,64}/g).join("\n") + "\n-----END PRIVATE KEY-----";
+              else pem = Buffer.from(pem.replace(/\s+/g, ""), "base64").toString("utf8");
+            }
+            if (!pem.includes("BEGIN PRIVATE KEY")) { console.error("::error::The App Store Connect key is not a .p8 private key (or base64 of one)"); process.exit(1); }
+            require("fs").writeFileSync(process.argv[1], pem.trim() + "\n");
+          ' "$RUNNER_TEMP/asc.p8"
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
           # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
           node scripts/ios-ids.mjs

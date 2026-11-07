@@ -43,6 +43,9 @@ jobs:
 
       - run: npm ci
 
+      # A native package the app doesn't list itself isn't linked and crashes the app when used.
+      - run: node scripts/check-native-peers.mjs
+
       # Firebase config for push (group news), kept out of git. Without the secret the app builds without push.
       - name: Firebase config
         working-directory: apps/mobile

@@ -2,7 +2,6 @@
 import "@/core/crashReporter";
 import "@/core/i18n";
 import { Stack, router, usePathname } from "expo-router";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useTranslation } from "react-i18next";
@@ -52,11 +51,9 @@ export default function RootLayout() {
   const [fontsReady, fontError] = useFonts({ Jua_400Regular, GowunDodum_400Regular });
   if (!fontsReady && !fontError) return null;
   return (
-    <KeyboardProvider>
-      <ThemeProvider>
-        <AppStack />
-      </ThemeProvider>
-    </KeyboardProvider>
+    <ThemeProvider>
+      <AppStack />
+    </ThemeProvider>
   );
 }
 

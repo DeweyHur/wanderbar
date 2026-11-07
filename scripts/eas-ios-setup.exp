@@ -1,9 +1,10 @@
 #!/usr/bin/expect -f
 # Answers EAS's interactive iOS credential setup: yes to every question, defaults for every choice.
+# Runs with CI unset, or EAS treats the run as non-interactive.
 # Never types a password: if EAS asks for an Apple ID or password, it stops (the API key should be used instead).
 set timeout 1800
 log_user 1
-spawn eas build --platform ios --profile production --auto-submit --no-wait
+spawn env -u CI -u GITHUB_ACTIONS eas build --platform ios --profile production --auto-submit --no-wait
 expect {
   -re {(?i)apple id:|password} { puts "\n::error::EAS asked for an Apple login; stopping."; exit 1 }
   -re {\(Y/n\)|\(y/N\)|› (No|Yes) / (yes|no)|Yes / No} { send "y\r"; exp_continue }

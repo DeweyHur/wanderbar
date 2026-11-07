@@ -1,8 +1,9 @@
 name: Mobile iOS (TestFlight)
 
 # Builds on Expo's Macs (EAS Build) and submits to TestFlight. Run by hand: the free Expo plan has a monthly
-# iOS build allowance. Secrets: EXPO_TOKEN (expo.dev access token), ASC_API_KEY_P8 (App Store Connect API key
-# file contents), ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID.
+# iOS build allowance. Secrets: EXPO_TOKEN (expo.dev access token), the App Store Connect API key as either
+# ASC_API_KEY_P8 (the .p8 file's text) or ASC_KEY_P8_BASE64 (the file in base64), ASC_KEY_ID, ASC_ISSUER_ID,
+# APPLE_TEAM_ID.
 on:
   workflow_dispatch:
 
@@ -29,12 +30,14 @@ jobs:
       - name: Check setup
         run: |
           missing=""
-          for v in EXPO_TOKEN ASC_API_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do
+          for v in EXPO_TOKEN ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do
             [ -n "${!v}" ] || missing="$missing $v"
           done
+          [ -n "$ASC_API_KEY_P8$ASC_KEY_P8_BASE64" ] || missing="$missing ASC_API_KEY_P8 (or ASC_KEY_P8_BASE64)"
           if [ -n "$missing" ]; then echo "::error::Missing:$missing"; exit 1; fi
         env:
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -45,11 +48,14 @@ jobs:
         working-directory: apps/mobile
         env:
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          printf '%s\n' "$ASC_API_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          if [ -n "$ASC_API_KEY_P8" ]; then printf '%s\n' "$ASC_API_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          else printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \n\r' | base64 -d > "$RUNNER_TEMP/asc.p8"; fi
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/asc.p8" || { echo "::error::The App Store Connect key isn't a .p8 private key"; exit 1; }
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
           # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
           node scripts/ios-ids.mjs

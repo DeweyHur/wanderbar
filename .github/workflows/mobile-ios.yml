@@ -32,7 +32,6 @@ jobs:
           for v in EXPO_TOKEN ASC_API_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do
             [ -n "${!v}" ] || missing="$missing $v"
           done
-          grep -q REPLACE_WITH apps/mobile/app.config.ts apps/mobile/eas.json && missing="$missing (Expo project ID / owner / ascAppId in the repo)"
           if [ -n "$missing" ]; then echo "::error::Missing:$missing"; exit 1; fi
         env:
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
@@ -52,4 +51,6 @@ jobs:
         run: |
           printf '%s\n' "$ASC_API_KEY_P8" > "$RUNNER_TEMP/asc.p8"
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
+          # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
+          node scripts/ios-ids.mjs
           npx --yes eas-cli@27 build --platform ios --profile production --non-interactive --auto-submit --no-wait

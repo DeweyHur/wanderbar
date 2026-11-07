@@ -6,6 +6,11 @@ name: Mobile iOS (TestFlight)
 # APPLE_TEAM_ID.
 on:
   workflow_dispatch:
+    inputs:
+      setup_credentials:
+        description: "First time only: create the signing certificate and profiles (answers EAS's questions)"
+        type: boolean
+        default: false
 
 concurrency:
   group: mobile-ios
@@ -72,4 +77,12 @@ jobs:
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
           # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
           node scripts/ios-ids.mjs
-          npx --yes eas-cli@27 build --platform ios --profile production --non-interactive --auto-submit --no-wait
+          if [ "${{ inputs.setup_credentials }}" = "true" ]; then
+            # EAS only creates the distribution certificate and provisioning profiles interactively. Run it under
+            # a terminal and accept every question; the App Store Connect API key stands in for an Apple login.
+            sudo apt-get install -y expect >/dev/null
+            npm i -g eas-cli@27 >/dev/null
+            expect ../../scripts/eas-ios-setup.exp
+          else
+            npx --yes eas-cli@27 build --platform ios --profile production --non-interactive --auto-submit --no-wait
+          fi

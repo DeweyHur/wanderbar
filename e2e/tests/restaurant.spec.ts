@@ -90,10 +90,12 @@ test("rate menus in half stars with a review; the group sees averages and each o
   await page.getByTestId("menu-row").filter({ visible: true }).click();
   await expect(page.getByTestId("review")).toContainText("Jisoo");
   await expect(page.getByTestId("review")).toContainText("Broth a bit salty");
+  await page.getByRole("button", { name: "Rate", exact: true }).click();
   await page.getByRole("button", { name: "4.5 stars", exact: true }).click();
   await page.getByLabel("Review").fill("Rich and creamy");
   await page.getByRole("button", { name: "Save rating" }).click();
-  await expect(page.getByText("Rating saved")).toBeVisible();
+  await expect(page.getByTestId("review-editor")).toHaveCount(0);
+  await expect(page.getByTestId("review").first()).toContainText("Rich and creamy");
   await expect(page.getByTestId("menu-info").filter({ visible: true })).toContainText("3.8 (2)");
 
   await page.goBack();
@@ -107,6 +109,7 @@ test("rate menus in half stars with a review; the group sees averages and each o
 
   // Rating again replaces mine; reloading shows what I saved.
   await page.goto(`/menu/${menuId}`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.getByLabel("Review")).toHaveValue("Rich and creamy");
   await page.getByRole("button", { name: "5 stars", exact: true }).click();
   await page.getByRole("button", { name: "Save rating" }).click();

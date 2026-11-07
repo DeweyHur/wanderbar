@@ -70,7 +70,8 @@
     "setStars_other": "{{count}} stars",
     "prompt": "How was {{name}}? Rate what you ate.",
     "rateNow": "Rate",
-    "later": "Later"
+    "later": "Later",
+    "edit": "Edit"
   },
   "route": {
     "title": "Day routes",

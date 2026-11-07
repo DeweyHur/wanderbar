@@ -10,7 +10,8 @@ import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { dishApi, type Dish } from "@/modules/food/dishes/api";
 import { CategoryPicker } from "@/modules/food/restaurants/CategoryPicker";
-import { RatingBadge, StarInput, Stars } from "@/modules/food/restaurants/Stars";
+import { Reviews } from "@/modules/food/restaurants/Reviews";
+import { RatingBadge } from "@/modules/food/restaurants/Stars";
 import { FormScroll } from "@/components/FormScroll";
 
 /** A dish made at home: when it was made, my rating and review, the group's reviews, recipe notes. */
@@ -21,8 +22,6 @@ export default function DishScreen() {
   const { state } = useSession();
   const me = state.status === "signedIn" ? state.user.id : null;
   const [d, setD] = useState<Dish | null>(null);
-  const [stars, setStars] = useState(0);
-  const [review, setReview] = useState("");
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -32,8 +31,6 @@ export default function DishScreen() {
 
   const show = (x: Dish) => {
     setD(x);
-    setStars(x.mine?.stars ?? 0);
-    setReview(x.mine?.review ?? "");
   };
   useFocusEffect(
     useCallback(() => {
@@ -124,24 +121,14 @@ export default function DishScreen() {
         <Chip label={t("food:dish.madeToday")} onPress={() => run(dishApi.made(d.id), t("food:dish.madeAdded"))} />
       </View>
 
-      <Text style={{ color: c.text, fontSize: 18, fontWeight: "700", marginTop: 6 }}>{t("food:rating.yours")}</Text>
-      <StarInput value={stars} onChange={setStars} />
-      <Field label={t("food:rating.review")} value={review} onChangeText={setReview} placeholder={t("food:rating.reviewPlaceholder")} multiline />
-      <Button label={t("food:rating.save")} busy={busy} disabled={stars === 0} onPress={() => run(dishApi.rate(d.id, stars, review), t("food:rating.saved"))} />
-      {d.mine && <Chip label={t("food:rating.remove")} onPress={() => run(dishApi.unrate(d.id))} />}
+      <Reviews
+        ratings={d.ratings}
+        me={me}
+        onSave={async (stars, review) => show(await dishApi.rate(d.id, stars, review))}
+        onRemove={async () => show(await dishApi.unrate(d.id))}
+      />
       {notice ? <Body muted>{notice}</Body> : null}
       <ErrorText>{error}</ErrorText>
-
-      {others.length > 0 && <Text style={{ color: c.text, fontSize: 18, fontWeight: "700", marginTop: 8 }}>{t("food:rating.group")}</Text>}
-      {others.map((r) => (
-        <Card key={r.userId} testID="review">
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ color: c.text, fontWeight: "600" }}>{r.name}</Text>
-            <Stars value={r.stars} />
-          </View>
-          {r.review ? <Body>{r.review}</Body> : null}
-        </Card>
-      ))}
 
       <View style={{ flexDirection: "row", marginTop: 10 }}>
         <Chip label={t("food:dish.edit")} selected={editing} onPress={() => setEditing(!editing)} />

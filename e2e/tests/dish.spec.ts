@@ -16,10 +16,21 @@ test("home cooking: add a dish, log making it, rate it, edit the recipe", async 
   await expect(page.getByTestId("made-row")).toHaveCount(1);
   await expect(page.getByTestId("made-row")).toContainText("Cook");
 
+  // Rating opens the stars; saving closes them and my rating shows like everyone else's, with Edit.
+  await expect(page.getByLabel("Review")).toHaveCount(0);
+  await page.getByRole("button", { name: "Rate", exact: true }).click();
   await page.getByRole("button", { name: "4.5 stars", exact: true }).click();
   await page.getByLabel("Review").fill("Better with aged kimchi");
   await page.getByRole("button", { name: "Save rating" }).click();
   await expect(info).toContainText("4.5 (1)");
+  await expect(page.getByTestId("review-editor")).toHaveCount(0);
+  const mine = page.getByTestId("review").filter({ visible: true });
+  await expect(mine).toContainText("Cook");
+  await expect(mine).toContainText("Better with aged kimchi");
+  await mine.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByLabel("Review")).toHaveValue("Better with aged kimchi");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByTestId("review-editor")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Edit dish" }).click();
   await page.getByRole("button", { name: "Korean", exact: true }).click();

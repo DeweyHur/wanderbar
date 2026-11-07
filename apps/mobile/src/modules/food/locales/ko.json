@@ -70,7 +70,8 @@
     "setStars_other": "별 {{count}}개",
     "prompt": "{{name}} 어땠어요? 먹은 메뉴에 평점을 남겨 보세요.",
     "rateNow": "평점 남기기",
-    "later": "나중에"
+    "later": "나중에",
+    "edit": "수정"
   },
   "route": {
     "title": "동선",

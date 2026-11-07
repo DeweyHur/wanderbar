@@ -9,7 +9,8 @@ import { PhotoStrip } from "@/core/photos/PhotoStrip";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { restaurantApi, type MenuDetail } from "@/modules/food/restaurants/api";
-import { RatingBadge, StarInput, Stars } from "@/modules/food/restaurants/Stars";
+import { Reviews } from "@/modules/food/restaurants/Reviews";
+import { RatingBadge } from "@/modules/food/restaurants/Stars";
 import { FormScroll } from "@/components/FormScroll";
 
 /** One menu: rate it (half stars) with a short review, read the group's reviews, edit name and price. */
@@ -20,8 +21,6 @@ export default function MenuScreen() {
   const { state } = useSession();
   const me = state.status === "signedIn" ? state.user.id : null;
   const [m, setM] = useState<MenuDetail | null>(null);
-  const [stars, setStars] = useState(0);
-  const [review, setReview] = useState("");
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -29,8 +28,6 @@ export default function MenuScreen() {
 
   const show = (d: MenuDetail) => {
     setM(d);
-    setStars(d.mine?.stars ?? 0);
-    setReview(d.mine?.review ?? "");
   };
 
   useFocusEffect(
@@ -82,25 +79,14 @@ export default function MenuScreen() {
 
       <PhotoStrip itemId={m.id} />
 
-      <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("food:rating.yours")}</Text>
-      <StarInput value={stars} onChange={setStars} />
-      <Field label={t("food:rating.review")} value={review} onChangeText={setReview} placeholder={t("food:rating.reviewPlaceholder")} multiline />
-      <Button label={t("food:rating.save")} busy={busy} disabled={stars === 0} onPress={() => run(restaurantApi.rate(m.id, stars, review), t("food:rating.saved"))} />
-      {m.mine && <Chip label={t("food:rating.remove")} onPress={() => run(restaurantApi.unrate(m.id))} />}
+      <Reviews
+        ratings={m.ratings}
+        me={me}
+        onSave={async (stars, review) => show(await restaurantApi.rate(m.id, stars, review))}
+        onRemove={async () => show(await restaurantApi.unrate(m.id))}
+      />
       {notice ? <Body muted>{notice}</Body> : null}
       <ErrorText>{error}</ErrorText>
-
-      {others.length > 0 && <Text style={{ color: c.text, fontSize: 18, fontWeight: "700", marginTop: 8 }}>{t("food:rating.group")}</Text>}
-      {others.map((r) => (
-        <Card key={r.userId} testID="review">
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ color: c.text, fontWeight: "600" }}>{r.name}</Text>
-            <Stars value={r.stars} />
-          </View>
-          {r.review ? <Body>{r.review}</Body> : null}
-          <Text style={{ color: c.muted, fontSize: 12 }}>{new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(r.updatedAt))}</Text>
-        </Card>
-      ))}
 
       <View style={{ flexDirection: "row", marginTop: 10 }}>
         <Chip label={t("food:menu.edit")} selected={editing} onPress={() => setEditing(!editing)} />

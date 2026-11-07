@@ -91,3 +91,14 @@ describe("home cooking", () => {
     expect((await listDishes(db, groupId, me)).map((x) => x.name)).toEqual(["라면"]);
   });
 });
+
+describe("dates the phones can parse", () => {
+  // Hermes (Android) can't parse Postgres' "2026-11-07 20:00:00+00" text, which crashed the dish list.
+  it("last made / last visited / last played come back as real timestamps, not SQL text", async () => {
+    const d = await createDish(db, groupId, me, { name: "Gambas" });
+    await addMade(db, d.id, me);
+    const [listed] = await listDishes(db, groupId, me);
+    expect(listed.lastMadeAt).toBeInstanceOf(Date);
+    expect(JSON.parse(JSON.stringify(listed)).lastMadeAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+});

@@ -383,3 +383,11 @@ describe("been there / not yet", () => {
     for (const bad of ["2026-02-30", "yesterday", "2099-01-01"]) expect(await status(createRestaurant(db, groupId, me, { name: "x", visitedOn: bad }))).toBe(400);
   });
 });
+
+describe("dates the phones can parse", () => {
+  it("lastVisitedAt is a real timestamp", async () => {
+    const { restaurant } = await createRestaurant(db, groupId, me, { name: "Visited", visitedOn: "2026-11-01" });
+    const r = (await listRestaurants(db, groupId, me)).find((x) => x.id === restaurant.id)!;
+    expect(r.lastVisitedAt).toBeInstanceOf(Date);
+  });
+});

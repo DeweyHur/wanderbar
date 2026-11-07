@@ -42,3 +42,12 @@ export const shiftMonth = (iso: string, n: number) => {
   d.setMonth(d.getMonth() + n);
   return isoDay(d);
 };
+
+/** A Date from the API's timestamp, or null if it can't be read (Hermes is stricter than browsers). */
+export function parseTime(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  let d = new Date(s);
+  // Postgres text ("2026-11-07 20:00:00+00") → ISO, which every engine reads.
+  if (isNaN(d.getTime())) d = new Date(s.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+  return isNaN(d.getTime()) ? null : d;
+}

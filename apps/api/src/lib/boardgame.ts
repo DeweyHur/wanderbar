@@ -97,7 +97,7 @@ async function gameFacts(db: Db, ids: string[], userId: string, now: Date) {
       .orderBy(asc(sql`lower(${tags.name})`)),
     db.select({ itemId: ratings.itemId, userId: ratings.userId, score: ratings.score, review: ratings.review }).from(ratings).where(inArray(ratings.itemId, ids)),
     db
-      .select({ itemId: nightGames.itemId, n: sql<number>`count(*)::int`, last: sql<string>`max(${meetupNights.startsAt})` })
+      .select({ itemId: nightGames.itemId, n: sql<number>`count(*)::int`, last: sql<Date>`max(${meetupNights.startsAt})`.mapWith(meetupNights.startsAt) })
       .from(nightGames)
       .innerJoin(meetupNights, eq(meetupNights.id, nightGames.nightId))
       .where(and(inArray(nightGames.itemId, ids), lte(meetupNights.startsAt, now)))

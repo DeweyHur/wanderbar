@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { parseTime } from "../route/dates";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
@@ -56,10 +57,10 @@ export function DishList({ groupId, dishes }: { groupId: string; dishes: DishSum
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
               <RatingBadge rating={d.rating} />
               {d.category ? <Body muted>{t(`food:category.${d.category}`)}</Body> : null}
-              {d.lastMadeAt && (
+              {parseTime(d.lastMadeAt) && (
                 <Text style={{ color: c.muted, fontSize: 13 }}>
                   {t("food:dish.lastMade", {
-                    date: new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(new Date(d.lastMadeAt)),
+                    date: new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(parseTime(d.lastMadeAt)!),
                     count: d.madeCount,
                   })}
                 </Text>

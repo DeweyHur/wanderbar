@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, Field, useColors, Text } from "@/components/ui";
 import { apiImage } from "@/core/api";
+import { parseTime } from "../route/dates";
 import { HoursBadge } from "../route/HoursBadge";
 import { useNow } from "../route/hooks";
 import type { RestaurantSummary } from "./api";
@@ -82,9 +83,9 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
                   </Text>
                   <RatingBadge rating={r.rating} />
                   <HoursBadge hoursRaw={r.hoursRaw} now={now} />
-                  {r.lastVisitedAt && (
+                  {parseTime(r.lastVisitedAt) && (
                     <Text style={{ color: c.muted, fontSize: 13 }}>
-                      {t("food:visit.last", { date: new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(new Date(r.lastVisitedAt)) })}
+                      {t("food:visit.last", { date: new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }).format(parseTime(r.lastVisitedAt)!) })}
                     </Text>
                   )}
                 </View>

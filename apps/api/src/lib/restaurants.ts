@@ -261,7 +261,7 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
   const last = await db
     .select({
       itemId: visits.itemId,
-      at: sql<string>`max(${visits.visitedAt})`,
+      at: sql<Date>`max(${visits.visitedAt})`.mapWith(visits.visitedAt),
       n: sql<number>`count(*)::int`,
       mine: sql<number>`count(*) filter (where ${visits.userId} = ${userId})::int`,
     })

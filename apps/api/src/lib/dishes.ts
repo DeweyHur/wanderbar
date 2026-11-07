@@ -38,7 +38,7 @@ export async function listDishes(db: Db, groupId: string, userId: string) {
     .where(inArray(ratings.itemId, ids))
     .groupBy(ratings.itemId);
   const made = await db
-    .select({ itemId: visits.itemId, at: sql<string>`max(${visits.visitedAt})`, n: sql<number>`count(*)::int` })
+    .select({ itemId: visits.itemId, at: sql<Date>`max(${visits.visitedAt})`.mapWith(visits.visitedAt), n: sql<number>`count(*)::int` })
     .from(visits)
     .where(inArray(visits.itemId, ids))
     .groupBy(visits.itemId);

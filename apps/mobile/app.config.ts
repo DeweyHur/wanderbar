@@ -13,8 +13,8 @@ const androidMapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY ?? "";
 const buildNumber = Number(process.env.GITHUB_RUN_NUMBER ?? 1);
 
 // Expo project for iOS builds (EAS Build → TestFlight); from expo.dev → project → Project ID. Not secret.
-const easProjectId = "REPLACE_WITH_EAS_PROJECT_ID";
-const easOwner = "REPLACE_WITH_EXPO_USERNAME";
+const easProjectId = "36e32811-cb27-4d29-855d-1e4d8651f7a4";
+const easOwner = "digitz";
 
 // Firebase config for push (group news). Not in git: CI writes it from a secret and points this at it.
 const googleServicesFile = process.env.GOOGLE_SERVICES_FILE || undefined;

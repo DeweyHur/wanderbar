@@ -17,7 +17,7 @@
   },
   "submit": {
     "production": {
-      "ios": { "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APPLE_ID" }
+      "ios": { "ascAppId": "6831952410" }
     }
   }
 }

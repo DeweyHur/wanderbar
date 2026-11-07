@@ -61,3 +61,19 @@ test("dish photo logs 'made it' on the photo's day", async ({ page }) => {
   await page.getByRole("button", { name: "Home cooking", exact: true }).click();
   await expect(page.getByTestId("dish-card").filter({ visible: true }).locator("img")).toHaveCount(1);
 });
+
+test("phones upload photos as base64 JSON (multipart failed on Android)", async ({ page }) => {
+  await signIn(page, "Phone");
+  const groupId = await openHome(page);
+  const dish = await (await page.request.post(`/api/groups/${groupId}/dishes`, { headers: WEB, data: { name: "Gambas" } })).json();
+  const jpeg = (await import("node:fs")).readFileSync(FIXTURE).toString("base64");
+  const res = await page.request.post(`/api/items/${dish.id}/photos`, {
+    headers: WEB,
+    data: { file: { data: jpeg, type: "image/jpeg" }, thumb: { data: jpeg.slice(0, 4000), type: "image/jpeg" }, takenAt: null, width: 2400, height: 1800 },
+  });
+  expect(res.status()).toBe(201);
+  const photo = await res.json();
+  expect(photo).toMatchObject({ width: 2400, height: 1800 });
+  expect((await page.request.get(photo.url)).headers()["content-type"]).toBe("image/jpeg");
+  expect((await (await page.request.get(photo.thumbUrl)).body()).length).toBe(3000);
+});

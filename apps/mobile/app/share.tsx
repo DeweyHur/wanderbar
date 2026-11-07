@@ -1,7 +1,7 @@
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { SignIn } from "@/components/SignIn";
 import { Body, Button, Card, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
@@ -14,6 +14,7 @@ import { routeApi, type PlanSummary } from "@/modules/food/route/api";
 import { planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
 import { parseSharedPlace, type ParsedPlace } from "@wanderbar/route";
+import { FormScroll } from "@/components/FormScroll";
 
 /**
  * Where shares from Yelp / Google Maps land (and the paste screen on the web).
@@ -99,7 +100,7 @@ export default function ShareScreen() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("food:share.title") }} />
       {!incoming.share && (
         <Field label={t("food:share.paste")} value={raw} onChangeText={onPaste} hint={t("food:share.pasteHint")} multiline />
@@ -141,6 +142,6 @@ export default function ShareScreen() {
       )}
       {groups && groups.length === 0 && <Body muted>{t("food:share.noGroup")}</Body>}
       <ErrorText>{error}</ErrorText>
-    </ScrollView>
+    </FormScroll>
   );
 }

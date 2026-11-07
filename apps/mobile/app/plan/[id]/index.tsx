@@ -2,7 +2,7 @@ import { formatDistance, hoursStatusFromText, Links, parseSharedText } from "@wa
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
@@ -17,6 +17,7 @@ import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { dayLabel, planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
 import { MealPlanner } from "@/modules/food/shopping/MealPlanner";
+import { FormScroll } from "@/components/FormScroll";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
 export default function PlanScreen() {
@@ -89,7 +90,7 @@ export default function PlanScreen() {
   const closedNow = !otherDay && current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen
         options={{
           title: planLabel(t, i18n.language, plan),
@@ -243,6 +244,6 @@ export default function PlanScreen() {
           }}
         />
       </View>
-    </ScrollView>
+    </FormScroll>
   );
 }

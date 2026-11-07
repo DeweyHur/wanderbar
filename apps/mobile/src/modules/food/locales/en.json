@@ -219,7 +219,9 @@
     "memo": "Recipe notes",
     "memoPlaceholder": "Ingredients, steps, what to change next time",
     "delete": "Delete dish",
-    "confirmDelete": "Delete \"{{name}}\" with its ratings and log?"
+    "confirmDelete": "Delete \"{{name}}\" with its ratings and log?",
+    "whoMade": "Who made it?",
+    "deleteMade": "Delete this entry"
   },
   "been": {
     "want": "Want to go",

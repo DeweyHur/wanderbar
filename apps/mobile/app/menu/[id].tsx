@@ -2,7 +2,7 @@ import { formatPrice, parsePrice, priceInput } from "@wanderbar/route";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { PhotoStrip } from "@/core/photos/PhotoStrip";
@@ -10,6 +10,7 @@ import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { restaurantApi, type MenuDetail } from "@/modules/food/restaurants/api";
 import { RatingBadge, StarInput, Stars } from "@/modules/food/restaurants/Stars";
+import { FormScroll } from "@/components/FormScroll";
 
 /** One menu: rate it (half stars) with a short review, read the group's reviews, edit name and price. */
 export default function MenuScreen() {
@@ -66,7 +67,7 @@ export default function MenuScreen() {
   const others = m.ratings.filter((r) => r.userId !== me);
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: m.name }} />
       <Card testID="menu-info">
         <Pressable accessibilityRole="link" onPress={() => router.back()}>
@@ -128,7 +129,7 @@ export default function MenuScreen() {
           }}
         />
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 

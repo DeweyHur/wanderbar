@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView } from "react-native";
+
 import { Body, Button, ErrorText, Title, useColors } from "@/components/ui";
 import { api } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { applyLanguage, savedLanguage, type Language } from "@/core/i18n";
 import { useSession } from "@/core/session";
 import { notificationsSupported, pushSupported, setPush, setReminders, settings } from "@/core/notifications";
+import { FormScroll } from "@/components/FormScroll";
 
 const NAMES: Record<Language, string> = { en: "English", ko: "한국어" };
 
@@ -35,7 +36,7 @@ export default function Settings() {
 
   const options: (Language | null)[] = [null, "en", "ko"];
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }}>
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }}>
       <Title>{t("settings.language")}</Title>
       {options.map((lang) => (
         <Button
@@ -80,6 +81,6 @@ export default function Settings() {
       )}
       {state.status === "signedIn" && <Body muted>{t("settings.signedInAs", { email: state.user.email })}</Body>}
       <Button kind="plain" label={t("common.signOut")} onPress={signOut} />
-    </ScrollView>
+    </FormScroll>
   );
 }

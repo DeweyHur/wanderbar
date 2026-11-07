@@ -219,7 +219,9 @@
     "memo": "레시피 메모",
     "memoPlaceholder": "재료, 순서, 다음엔 이렇게",
     "delete": "요리 삭제",
-    "confirmDelete": "\"{{name}}\"과(와) 평점·기록을 모두 삭제할까요?"
+    "confirmDelete": "\"{{name}}\"과(와) 평점·기록을 모두 삭제할까요?",
+    "whoMade": "누가 만들었어요?",
+    "deleteMade": "이 기록 지우기"
   },
   "been": {
     "want": "가 보고 싶어요",

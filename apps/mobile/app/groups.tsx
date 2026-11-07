@@ -1,10 +1,11 @@
 import { Stack, router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Body, Button, Card, isThemeId, Text, THEMES, useColors } from "@/components/ui";
 import { loadLastGroup, saveLastGroup } from "@/core/lastGroup";
 import { useSession } from "@/core/session";
+import { FormScroll } from "@/components/FormScroll";
 
 const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲" };
 
@@ -32,7 +33,7 @@ export default function Groups() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 12 }}>
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 12 }}>
       <Stack.Screen options={{ title: t("group.mine") }} />
       {groups.map((g) => (
         <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={g.name} onPress={() => open(g.id)}>
@@ -56,6 +57,6 @@ export default function Groups() {
         </Pressable>
       ))}
       <Button kind="plain" label={t("group.new")} onPress={() => router.push("/group/new")} />
-    </ScrollView>
+    </FormScroll>
   );
 }

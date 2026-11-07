@@ -149,12 +149,28 @@ export async function addMade(db: Db, id: string, userId: string, madeAt?: Date)
   return getDish(db, id, userId);
 }
 
-/** Only your own entries. */
-export async function deleteMade(db: Db, id: string, madeId: string, userId: string) {
-  await memberDish(db, id, userId);
+async function madeEntry(db: Db, id: string, madeId: string, userId: string) {
+  const { dish } = await memberDish(db, id, userId);
   const [v] = await db.select().from(visits).where(and(eq(visits.id, madeId), eq(visits.itemId, id)));
   if (!v) throw notFound("visit.not_found");
-  if (v.userId !== userId) throw forbidden("visit.not_yours");
+  return { dish, v };
+}
+
+/** Any member can fix the group's cooking log (often one person records for the household). */
+export async function deleteMade(db: Db, id: string, madeId: string, userId: string) {
+  await madeEntry(db, id, madeId, userId);
   await db.delete(visits).where(eq(visits.id, madeId));
+  return getDish(db, id, userId);
+}
+
+/** Change who made it (another member of the group). */
+export async function updateMade(db: Db, id: string, madeId: string, userId: string, edit: { userId?: string }) {
+  const { dish } = await madeEntry(db, id, madeId, userId);
+  if (edit.userId) {
+    await requireMember(db, dish.groupId, edit.userId).catch(() => {
+      throw badRequest("visit.not_member");
+    });
+    await db.update(visits).set({ userId: edit.userId }).where(eq(visits.id, madeId));
+  }
   return getDish(db, id, userId);
 }

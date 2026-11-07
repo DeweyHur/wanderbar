@@ -2,13 +2,14 @@ import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { bgApi, type Home, type Series, type SeriesInput } from "@/modules/boardgame/api";
 import { localParts, timeLabel } from "@/modules/boardgame/format";
 import { SectionTitle } from "@/modules/boardgame/parts";
+import { FormScroll } from "@/components/FormScroll";
 
 /** Regular meetups (day, time, every N weeks, where) and one-off nights. Owner and hosts. */
 export default function Schedule() {
@@ -49,7 +50,7 @@ export default function Schedule() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:schedule.title") }} />
       <GroupBar groupId={groupId} />
       {!home.canManage && <Body muted>{t("boardgame:schedule.managersOnly")}</Body>}
@@ -108,7 +109,7 @@ export default function Schedule() {
           />
         </>
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 

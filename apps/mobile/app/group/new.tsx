@@ -2,12 +2,13 @@ import { getLocales } from "expo-localization";
 import { Stack, router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { Body, Button, Chip, ErrorText, Field, useColors, Text } from "@/components/ui";
 import { api, type GroupModuleId, type GroupSummary } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { isLanguage, type Language } from "@/core/i18n";
 import { useSession } from "@/core/session";
+import { FormScroll } from "@/components/FormScroll";
 
 /** Another group: food & day routes, or a board game night (often in English for an international group). */
 export default function NewGroup() {
@@ -43,7 +44,7 @@ export default function NewGroup() {
 
   const label = (s: string) => <Text style={{ color: c.muted, fontSize: 14, fontWeight: "600" }}>{s}</Text>;
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("group.newTitle") }} />
       {label(t("group.kind"))}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -59,6 +60,6 @@ export default function NewGroup() {
       <Body muted>{t("group.language_hint")}</Body>
       <Button label={t("group.create")} busy={busy} onPress={create} />
       <ErrorText>{error}</ErrorText>
-    </ScrollView>
+    </FormScroll>
   );
 }

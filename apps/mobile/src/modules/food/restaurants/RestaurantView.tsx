@@ -2,7 +2,7 @@ import { formatPrice, Links, parsePrice } from "@wanderbar/route";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, Linking, Pressable, ScrollView, View } from "react-native";
+import { Image, Linking, Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { apiImage } from "@/core/api";
 import { PhotoStrip } from "@/core/photos/PhotoStrip";
@@ -18,6 +18,7 @@ import { AddToRoute } from "./AddToRoute";
 import { CategoryPicker } from "./CategoryPicker";
 import { restaurantApi, type Menu, type Restaurant } from "./api";
 import { RatingBadge } from "./Stars";
+import { FormScroll } from "@/components/FormScroll";
 
 /**
  * A restaurant: cover photo, hours, links, menus with prices and ratings, visits, sharing and editing.
@@ -82,7 +83,7 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
   const dateFmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" });
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: r.name }} />
       {(r.coverPhotoId || r.hasPhoto) && photoOk && (
         <Image
@@ -167,7 +168,7 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
         />
       )}
       <ErrorText>{error}</ErrorText>
-    </ScrollView>
+    </FormScroll>
   );
 }
 

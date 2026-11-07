@@ -2,7 +2,7 @@ import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
@@ -10,6 +10,7 @@ import { useSession } from "@/core/session";
 import { bgApi, type Game } from "@/modules/boardgame/api";
 import { GameForm } from "@/modules/boardgame/GameForm";
 import { allTags, bggFacts, GameLinks, GameThumb, PoweredByBgg, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
+import { FormScroll } from "@/components/FormScroll";
 
 /** A game: its links (BGG, BGA, TTS, rulebook, video), tags, the queue, my 10-point rating and everyone's comments. */
 export default function GameScreen() {
@@ -72,7 +73,7 @@ export default function GameScreen() {
   const others = g.ratings.filter((r) => r.userId !== me);
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: g.name }} />
       <GroupBar groupId={g.groupId} />
       <Card testID="game-info">
@@ -173,6 +174,6 @@ export default function GameScreen() {
           )}
         </Card>
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }

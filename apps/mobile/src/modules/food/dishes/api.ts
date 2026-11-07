@@ -26,5 +26,6 @@ export const dishApi = {
   rate: (id: string, stars: number, review: string) => api<Dish>(`/api/dishes/${id}/rating`, { method: "PUT", body: { stars, review } }),
   unrate: (id: string) => api<Dish>(`/api/dishes/${id}/rating`, { method: "DELETE" }),
   made: (id: string) => api<Dish>(`/api/dishes/${id}/made`, { body: {} }),
+  updateMade: (id: string, madeId: string, edit: { userId?: string }) => api<Dish>(`/api/dishes/${id}/made/${madeId}`, { method: "PATCH", body: edit }),
   deleteMade: (id: string, madeId: string) => api<Dish>(`/api/dishes/${id}/made/${madeId}`, { method: "DELETE" }),
 };

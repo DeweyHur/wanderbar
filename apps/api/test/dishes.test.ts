@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
 import { signIn } from "@/lib/auth";
-import { addMade, createDish, deleteDish, deleteMade, getDish, listDishes, rateDish, unrateDish, updateDish } from "@/lib/dishes";
+import { addMade, createDish, deleteDish, deleteMade, getDish, listDishes, rateDish, unrateDish, updateDish, updateMade } from "@/lib/dishes";
 import { acceptInvite, createGroup, createInvite } from "@/lib/groups";
 import { createPlan, isDay, listPlans, todayIn, updatePlan } from "@/lib/plans";
 import { profile, testDb } from "./db";
@@ -70,14 +70,17 @@ describe("home cooking", () => {
     expect(got.rating).toEqual({ avg: 3.5, count: 1 });
   });
 
-  it("edits; only your own made-it entries; creator or owner deletes; private to the group", async () => {
+  it("edits; any member fixes the made-it log (who made it, or delete); creator or owner deletes; private to the group", async () => {
     const d = await createDish(db, groupId, friend, { name: "파스타" });
     expect((await updateDish(db, d.id, me, { name: "알리오 올리오", category: "italian" })).name).toBe("알리오 올리오");
     expect(await status(updateDish(db, d.id, me, { name: "" }))).toBe(400);
     expect(await status(updateDish(db, d.id, me, { category: "파스타" }))).toBe(400);
     const withMade = await addMade(db, d.id, friend);
-    expect(await status(deleteMade(db, d.id, withMade.made[0].id, me))).toBe(403);
-    expect((await deleteMade(db, d.id, withMade.made[0].id, friend)).made).toEqual([]);
+    const entry = withMade.made[0].id;
+    expect((await updateMade(db, d.id, entry, friend, { userId: me })).made.map((m) => m.userId)).toEqual([me]);
+    expect(await status(updateMade(db, d.id, entry, friend, { userId: outsider }))).toBe(400);
+    expect(await status(updateMade(db, d.id, entry, outsider, { userId: me }))).toBe(404);
+    expect((await deleteMade(db, d.id, entry, friend)).made).toEqual([]);
     expect(await status(rateDish(db, d.id, me, { stars: 6 }))).toBe(400);
     expect(await status(getDish(db, d.id, outsider))).toBe(404);
     expect(await status(listDishes(db, groupId, outsider))).toBe(404);

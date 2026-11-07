@@ -2,12 +2,13 @@ import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView } from "react-native";
+
 import { ErrorText, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { bgApi, type GameInput } from "@/modules/boardgame/api";
 import { GameForm } from "@/modules/boardgame/GameForm";
 import { allTags } from "@/modules/boardgame/parts";
+import { FormScroll } from "@/components/FormScroll";
 
 /** Add a game to the group's library (and straight onto a night's lineup when opened from one). */
 export default function NewGame() {
@@ -40,11 +41,11 @@ export default function NewGame() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:game.add") }} />
       <GroupBar groupId={groupId} />
       <GameForm knownTags={tags} busy={busy} onSave={save} />
       <ErrorText>{error}</ErrorText>
-    </ScrollView>
+    </FormScroll>
   );
 }

@@ -7,7 +7,7 @@ import {
 } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, isThemeId, Loading, useColors, useTheme, Text } from "@/components/ui";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
@@ -27,6 +27,7 @@ import { RouteList } from "@/modules/food/route/RouteList";
 import { dishApi, type DishSummary } from "@/modules/food/dishes/api";
 import { DishList } from "@/modules/food/dishes/DishList";
 import { ShoppingList } from "@/modules/food/shopping/ShoppingList";
+import { FormScroll } from "@/components/FormScroll";
 
 type Tab = "restaurants" | "home" | "routes" | "shopping";
 const TABS: Tab[] = ["restaurants", "home", "routes", "shopping"];
@@ -69,14 +70,14 @@ function BoardGameGroup({ id }: { id: string }) {
     }, [id]),
   );
   return (
-    <ScrollView testID="group-home" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll testID="group-home" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: name, headerTitle: () => null, headerRight: () => <SettingsLink /> }} />
       <GroupBar groupId={id} />
       <BoardGameHome groupId={id} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
       </View>
-    </ScrollView>
+    </FormScroll>
   );
 }
 
@@ -169,7 +170,7 @@ function FoodHome({ id }: { id: string }) {
 
   const mod = getModule(group.module);
   return (
-    <ScrollView
+    <FormScroll
       testID="group-home"
       style={{ backgroundColor: c.bg }}
       contentContainerStyle={{ padding: 20, gap: 14 }}
@@ -218,6 +219,6 @@ function FoodHome({ id }: { id: string }) {
           }
         />
       </View>
-    </ScrollView>
+    </FormScroll>
   );
 }

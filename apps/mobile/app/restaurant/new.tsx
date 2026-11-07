@@ -1,7 +1,7 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView } from "react-native";
+
 import { Body, Button, ErrorText, Field, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { BeenChoice } from "@/modules/food/restaurants/BeenChoice";
@@ -9,6 +9,7 @@ import { CategoryPicker } from "@/modules/food/restaurants/CategoryPicker";
 import { restaurantApi, type NewRestaurant } from "@/modules/food/restaurants/api";
 import { takeSession, useGoogleAvailable } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
+import { FormScroll } from "@/components/FormScroll";
 
 /** Add a restaurant: pick it from Google search, or type it in (the server still tries to find it on Google). */
 export default function NewRestaurant() {
@@ -37,7 +38,7 @@ export default function NewRestaurant() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("food:restaurant.add") }} />
       <BeenChoice value={visitedOn} onChange={setVisitedOn} />
       {googleAvailable && (
@@ -58,6 +59,6 @@ export default function NewRestaurant() {
       <Button label={t("food:stop.save")} busy={busy} disabled={!name.trim()} onPress={() => save({ name, address, category })} />
       {busy && <Body muted>{t("food:restaurant.saving")}</Body>}
       <ErrorText>{error}</ErrorText>
-    </ScrollView>
+    </FormScroll>
   );
 }

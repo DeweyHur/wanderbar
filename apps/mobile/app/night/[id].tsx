@@ -3,7 +3,7 @@ import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
@@ -11,6 +11,7 @@ import { useSession } from "@/core/session";
 import { bgApi, type GameSummary, type Night, type NightGame, type QueueEntry } from "@/modules/boardgame/api";
 import { localParts, nightWhen } from "@/modules/boardgame/format";
 import { GameLinks, GameThumb, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
+import { FormScroll } from "@/components/FormScroll";
 
 /** One game night: who picks, the games (with their links), rating them afterwards, notes. */
 export default function NightScreen() {
@@ -81,7 +82,7 @@ export default function NightScreen() {
   const canNote = n.canManage || n.picker?.id === me;
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:night.title") }} />
       <GroupBar groupId={n.groupId} />
       <Card testID="night-info">
@@ -206,7 +207,7 @@ export default function NightScreen() {
           )}
         </>
       )}
-    </ScrollView>
+    </FormScroll>
   );
 }
 

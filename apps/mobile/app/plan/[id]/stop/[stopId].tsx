@@ -2,7 +2,7 @@ import { Links, parseSharedText, TESLA_FORMATS, teslaShareText, type Destination
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, ScrollView, View } from "react-native";
+import { Linking, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
@@ -14,6 +14,7 @@ import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { RestaurantView } from "@/modules/food/restaurants/RestaurantView";
+import { FormScroll } from "@/components/FormScroll";
 
 /** Place detail + edit, status actions, and the Tesla format tester (as in the old app). */
 export default function StopScreen() {
@@ -111,7 +112,7 @@ export default function StopScreen() {
     );
 
   return (
-    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+    <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: stop.name }} />
       <Body muted>{t(`food:route.status.${stop.status}`)}</Body>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -150,7 +151,7 @@ export default function StopScreen() {
       <TeslaTester dest={dest} onError={setError} />
 
       <Chip label={t("food:route.deleteStop")} onPress={removeStop} />
-    </ScrollView>
+    </FormScroll>
   );
 }
 

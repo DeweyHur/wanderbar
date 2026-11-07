@@ -11,7 +11,8 @@ import {
 } from "@/core/platform/shareIntent";
 import { SessionProvider, useSession } from "@/core/session";
 import { handleTaps, refreshNotifications, startReminderSync, syncReminders } from "@/core/notifications";
-import { AppState } from "react-native";
+import { AppState, Pressable, ScrollView, Text as RNText } from "react-native";
+import { installCrashHandler, reportCrash } from "@/core/crash";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { useFonts } from "expo-font";
@@ -44,6 +45,23 @@ function Notifications() {
     };
   }, [signedIn]);
   return null;
+}
+
+installCrashHandler();
+
+/** Instead of closing, a screen that fails shows what went wrong (and the server log gets it). */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  useEffect(() => reportCrash(error, "screen"), [error]);
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: "#FFF3F6" }} contentContainerStyle={{ padding: 24, paddingTop: 72, gap: 12 }}>
+      <RNText style={{ fontSize: 22, fontWeight: "700", color: "#4B3340" }}>앱 오류 · Something went wrong</RNText>
+      <RNText selectable style={{ fontSize: 15, color: "#D9506C" }}>{error.message}</RNText>
+      <RNText selectable style={{ fontSize: 11, color: "#A08591" }}>{(error.stack ?? "").split("\n").slice(0, 12).join("\n")}</RNText>
+      <Pressable onPress={() => retry()} style={{ backgroundColor: "#D4618B", borderRadius: 999, padding: 14, alignItems: "center" }}>
+        <RNText style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>다시 시도 · Try again</RNText>
+      </Pressable>
+    </ScrollView>
+  );
 }
 
 export default function RootLayout() {

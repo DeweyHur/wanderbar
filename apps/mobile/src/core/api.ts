@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { sessionStore } from "./platform/session";
 
 // The web app is served from the API's own origin, so it calls relative URLs with its cookie.
-const API_URL = Platform.OS === "web" ? "" : (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+export const API_URL = Platform.OS === "web" ? "" : (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export type User = { id: string; email: string; name: string | null; image: string | null; locale: string | null };
 export type Role = "owner" | "host" | "member";

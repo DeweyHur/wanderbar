@@ -72,7 +72,8 @@ const config: ExpoConfig = {
           NSExtensionActivationSupportsText: true,
         },
         androidIntentFilters: ["text/*"],
-        iosShareExtensionName: "wanderbar",
+        // Must differ from the app target ("wanderbar"): EAS matches signing profiles to targets by name.
+        iosShareExtensionName: "Wanderbar Share",
       },
     ],
     ["@react-native-google-signin/google-signin", { iosUrlScheme }],

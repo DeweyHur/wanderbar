@@ -89,7 +89,7 @@ jobs:
             require("fs").writeFileSync(f, JSON.stringify(j, null, 2));
           '
           if [ "${{ inputs.submit_only }}" = "true" ]; then
-            npx --yes eas-cli@27 submit --platform ios --profile production --latest --non-interactive --wait
+            npx --yes eas-cli@27 submit --platform ios --profile production --latest --non-interactive --wait || { node scripts/eas-status.mjs; exit 1; }
           elif [ "${{ inputs.setup_credentials }}" = "true" ]; then
             # EAS only creates the distribution certificate and provisioning profiles interactively. Run it under
             # a terminal and accept every question; the App Store Connect API key stands in for an Apple login.

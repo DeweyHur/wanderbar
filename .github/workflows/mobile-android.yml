@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths: ["apps/mobile/**", "packages/**", "package-lock.json", "scripts/android-smoke.sh", ".github/workflows/mobile-android.yml"]
   workflow_dispatch:
+    inputs:
+      play:
+        description: "Build the Play Store bundle (AAB, signed with the EAS upload key) instead of the test APK"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -14,7 +19,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Google Play: an app bundle signed with the upload key EAS keeps (made on first run), built here on
+  # the runner. Lands in a private draft release for the first manual upload to the Play Console.
+  play:
+    if: inputs.play
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.MAPS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: npm ci
+      - run: node scripts/check-native-peers.mjs
+      - name: Firebase config
+        working-directory: apps/mobile
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > google-services.json
+          echo "GOOGLE_SERVICES_FILE=$PWD/google-services.json" >> "$GITHUB_ENV"
+      - name: Build the app bundle
+        working-directory: apps/mobile
+        run: npx --yes eas-cli@27 build --platform android --profile production --local --non-interactive --output "$GITHUB_WORKSPACE/wanderbar.aab"
+      - name: Upload key fingerprint
+        working-directory: apps/mobile
+        run: npx --yes eas-cli@27 credentials:configure-build --platform android --profile production --non-interactive 2>&1 | tail -20 || true
+      - name: Private draft release with the bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api repos/${{ github.repository }}/releases --jq '.[] | select(.draft and ((.name // "") | startswith("wanderbar play"))) | .id'); do
+            gh api -X DELETE repos/${{ github.repository }}/releases/$id
+          done
+          gh release create "play-build-$GITHUB_RUN_NUMBER" wanderbar.aab --draft --target "$GITHUB_SHA" \
+            --title "wanderbar play bundle (run #$GITHUB_RUN_NUMBER, draft)" \
+            --notes "Google Play app bundle of ${GITHUB_SHA::7}. Draft: only visible to the repo owner."
+
   build:
+    if: ${{ !inputs.play }}
     runs-on: ubuntu-latest
     env:
       # Public values baked into the JS bundle (not secrets).

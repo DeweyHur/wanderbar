@@ -36,3 +36,4 @@ next-env.d.ts
 
 # Apple keys (push, App Store Connect) never go in git
 *.p8
+*.aab

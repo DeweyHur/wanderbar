@@ -11,6 +11,10 @@ on:
         description: "First time only: create the signing certificate and profiles (answers EAS's questions)"
         type: boolean
         default: false
+      status_only:
+        description: "Don't build or submit: show the latest builds and TestFlight submissions"
+        type: boolean
+        default: false
       submit_only:
         description: "Don't build: upload the latest finished EAS build to TestFlight"
         type: boolean
@@ -88,7 +92,9 @@ jobs:
             Object.assign(j.submit.production.ios, { ascApiKeyPath: process.env.EXPO_ASC_API_KEY_PATH, ascApiKeyIssuerId: process.env.EXPO_ASC_ISSUER_ID, ascApiKeyId: process.env.EXPO_ASC_KEY_ID });
             require("fs").writeFileSync(f, JSON.stringify(j, null, 2));
           '
-          if [ "${{ inputs.submit_only }}" = "true" ]; then
+          if [ "${{ inputs.status_only }}" = "true" ]; then
+            node scripts/eas-status.mjs
+          elif [ "${{ inputs.submit_only }}" = "true" ]; then
             node scripts/eas-status.mjs || true
             npx --yes eas-cli@27 submit --platform ios --profile production --latest --non-interactive --wait || { node scripts/eas-status.mjs; exit 1; }
           elif [ "${{ inputs.setup_credentials }}" = "true" ]; then

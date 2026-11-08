@@ -6,7 +6,8 @@ set timeout 1800
 log_user 1
 spawn env -u CI -u GITHUB_ACTIONS eas build --platform ios --profile production --auto-submit --no-wait
 expect {
-  -re {\? [^\n]*(Apple ID|Password)[^\n]*›} { puts "\n::error::EAS asked for an Apple login; stopping."; exit 1 }
+  -re {Log in to your Apple|Apple ID:|Password \(for} { puts "\n::error::EAS asked for an Apple login; stopping."; exit 1 }
+  -re {set up Push Notifications for your project} { send "\033\[B\r"; exp_continue }
   -re {\(Y/n\)|\(y/N\)|› (No|Yes) / (yes|no)|Yes / No} { send "y\r"; exp_continue }
   -re {Select|Choose|›} { send "\r"; exp_continue }
   -re {(?i)build details:|See logs:|https://expo\.dev/accounts/[^ ]+/builds/} { exp_continue }

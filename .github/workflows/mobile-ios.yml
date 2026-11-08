@@ -11,6 +11,10 @@ on:
         description: "First time only: create the signing certificate and profiles (answers EAS's questions)"
         type: boolean
         default: false
+      submit_only:
+        description: "Don't build: upload the latest finished EAS build to TestFlight"
+        type: boolean
+        default: false
 
 concurrency:
   group: mobile-ios
@@ -78,7 +82,15 @@ jobs:
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
           # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
           node scripts/ios-ids.mjs
-          if [ "${{ inputs.setup_credentials }}" = "true" ]; then
+          # The TestFlight upload uses the same key (EAS won't store one for submit non-interactively).
+          node -e '
+            const f = "eas.json", j = JSON.parse(require("fs").readFileSync(f, "utf8"));
+            Object.assign(j.submit.production.ios, { ascApiKeyPath: process.env.EXPO_ASC_API_KEY_PATH, ascApiKeyIssuerId: process.env.EXPO_ASC_ISSUER_ID, ascApiKeyId: process.env.EXPO_ASC_KEY_ID });
+            require("fs").writeFileSync(f, JSON.stringify(j, null, 2));
+          '
+          if [ "${{ inputs.submit_only }}" = "true" ]; then
+            npx --yes eas-cli@27 submit --platform ios --profile production --latest --non-interactive --wait
+          elif [ "${{ inputs.setup_credentials }}" = "true" ]; then
             # EAS only creates the distribution certificate and provisioning profiles interactively. Run it under
             # a terminal and accept every question; the App Store Connect API key stands in for an Apple login.
             sudo apt-get install -y expect >/dev/null

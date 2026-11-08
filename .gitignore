@@ -33,3 +33,6 @@ next-env.d.ts
 # Playwright
 /e2e/test-results/
 /e2e/playwright-report/
+
+# Apple keys (push, App Store Connect) never go in git
+*.p8

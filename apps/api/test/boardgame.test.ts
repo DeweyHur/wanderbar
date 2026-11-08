@@ -212,7 +212,7 @@ describe("queue and leaderboard data", () => {
     ]);
     await unqueueGame(db, b.id, me);
     const night = await createNight(db, groupId, me, { startsAt: hours(48) });
-    await addNightGame(db, night.id, a.id, me);
+    await addNightGame(db, night.id, a.id, me, NOW);
     home = await boardgameHome(db, groupId, me, NOW);
     expect(home.queue.map((q) => q.name)).toEqual(["Wingspan"]);
     // Recording a game on a night that already happened leaves the queue alone.

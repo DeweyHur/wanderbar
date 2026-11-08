@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
 import { signIn, setUserLocale } from "@/lib/auth";
-import { addNightGame, createGame, createNight } from "@/lib/boardgame";
-import { createDish, rateDish } from "@/lib/dishes";
+import { items, ratings } from "@/db/schema";
+import { addNightGame, createGame, createNight, rateGame, setRsvp, updateGame, updateNight } from "@/lib/boardgame";
+import { addMade, createDish, rateDish, updateDish } from "@/lib/dishes";
 import { acceptInvite, createGroup, createInvite } from "@/lib/groups";
 import { addMeal } from "@/lib/meals";
 import { addPhoto } from "@/lib/photos";
 import { createPlan, updatePlan } from "@/lib/plans";
-import { flushPush, registerPushToken, setPushSender, unregisterPushToken, type PushMessage } from "@/lib/push";
+import { flushPush, QUIET_MS, registerPushToken, setPushSender, unregisterPushToken, type PushMessage } from "@/lib/push";
 import { dailyPushes, upcomingDays } from "@/lib/reminders";
-import { addMenu, createRestaurant, rateMenu } from "@/lib/restaurants";
+import { addMenu, addVisit, createRestaurant, rateMenu, updateMenu, updateRestaurant } from "@/lib/restaurants";
 import { addShopping } from "@/lib/shopping";
 import { profile, testDb } from "./db";
 
@@ -45,13 +46,14 @@ describe("group news push", () => {
     const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "Ramen Ya" });
     const [menu] = (await addMenu(db, r.id, me, { name: "Tonkotsu" })).menus;
     await rateMenu(db, menu.id, me, { stars: 4.5 });
-    await rateMenu(db, menu.id, me, { stars: 5 }); // changing my rating isn't news
+    await rateMenu(db, menu.id, me, { stars: 5 }); // changing it again right away isn't news
     await addPhoto(db, r.id, me, { body: new Uint8Array(5), contentType: "image/jpeg" });
     await addPhoto(db, r.id, me, { body: new Uint8Array(5), contentType: "image/jpeg" }); // same batch
     const dish = await createDish(db, groupId, friend, { name: "Kimchi stew" });
     await rateDish(db, dish.id, friend, { stars: 3 });
     expect(await bodies()).toEqual([
       "friend-phone: 🍜 me님이 Ramen Ya을(를) 저장했어요",
+      "friend-phone: 🍜 me님이 Ramen Ya에 메뉴 Tonkotsu을(를) 추가했어요",
       "friend-phone: ⭐ me님이 Tonkotsu에 별 4.5개",
       "friend-phone: 📷 me님이 Ramen Ya 사진을 올렸어요",
       "my-phone: 🍳 friend added Kimchi stew to home cooking",
@@ -59,11 +61,84 @@ describe("group news push", () => {
     ]);
     expect(sent[0]).toMatchObject({ title: "Foodies", data: { path: `/restaurant/${r.id}`, type: "restaurant", groupId } });
     expect(sent[1].data.path).toBe(`/menu/${menu.id}`);
+    expect(sent[2].data.path).toBe(`/menu/${menu.id}`);
     // The app's language setting wins over the device's.
     await setUserLocale(db, friend, "en");
     sent = [];
     await createRestaurant(db, groupId, me, { name: "Pho Place" });
     expect(await bodies()).toEqual(["friend-phone: 🍜 me saved Pho Place"]);
+  });
+
+  it("every other update is news too, and opens what changed", async () => {
+    await registerPushToken(db, friend, { token: "friend-phone", platform: "android" });
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "Ramen Ya" });
+    const [menu] = (await addMenu(db, r.id, me, { name: "Tonkotsu" })).menus;
+    const dish = await createDish(db, groupId, me, { name: "Kimchi stew" });
+    const game = await createGame(db, groupId, me, { name: "Azul" });
+    // Things just added were "updated" seconds ago: edits wait out the quiet time.
+    await db.update(items).set({ updatedAt: new Date(Date.now() - QUIET_MS - 1000) });
+    sent = [];
+
+    await updateRestaurant(db, r.id, me, { memo: "cash only" });
+    await updateRestaurant(db, r.id, me, { memo: "cash only!" }); // same burst
+    await updateMenu(db, menu.id, me, { name: "Tonkotsu ramen" });
+    await updateDish(db, dish.id, me, { memo: "less salt" });
+    await updateGame(db, game.id, me, { memo: "2-4 players" });
+    await addVisit(db, r.id, me);
+    await addMade(db, dish.id, me);
+    await rateMenu(db, menu.id, me, { stars: 4, review: "Rich broth,   would go again" });
+    await rateGame(db, game.id, me, { score: 8 });
+    await db.update(ratings).set({ updatedAt: new Date(Date.now() - QUIET_MS - 1000) });
+    await rateMenu(db, menu.id, me, { stars: 3, review: "Rich broth,   would go again" }); // changed later: news
+    await rateMenu(db, menu.id, me, { stars: 3, review: "Rich broth,   would go again" }); // nothing changed
+    expect(await bodies()).toEqual([
+      "friend-phone: ✏️ me updated Ramen Ya",
+      "friend-phone: ✏️ me updated Tonkotsu ramen",
+      "friend-phone: ✏️ me updated Kimchi stew",
+      "friend-phone: ✏️ me updated Azul",
+      "friend-phone: 📍 me went to Ramen Ya",
+      "friend-phone: 🍳 me made Kimchi stew",
+      "friend-phone: ⭐ me gave Tonkotsu ramen 4 stars · “Rich broth, would go again”",
+      "friend-phone: 🎲 me gave Azul 8/10",
+      "friend-phone: ⭐ me changed their rating of Tonkotsu ramen to 3 stars · “Rich broth, would go again”",
+    ]);
+    expect(sent.map((m) => m.data.path)).toEqual([
+      `/restaurant/${r.id}`,
+      `/menu/${menu.id}`,
+      `/dish/${dish.id}`,
+      `/game/${game.id}`,
+      `/restaurant/${r.id}`,
+      `/dish/${dish.id}`,
+      `/menu/${menu.id}`,
+      `/game/${game.id}`,
+      `/menu/${menu.id}`,
+    ]);
+  });
+
+  it("board game nights: who's coming and changes to the night", async () => {
+    await registerPushToken(db, friend, { token: "friend-phone", platform: "android" });
+    const night = await createNight(db, groupId, me, { startsAt: new Date(Date.now() + 3 * 86_400_000), location: "Dewey's" });
+    sent = [];
+    await setRsvp(db, night.id, me, { status: "going" });
+    await setRsvp(db, night.id, me, { status: "going" }); // no change
+    await updateNight(db, night.id, me, { location: "Park" });
+    await setRsvp(db, night.id, me, { status: "no", userId: friend }); // fixing someone else's answer isn't news
+    const out = await bodies();
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatch(/^friend-phone: 🙋 me is coming on /);
+    expect(out[1]).toMatch(/^friend-phone: 🎲 me updated the board game night on /);
+    expect(sent.every((m) => m.data.path === `/night/${night.id}`)).toBe(true);
+  });
+
+  it("sends iPhones' messages with their platform (Apple's push service), others through Firebase", async () => {
+    await registerPushToken(db, friend, { token: "friend-iphone", platform: "ios" });
+    await registerPushToken(db, friend, { token: "friend-android", platform: "android" });
+    await createRestaurant(db, groupId, me, { name: "A" });
+    await flushPush();
+    expect(sent.map((m) => [m.token, m.platform]).sort()).toEqual([
+      ["friend-android", "android"],
+      ["friend-iphone", "ios"],
+    ]);
   });
 
   it("forgets devices FCM says are gone, and devices that sign out", async () => {
@@ -85,7 +160,8 @@ describe("group news push", () => {
     const night = await createNight(db, bg, me, { startsAt, location: "Dewey's" });
     const game = await createGame(db, bg, me, { name: "Cascadia" });
     await addNightGame(db, night.id, game.id, me);
-    const [created, picked] = await bodies();
+    const [created, added, picked] = await bodies();
+    expect(added).toBe("friend-phone: 🎲 me added the game Cascadia");
     expect(created).toMatch(/^friend-phone: 🎲 New board game night: \w{3}, \w{3} \d+, \d+:\d{2}/);
     expect(picked).toMatch(/^friend-phone: 🎲 me picked Cascadia for /);
     sent = [];

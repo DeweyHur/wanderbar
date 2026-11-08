@@ -9,11 +9,20 @@ import { groups, memberships, pushTokens, users } from "../db/schema";
  * sent. Messages go to every member's devices except whoever caused them, in each device's language.
  */
 
+type ItemKind = "restaurant" | "menu" | "dish" | "game";
+
 export type PushEvent =
   | { type: "restaurant"; who: string; name: string; itemId: string }
   | { type: "dish"; who: string; name: string; itemId: string }
-  | { type: "rating"; who: string; name: string; stars: number; itemId: string; kind: "menu" | "dish" }
+  | { type: "menu"; who: string; name: string; restaurant: string; itemId: string }
+  | { type: "game"; who: string; name: string; itemId: string }
+  | { type: "edit"; who: string; name: string; itemId: string; kind: ItemKind }
+  | { type: "visit"; who: string; name: string; itemId: string; kind: "restaurant" | "dish" }
+  | { type: "rating"; who: string; name: string; stars: number; review?: string; again?: boolean; itemId: string; kind: "menu" | "dish" }
+  | { type: "game_rating"; who: string; name: string; score: number; review?: string; again?: boolean; itemId: string }
   | { type: "photo"; who: string; name: string; itemId: string; kind: "restaurant" | "menu" | "dish" }
+  | { type: "night_edit"; who: string; at: Date; tz: string; nightId: string }
+  | { type: "rsvp"; who: string; status: "going" | "maybe" | "no"; at: Date; tz: string; nightId: string }
   | { type: "night_new"; at: Date; tz: string; nightId: string }
   | { type: "night_game"; who: string; game: string; at: Date; tz: string; nightId: string }
   | { type: "night_tomorrow"; at: Date; tz: string; where: string; games: string[]; nightId: string }
@@ -28,6 +37,17 @@ export function nightWhen(locale: string, at: Date, tz: string) {
     return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", { ...opts, timeZone: "UTC" }).format(at);
   }
 }
+
+/** Saving the same thing again within this window doesn't notify again (edits come in bursts). */
+export const QUIET_MS = 10 * 60_000;
+export const recently = (at: Date | null | undefined, now = Date.now()) => !!at && now - at.getTime() < QUIET_MS;
+
+/** A new rating is news; changing it is too, unless it's the same or a quick re-edit. */
+export const ratingNews = (before: { score: number; review: string; updatedAt: Date } | undefined, score: number, review: string) =>
+  !before || ((before.score !== score || before.review !== review) && !recently(before.updatedAt));
+
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+const quote = (review?: string) => (review?.trim() ? ` · “${clip(review.trim().replace(/\s+/g, " "), 80)}”` : "");
 
 /** A member's display name. */
 export async function displayName(db: Db, userId: string) {
@@ -46,8 +66,48 @@ export function pushText(locale: string, e: PushEvent): string {
       return ko ? `🍜 ${e.who}님이 ${e.name}을(를) 저장했어요` : `🍜 ${e.who} saved ${e.name}`;
     case "dish":
       return ko ? `🍳 ${e.who}님이 집밥 ${e.name}을(를) 올렸어요` : `🍳 ${e.who} added ${e.name} to home cooking`;
+    case "menu":
+      return ko ? `🍜 ${e.who}님이 ${e.restaurant}에 메뉴 ${e.name}을(를) 추가했어요` : `🍜 ${e.who} added ${e.name} to ${e.restaurant}`;
+    case "game":
+      return ko ? `🎲 ${e.who}님이 게임 ${e.name}을(를) 추가했어요` : `🎲 ${e.who} added the game ${e.name}`;
+    case "edit":
+      return ko ? `✏️ ${e.who}님이 ${e.name} 정보를 고쳤어요` : `✏️ ${e.who} updated ${e.name}`;
+    case "visit":
+      return e.kind === "dish"
+        ? ko
+          ? `🍳 ${e.who}님이 ${e.name}을(를) 만들었어요`
+          : `🍳 ${e.who} made ${e.name}`
+        : ko
+          ? `📍 ${e.who}님이 ${e.name}에 다녀왔어요`
+          : `📍 ${e.who} went to ${e.name}`;
     case "rating":
-      return ko ? `⭐ ${e.who}님이 ${e.name}에 별 ${star(e.stars)}개` : `⭐ ${e.who} gave ${e.name} ${star(e.stars)} stars`;
+      return (
+        (e.again
+          ? ko
+            ? `⭐ ${e.who}님이 ${e.name} 평점을 별 ${star(e.stars)}개로 바꿨어요`
+            : `⭐ ${e.who} changed their rating of ${e.name} to ${star(e.stars)} stars`
+          : ko
+            ? `⭐ ${e.who}님이 ${e.name}에 별 ${star(e.stars)}개`
+            : `⭐ ${e.who} gave ${e.name} ${star(e.stars)} stars`) + quote(e.review)
+      );
+    case "game_rating":
+      return (
+        (e.again
+          ? ko
+            ? `🎲 ${e.who}님이 ${e.name} 점수를 ${e.score}/10으로 바꿨어요`
+            : `🎲 ${e.who} changed their score for ${e.name} to ${e.score}/10`
+          : ko
+            ? `🎲 ${e.who}님이 ${e.name}에 ${e.score}/10점`
+            : `🎲 ${e.who} gave ${e.name} ${e.score}/10`) + quote(e.review)
+      );
+    case "night_edit":
+      return ko ? `🎲 ${e.who}님이 ${nightWhen(locale, e.at, e.tz)} 보드게임 나이트를 수정했어요` : `🎲 ${e.who} updated the board game night on ${nightWhen(locale, e.at, e.tz)}`;
+    case "rsvp": {
+      const when = nightWhen(locale, e.at, e.tz);
+      if (e.status === "going") return ko ? `🙋 ${e.who}님이 ${when} 보드게임 나이트에 와요` : `🙋 ${e.who} is coming on ${when}`;
+      if (e.status === "maybe") return ko ? `🤔 ${e.who}님이 ${when} 보드게임 나이트에 올지도 몰라요` : `🤔 ${e.who} might come on ${when}`;
+      return ko ? `🙅 ${e.who}님은 ${when} 보드게임 나이트에 못 와요` : `🙅 ${e.who} can't make it on ${when}`;
+    }
     case "photo":
       return ko ? `📷 ${e.who}님이 ${e.name} 사진을 올렸어요` : `📷 ${e.who} added photos of ${e.name}`;
     case "night_new":
@@ -74,9 +134,16 @@ export function pushPath(e: PushEvent) {
       return `/restaurant/${e.itemId}`;
     case "dish":
       return `/dish/${e.itemId}`;
+    case "menu":
+      return `/menu/${e.itemId}`;
+    case "game":
+    case "game_rating":
+      return `/game/${e.itemId}`;
     case "rating":
     case "photo":
-      return e.kind === "menu" ? `/menu/${e.itemId}` : `/${e.kind}/${e.itemId}`;
+    case "edit":
+    case "visit":
+      return `/${e.kind}/${e.itemId}`;
     case "chat":
       return `/group/${e.groupId}/chat`;
     default:
@@ -84,7 +151,7 @@ export function pushPath(e: PushEvent) {
   }
 }
 
-export type PushMessage = { token: string; title: string; body: string; data: Record<string, string> };
+export type PushMessage = { token: string; platform: string; title: string; body: string; data: Record<string, string> };
 /** "gone" = the token is no longer valid and is forgotten. */
 export type PushSender = (m: PushMessage) => Promise<"ok" | "gone">;
 
@@ -94,7 +161,7 @@ export function setPushSender(s: PushSender | null) {
   sender = s;
 }
 function currentSender() {
-  if (sender === undefined) sender = fcmSender();
+  if (sender === undefined) sender = platformSender(fcmSender(), apnsSender());
   return sender;
 }
 
@@ -124,7 +191,7 @@ export async function sendToGroup(db: Db, groupId: string, except: string | null
   if (!send) return 0;
   const [group] = await db.select({ name: groups.name }).from(groups).where(eq(groups.id, groupId));
   const rows = await db
-    .select({ token: pushTokens.token, locale: pushTokens.locale, userLocale: users.locale })
+    .select({ token: pushTokens.token, platform: pushTokens.platform, locale: pushTokens.locale, userLocale: users.locale })
     .from(pushTokens)
     .innerJoin(memberships, and(eq(memberships.userId, pushTokens.userId), eq(memberships.groupId, groupId)))
     .innerJoin(users, eq(users.id, pushTokens.userId))
@@ -132,7 +199,7 @@ export async function sendToGroup(db: Db, groupId: string, except: string | null
   const gone: string[] = [];
   for (const r of rows) {
     const locale: Locale = (r.userLocale ?? r.locale) === "ko" ? "ko" : "en";
-    const res = await send({ token: r.token, title: group?.name ?? "wanderbar", body: pushText(locale, event), data: { path: pushPath(event), type: event.type, groupId } }).catch(
+    const res = await send({ token: r.token, platform: r.platform, title: group?.name ?? "wanderbar", body: pushText(locale, event), data: { path: pushPath(event), type: event.type, groupId } }).catch(
       (e) => {
         console.error("[push.send]", e instanceof Error ? e.message : e);
         return "ok" as const;
@@ -155,6 +222,74 @@ export async function registerPushToken(db: Db, userId: string, input: { token: 
 
 export async function unregisterPushToken(db: Db, userId: string, token: string) {
   await db.delete(pushTokens).where(and(eq(pushTokens.token, token), eq(pushTokens.userId, userId)));
+}
+
+/** iPhones get Apple's push service directly; everything else goes through Firebase. */
+function platformSender(fcm: PushSender | null, apns: PushSender | null): PushSender | null {
+  if (!fcm && !apns) return null;
+  return async (m) => {
+    const s = m.platform === "ios" ? apns : fcm;
+    if (!s) return "ok";
+    return s(m);
+  };
+}
+
+/**
+ * APNs (HTTP/2, token auth) for the TestFlight/App Store app. Env: APNS_KEY (the .p8 key's text, or it
+ * in base64), APNS_KEY_ID, APNS_TEAM_ID; APNS_TOPIC defaults to the app's bundle id. Null when not set.
+ */
+function apnsSender(): PushSender | null {
+  const raw = process.env.APNS_KEY;
+  const keyId = process.env.APNS_KEY_ID;
+  const teamId = process.env.APNS_TEAM_ID;
+  if (!raw || !keyId || !teamId) return null;
+  const pem = raw.includes("BEGIN PRIVATE KEY") ? raw : Buffer.from(raw, "base64").toString("utf8");
+  const topic = process.env.APNS_TOPIC || "app.wanderbar.mobile";
+  const host = process.env.APNS_HOST || "https://api.push.apple.com";
+  let cached: { jwt: string; at: number } | null = null;
+  const jwt = async () => {
+    // Apple wants a token refreshed between 20 and 60 minutes.
+    if (cached && Date.now() - cached.at < 40 * 60_000) return cached.jwt;
+    const key = await importPKCS8(pem, "ES256");
+    const token = await new SignJWT({}).setProtectedHeader({ alg: "ES256", kid: keyId }).setIssuer(teamId).setIssuedAt().sign(key);
+    cached = { jwt: token, at: Date.now() };
+    return token;
+  };
+  return async (m) => {
+    const { connect } = await import("node:http2");
+    const payload = JSON.stringify({ aps: { alert: { title: m.title, body: m.body }, sound: "default" }, body: m.data });
+    const auth = await jwt();
+    const { status, text } = await new Promise<{ status: number; text: string }>((resolve, reject) => {
+      const client = connect(host);
+      client.on("error", reject);
+      const req = client.request({
+        ":method": "POST",
+        ":path": `/3/device/${m.token}`,
+        authorization: `bearer ${auth}`,
+        "apns-topic": topic,
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+        "content-type": "application/json",
+      });
+      let status = 0;
+      let text = "";
+      req.on("response", (h) => (status = Number(h[":status"])));
+      req.setEncoding("utf8");
+      req.on("data", (c) => (text += c));
+      req.on("end", () => {
+        client.close();
+        resolve({ status, text });
+      });
+      req.on("error", (e) => {
+        client.close();
+        reject(e);
+      });
+      req.end(payload);
+    });
+    if (status === 200) return "ok";
+    if (status === 410 || /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(text)) return "gone";
+    throw new Error(`apns ${status} ${text.slice(0, 200)}`);
+  };
 }
 
 /** FCM HTTP v1 with a service account; null when not configured. */

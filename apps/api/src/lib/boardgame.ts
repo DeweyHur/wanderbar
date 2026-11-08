@@ -4,7 +4,7 @@ import { externalLinks, gameDetails, gameQueue, nightGuests, nightRsvps, groups,
 import { bggAvailable, bggIdFromUrl, getBggGame } from "./bgg";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember, type Role } from "./groups";
-import { displayName, notifyGroup } from "./push";
+import { displayName, notifyGroup, ratingNews, recently } from "./push";
 import { DATE_RE, isTimeZone, localDate, nextOccurrence, TIME_RE, zonedInstant } from "./recurrence";
 
 /**
@@ -207,6 +207,7 @@ export async function createGame(db: Db, groupId: string, userId: string, input:
   await setLinks(db, game.id, links);
   await setTags(db, groupId, game.id, tagNames);
   await syncBggDetails(db, game.id, links);
+  notifyGroup(db, groupId, userId, { type: "game", who: await displayName(db, userId), name, itemId: game.id });
   return getGame(db, game.id, userId);
 }
 
@@ -252,6 +253,7 @@ export async function updateGame(db: Db, id: string, userId: string, input: Game
     await syncBggDetails(db, id, links);
   }
   if (tagNames) await setTags(db, game.groupId, id, tagNames);
+  if (!recently(game.updatedAt)) notifyGroup(db, game.groupId, userId, { type: "edit", who: await displayName(db, userId), name: set.name ?? game.name, itemId: id, kind: "game" });
   return getGame(db, id, userId);
 }
 
@@ -268,6 +270,9 @@ export async function rateGame(db: Db, id: string, userId: string, input: { scor
   const score = input.score;
   if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.score_invalid");
   const review = (input.review ?? "").trim();
+  const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
+  if (ratingNews(before, score, review))
+    notifyGroup(db, game.groupId, userId, { type: "game_rating", who: await displayName(db, userId), name: game.name, score, review, again: !!before, itemId: id });
   await db
     .insert(ratings)
     .values({ groupId: game.groupId, itemId: id, userId, score, review })
@@ -555,6 +560,10 @@ export async function setRsvp(db: Db, nightId: string, userId: string, input: { 
       throw badRequest("night.picker_not_member");
     });
   }
+  const [prev] = await db.select({ status: nightRsvps.status, updatedAt: nightRsvps.updatedAt }).from(nightRsvps).where(and(eq(nightRsvps.nightId, nightId), eq(nightRsvps.userId, target)));
+  // Your own answer for a night still to come (not someone fixing the list, not recording who came).
+  if (target === userId && input.status && input.status !== prev?.status && night.startsAt.getTime() > Date.now() && !recently(prev?.updatedAt))
+    notifyGroup(db, night.groupId, userId, { type: "rsvp", who: await displayName(db, userId), status: input.status, at: night.startsAt, tz: await groupTimezone(db, night.groupId), nightId });
   if (input.status === null) {
     await db.delete(nightRsvps).where(and(eq(nightRsvps.nightId, nightId), eq(nightRsvps.userId, target)));
   } else {
@@ -619,7 +628,11 @@ export async function updateNight(db: Db, id: string, userId: string, input: Nig
     });
     set.pickerId = input.pickerId;
   }
-  if (Object.keys(set).length) await db.update(meetupNights).set(set).where(eq(meetupNights.id, id));
+  if (Object.keys(set).length) {
+    await db.update(meetupNights).set(set).where(eq(meetupNights.id, id));
+    const at = set.startsAt ?? night.startsAt;
+    if (at.getTime() > Date.now()) notifyGroup(db, night.groupId, userId, { type: "night_edit", who: await displayName(db, userId), at, tz: await groupTimezone(db, night.groupId), nightId: id });
+  }
   return getNight(db, id, userId);
 }
 

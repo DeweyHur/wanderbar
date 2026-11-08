@@ -21,7 +21,7 @@ const TOKEN_KEY = "push_token";
 const PREFIX = "wb-reminder-";
 
 export const notificationsSupported = Platform.OS !== "web";
-export const pushSupported = Platform.OS === "android";
+export const pushSupported = Platform.OS === "android" || Platform.OS === "ios";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),

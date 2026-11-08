@@ -3,7 +3,7 @@ import type { Db } from "../db/client";
 import { items, ratings, users, visits } from "../db/schema";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember } from "./groups";
-import { displayName, notifyGroup } from "./push";
+import { displayName, notifyGroup, ratingNews, recently } from "./push";
 import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { cleanCategory, stars, summary } from "./restaurants";
 
@@ -102,7 +102,7 @@ export async function getDish(db: Db, id: string, userId: string) {
 }
 
 export async function updateDish(db: Db, id: string, userId: string, input: DishInput) {
-  await memberDish(db, id, userId);
+  const { dish } = await memberDish(db, id, userId);
   if (input.name !== undefined && !input.name.trim()) throw badRequest("dish.name_required");
   const set: Partial<typeof items.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) set.name = input.name.trim();
@@ -110,6 +110,7 @@ export async function updateDish(db: Db, id: string, userId: string, input: Dish
   if (category !== undefined) set.category = category;
   if (input.memo !== undefined) set.memo = input.memo.trim();
   await db.update(items).set(set).where(eq(items.id, id));
+  if (!recently(dish.updatedAt)) notifyGroup(db, dish.groupId, userId, { type: "edit", who: await displayName(db, userId), name: set.name ?? dish.name, itemId: id, kind: "dish" });
   return getDish(db, id, userId);
 }
 
@@ -126,8 +127,9 @@ export async function rateDish(db: Db, id: string, userId: string, input: { star
   const score = input.stars * 2;
   if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
   const review = (input.review ?? "").trim();
-  const [before] = await db.select({ score: ratings.score }).from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
-  if (!before) notifyGroup(db, dish.groupId, userId, { type: "rating", who: await displayName(db, userId), name: dish.name, stars: input.stars, itemId: id, kind: "dish" });
+  const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
+  if (ratingNews(before, score, review))
+    notifyGroup(db, dish.groupId, userId, { type: "rating", who: await displayName(db, userId), name: dish.name, stars: input.stars, review, again: !!before, itemId: id, kind: "dish" });
   await db
     .insert(ratings)
     .values({ groupId: dish.groupId, itemId: id, userId, score, review })
@@ -146,6 +148,7 @@ export async function addMade(db: Db, id: string, userId: string, madeAt?: Date)
   const { dish } = await memberDish(db, id, userId);
   if (madeAt && (Number.isNaN(madeAt.getTime()) || madeAt.getTime() > Date.now() + 86_400_000)) throw badRequest("visit.date_invalid");
   await db.insert(visits).values({ groupId: dish.groupId, itemId: id, userId, visitedAt: madeAt ?? new Date() });
+  notifyGroup(db, dish.groupId, userId, { type: "visit", who: await displayName(db, userId), name: dish.name, itemId: id, kind: "dish" });
   return getDish(db, id, userId);
 }
 

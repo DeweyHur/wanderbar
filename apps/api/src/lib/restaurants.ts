@@ -5,7 +5,7 @@ import { externalLinks, groups, items, menuDetails, planStops, ratings, restaura
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
-import { displayName, notifyGroup } from "./push";
+import { displayName, notifyGroup, ratingNews, recently } from "./push";
 import { coverPhotos, deletePhotoFilesOf } from "./photos";
 import { isDay } from "./plans";
 import { resolveShortLink } from "./shortLinks";
@@ -400,8 +400,9 @@ export async function rateMenu(db: Db, menuId: string, userId: string, input: { 
   const score = input.stars * 2;
   if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
   const review = (input.review ?? "").trim();
-  const [before] = await db.select({ score: ratings.score }).from(ratings).where(and(eq(ratings.itemId, menuId), eq(ratings.userId, userId)));
-  if (!before) notifyGroup(db, menu.groupId, userId, { type: "rating", who: await displayName(db, userId), name: menu.name, stars: input.stars, itemId: menuId, kind: "menu" });
+  const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, menuId), eq(ratings.userId, userId)));
+  if (ratingNews(before, score, review))
+    notifyGroup(db, menu.groupId, userId, { type: "rating", who: await displayName(db, userId), name: menu.name, stars: input.stars, review, again: !!before, itemId: menuId, kind: "menu" });
   await db
     .insert(ratings)
     .values({ groupId: menu.groupId, itemId: menuId, userId, score, review })
@@ -438,6 +439,7 @@ export async function updateRestaurant(db: Db, id: string, userId: string, edit:
   }
   if (edit.mapsUrl !== undefined) await setLink(db, id, "gmaps", edit.mapsUrl);
   if (Object.keys(detailSet).length) await db.update(restaurantDetails).set(detailSet).where(eq(restaurantDetails.itemId, id));
+  if (!recently(item.updatedAt)) notifyGroup(db, item.groupId, userId, { type: "edit", who: await displayName(db, userId), name: itemSet.name ?? item.name, itemId: id, kind: "restaurant" });
   return getRestaurant(db, id, userId);
 }
 
@@ -499,6 +501,7 @@ export async function addMenu(db: Db, restaurantId: string, userId: string, inpu
     .values({ groupId: item.groupId, module: "food", type: "menu", parentId: restaurantId, name, memo: (input.memo ?? "").trim(), createdBy: userId })
     .returning();
   await db.insert(menuDetails).values({ itemId: menu.id, priceMinor, currency: group?.currency ?? "USD" });
+  notifyGroup(db, item.groupId, userId, { type: "menu", who: await displayName(db, userId), name, restaurant: item.name, itemId: menu.id });
   return getRestaurant(db, restaurantId, userId);
 }
 
@@ -511,6 +514,7 @@ export async function updateMenu(db: Db, menuId: string, userId: string, input: 
   if (input.memo !== undefined) set.memo = input.memo.trim();
   await db.update(items).set(set).where(eq(items.id, menuId));
   if (priceMinor !== undefined) await db.update(menuDetails).set({ priceMinor }).where(eq(menuDetails.itemId, menuId));
+  if (!recently(menu.updatedAt)) notifyGroup(db, menu.groupId, userId, { type: "edit", who: await displayName(db, userId), name: set.name ?? menu.name, itemId: menuId, kind: "menu" });
   return getRestaurant(db, menu.parentId!, userId);
 }
 
@@ -543,6 +547,7 @@ export async function addVisit(db: Db, restaurantId: string, userId: string, vis
   const { item } = await memberRestaurant(db, restaurantId, userId);
   if (visitedAt && (Number.isNaN(visitedAt.getTime()) || visitedAt.getTime() > Date.now() + 86_400_000)) throw badRequest("visit.date_invalid");
   await db.insert(visits).values({ groupId: item.groupId, itemId: restaurantId, userId, visitedAt: visitedAt ?? new Date() });
+  notifyGroup(db, item.groupId, userId, { type: "visit", who: await displayName(db, userId), name: item.name, itemId: restaurantId, kind: "restaurant" });
   return getRestaurant(db, restaurantId, userId);
 }
 
@@ -559,8 +564,11 @@ export async function deleteVisit(db: Db, visitId: string, userId: string) {
 /** Finishing a restaurant stop records a visit (once per stop); bringing the stop back removes it. */
 export async function recordStopVisit(db: Db, stop: { id: string; itemId: string | null }, groupId: string, userId: string, done: boolean) {
   if (!stop.itemId) return;
-  if (done) await db.insert(visits).values({ groupId, itemId: stop.itemId, userId, stopId: stop.id }).onConflictDoNothing();
-  else await db.delete(visits).where(eq(visits.stopId, stop.id));
+  if (done) {
+    const added = await db.insert(visits).values({ groupId, itemId: stop.itemId, userId, stopId: stop.id }).onConflictDoNothing().returning({ id: visits.id });
+    const [item] = added.length ? await db.select({ name: items.name }).from(items).where(eq(items.id, stop.itemId)) : [];
+    if (item) notifyGroup(db, groupId, userId, { type: "visit", who: await displayName(db, userId), name: item.name, itemId: stop.itemId, kind: "restaurant" });
+  } else await db.delete(visits).where(eq(visits.stopId, stop.id));
 }
 
 /**

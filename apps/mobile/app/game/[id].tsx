@@ -9,6 +9,8 @@ import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { bgApi, type Game } from "@/modules/boardgame/api";
 import { GameForm } from "@/modules/boardgame/GameForm";
+import { PlayedOn } from "@/modules/boardgame/PlayedOn";
+import { scoreText } from "@/modules/boardgame/format";
 import { allTags, bggFacts, GameLinks, GameThumb, PoweredByBgg, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
 import { FormScroll } from "@/components/FormScroll";
 
@@ -70,7 +72,6 @@ export default function GameScreen() {
     }
   };
   const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" });
-  const others = g.ratings.filter((r) => r.userId !== me);
 
   return (
     <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
@@ -115,7 +116,31 @@ export default function GameScreen() {
         {g.queuedBy.length > 0 && <Body muted>{t("boardgame:queue.wantedBy", { names: g.queuedBy.map((q) => q.name).join(", ") })}</Body>}
       </View>
 
-      <SectionTitle>{t("boardgame:rating.yours")}</SectionTitle>
+      {/* Everyone's ratings, mine included (so saving shows up right here with the rest). */}
+      <SectionTitle>{t("boardgame:rating.group")}</SectionTitle>
+      {g.ratings.length === 0 ? (
+        <Body muted>{t("boardgame:rating.none")}</Body>
+      ) : (
+        <>
+          <ScoreBadge rating={g.rating} />
+          {[...g.ratings]
+            .sort((a, b) => Number(b.userId === me) - Number(a.userId === me))
+            .map((r) => (
+              <Card key={r.userId} testID="game-review" highlight={r.userId === me}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <Text style={{ color: c.text, fontWeight: "600", flexShrink: 1 }}>
+                    {r.name}
+                    {r.userId === me ? <Text style={{ color: c.muted, fontWeight: "400" }}> · {t("boardgame:rating.me")}</Text> : null}
+                  </Text>
+                  <Text style={{ color: c.text, fontSize: 16, fontWeight: "700" }}>{scoreText(r.score)}/10</Text>
+                </View>
+                {r.review ? <Body>{r.review}</Body> : null}
+              </Card>
+            ))}
+        </>
+      )}
+
+      <SectionTitle>{g.mine ? t("boardgame:rating.change") : t("boardgame:rating.yours")}</SectionTitle>
       <ScoreInput value={score} onChange={setScore} />
       <Field label={t("boardgame:rating.comment")} value={review} onChangeText={setReview} placeholder={t("boardgame:rating.commentPlaceholder")} multiline />
       <Button label={t("boardgame:rating.save")} busy={busy} disabled={score === 0} onPress={() => run(bgApi.rate(g.id, score, review), t("boardgame:rating.saved"))} />
@@ -127,18 +152,8 @@ export default function GameScreen() {
       {notice ? <Body muted>{notice}</Body> : null}
       <ErrorText>{error}</ErrorText>
 
-      {others.length > 0 && <SectionTitle>{t("boardgame:rating.group")}</SectionTitle>}
-      {others.map((r) => (
-        <Card key={r.userId} testID="game-review">
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ color: c.text, fontWeight: "600" }}>{r.name}</Text>
-            <Text style={{ color: c.text, fontSize: 16, fontWeight: "700" }}>{r.score}/10</Text>
-          </View>
-          {r.review ? <Body>{r.review}</Body> : null}
-        </Card>
-      ))}
-
-      {g.nights.length > 0 && <SectionTitle>{t("boardgame:game.nights")}</SectionTitle>}
+      <SectionTitle>{t("boardgame:game.nights")}</SectionTitle>
+      <PlayedOn onLog={(date) => run(bgApi.logPlay(g.id, date), t("boardgame:play.logged"))} busy={busy} />
       {g.nights.map((n) => (
         <Pressable key={n.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/night/[id]", params: { id: n.id } })}>
           <Text style={{ color: n.past ? c.text : c.accent, fontSize: 15, paddingVertical: 4 }}>{fmt.format(new Date(n.startsAt))}</Text>

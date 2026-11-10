@@ -1,0 +1,1 @@
+ALTER TABLE "ratings" ALTER COLUMN "score" SET DATA TYPE double precision;

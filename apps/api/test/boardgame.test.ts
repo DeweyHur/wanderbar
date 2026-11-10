@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
 import { signIn } from "@/lib/auth";
 import {
+  logPlay,
   addGuest,
   addNightGame,
   boardgameHome,
@@ -87,7 +88,12 @@ describe("games", () => {
       [7, "Grew on me"],
       [9, "Masterpiece"],
     ]);
-    for (const score of [0, 11, 7.5]) expect(await status(rateGame(db, g.id, me, { score }))).toBe(400);
+    // One decimal place is fine; averages keep one decimal.
+    out = await rateGame(db, g.id, me, { score: 8.3 });
+    expect(out.mine?.score).toBe(8.3);
+    expect(out.rating).toEqual({ avg: 7.7, count: 2 }); // (8.3 + 7) / 2 = 7.65
+    expect((await rateGame(db, g.id, amy, { score: 10 })).rating).toEqual({ avg: 9.2, count: 2 }); // 9.15
+    for (const score of [0, 0.9, 10.1, 11, 7.55, Number.NaN]) expect(await status(rateGame(db, g.id, me, { score }))).toBe(400);
   });
 
   it("only the one who added it, the owner or a host can delete; outsiders see nothing", async () => {
@@ -98,6 +104,31 @@ describe("games", () => {
     expect(await status(listGames(db, groupId, stranger))).toBe(404);
     await deleteGame(db, g.id, me);
     expect(await listGames(db, groupId, me)).toEqual([]);
+  });
+});
+
+describe("recording past plays", () => {
+  it("puts the game on that day's night, making one at the usual time; any member can; not in the future", async () => {
+    const brass = await createGame(db, groupId, amy, { name: "Brass" });
+    const azul = await createGame(db, groupId, ben, { name: "Azul" });
+    let g = await logPlay(db, brass.id, ben, "2026-10-24", NOW);
+    expect(g.plays).toBe(1);
+    expect(g.nights).toHaveLength(1);
+    expect(localDate(new Date(g.nights[0].startsAt), LA)).toBe("2026-10-24");
+    expect(localTime(new Date(g.nights[0].startsAt), LA)).toBe("19:00");
+    // Same day, another game → the same night; logging twice doesn't double count.
+    g = await logPlay(db, azul.id, amy, "2026-10-24", NOW);
+    expect(g.nights[0].id).toBe((await getGame(db, brass.id, me)).nights[0].id);
+    expect((await logPlay(db, azul.id, amy, "2026-10-24", NOW)).plays).toBe(1);
+    // With a regular meetup, a new night uses its time and place.
+    await createSeries(db, groupId, me, { weekday: 6, time: "18:30", location: "Ben's place" }, NOW);
+    g = await logPlay(db, brass.id, me, "2026-10-17", NOW);
+    const night = g.nights.find((n) => localDate(new Date(n.startsAt), LA) === "2026-10-17")!;
+    expect(localTime(new Date(night.startsAt), LA)).toBe("18:30");
+    expect(g.plays).toBe(2);
+    const stranger = (await signIn(db, profile("stranger"))).user.id;
+    expect(await status(logPlay(db, brass.id, stranger, "2026-10-24", NOW))).toBe(404);
+    for (const date of ["2099-01-01", "2026-13-01", "yesterday"]) expect(await status(logPlay(db, brass.id, me, date, NOW))).toBe(400);
   });
 });
 

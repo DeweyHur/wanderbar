@@ -35,6 +35,9 @@ export type BggGame = {
   maxPlayers: number | null;
   playingTime: number | null;
   weight: number | null;
+  /** BGG's categories ("Economic", "Card Game") and mechanics ("Hand Management"): tag suggestions. */
+  categories: string[];
+  mechanics: string[];
 };
 
 /** ".../boardgame/266192/wingspan" (or boardgameexpansion) → 266192 */
@@ -48,7 +51,7 @@ export const bggUrl = (id: number) => `https://boardgamegeek.com/boardgame/${id}
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "",
-  isArray: (name) => name === "item" || name === "name",
+  isArray: (name) => name === "item" || name === "name" || name === "link",
 });
 
 type XmlValue = { value?: string | number };
@@ -62,6 +65,7 @@ type XmlItem = {
   maxplayers?: XmlValue;
   playingtime?: XmlValue;
   statistics?: { ratings?: { averageweight?: XmlValue } };
+  link?: { type?: string; value?: string | number }[];
 };
 
 const num = (v: XmlValue | undefined) => {
@@ -85,6 +89,8 @@ export function parseSearch(xml: string): BggSearchHit[] {
   return out;
 }
 
+const links = (it: XmlItem, type: string) => [...new Set((it.link ?? []).filter((l) => l.type === type).map((l) => String(l.value ?? "").trim()).filter(Boolean))];
+
 export function parseThing(xml: string): BggGame | null {
   const it: XmlItem | undefined = parser.parse(xml)?.items?.item?.[0];
   if (!it?.id) return null;
@@ -99,6 +105,8 @@ export function parseThing(xml: string): BggGame | null {
     maxPlayers: num(it.maxplayers),
     playingTime: num(it.playingtime),
     weight: Number.isFinite(w) && w > 0 ? Math.round(w * 100) / 100 : null,
+    categories: links(it, "boardgamecategory"),
+    mechanics: links(it, "boardgamemechanic"),
   };
 }
 
@@ -155,7 +163,7 @@ export async function searchGames(db: Db, q: string, f: Fetch = fetch) {
 
 export async function getBggGame(db: Db, id: number, f: Fetch = fetch) {
   if (!Number.isInteger(id) || id <= 0) throw new HttpError(400, "bgg.bad_id");
-  const game = await cached(db, `thing:${id}`, THING_TTL, async () => parseThing(await call(`/thing?id=${id}&stats=1`, f)));
+  const game = await cached(db, `thing2:${id}`, THING_TTL, async () => parseThing(await call(`/thing?id=${id}&stats=1`, f)));
   if (!game) throw new HttpError(404, "bgg.not_found");
   return game;
 }
@@ -163,10 +171,10 @@ export async function getBggGame(db: Db, id: number, f: Fetch = fetch) {
 // ---- canned BGG answers for end-to-end tests ----
 
 const FAKE: BggGame[] = [
-  { id: 266192, name: "Wingspan", year: 2019, minPlayers: 1, maxPlayers: 5, playingTime: 70, weight: 2.48 },
-  { id: 295947, name: "Cascadia", year: 2021, minPlayers: 1, maxPlayers: 4, playingTime: 45, weight: 1.84 },
-  { id: 224517, name: "Brass: Birmingham", year: 2018, minPlayers: 2, maxPlayers: 4, playingTime: 120, weight: 3.86 },
-  { id: 290236, name: "Canvas", year: 2021, minPlayers: 1, maxPlayers: 5, playingTime: 45, weight: 1.84 },
+  { id: 266192, name: "Wingspan", year: 2019, minPlayers: 1, maxPlayers: 5, playingTime: 70, weight: 2.48, categories: ["Animals", "Card Game"], mechanics: ["Hand Management", "Engine Building"] },
+  { id: 295947, name: "Cascadia", year: 2021, minPlayers: 1, maxPlayers: 4, playingTime: 45, weight: 1.84, categories: ["Animals", "Environmental"], mechanics: ["Tile Placement"] },
+  { id: 224517, name: "Brass: Birmingham", year: 2018, minPlayers: 2, maxPlayers: 4, playingTime: 120, weight: 3.86, categories: ["Economic", "Industry / Manufacturing"], mechanics: ["Hand Management", "Network and Route Building"] },
+  { id: 290236, name: "Canvas", year: 2021, minPlayers: 1, maxPlayers: 5, playingTime: 45, weight: 1.84, categories: ["Card Game"], mechanics: ["Set Collection"] },
 ].map((g) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#8fb8de"/><text x="100" y="115" font-size="48" text-anchor="middle" fill="#fff">${g.name[0]}</text></svg>`;
   const uri = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
@@ -189,5 +197,7 @@ function fakeXml(path: string) {
   return `<items><item type="boardgame" id="${g.id}"><thumbnail>${g.thumbnail}</thumbnail><image>${g.image}</image>
     <name type="primary" sortindex="1" value="${esc(g.name)}"/><name type="alternate" value="Alt ${esc(g.name)}"/>
     <yearpublished value="${g.year}"/><minplayers value="${g.minPlayers}"/><maxplayers value="${g.maxPlayers}"/>
-    <playingtime value="${g.playingTime}"/><statistics page="1"><ratings><averageweight value="${g.weight}"/></ratings></statistics></item></items>`;
+    <playingtime value="${g.playingTime}"/><statistics page="1"><ratings><averageweight value="${g.weight}"/></ratings></statistics>
+    ${g.categories.map((v) => `<link type="boardgamecategory" id="1" value="${esc(v)}"/>`).join("")}
+    ${g.mechanics.map((v) => `<link type="boardgamemechanic" id="2" value="${esc(v)}"/>`).join("")}</item></items>`;
 }

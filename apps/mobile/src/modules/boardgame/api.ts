@@ -17,7 +17,7 @@ export type BggInfo = {
   weight: number | null;
 };
 export type BggHit = { id: number; name: string; year: number | null };
-export type BggGame = Omit<BggInfo, "id"> & { id: number; name: string };
+export type BggGame = Omit<BggInfo, "id"> & { id: number; name: string; categories?: string[]; mechanics?: string[] };
 
 export type GameSummary = {
   id: string;
@@ -100,6 +100,7 @@ export const bgApi = {
   deleteGame: (id: string) => api(`/api/games/${id}`, { method: "DELETE" }),
   rate: (id: string, score: number, review: string) => api<Game>(`/api/games/${id}/rating`, { method: "PUT", body: { score, review } }),
   unrate: (id: string) => api<Game>(`/api/games/${id}/rating`, { method: "DELETE" }),
+  logPlay: (id: string, date: string) => api<Game>(`/api/games/${id}/plays`, { body: { date } }),
   refreshBgg: (id: string) => api<Game>(`/api/games/${id}/bgg`, { body: {} }),
   queue: (id: string) => api<Game>(`/api/games/${id}/queue`, { body: {} }),
   unqueue: (id: string) => api<Game>(`/api/games/${id}/queue`, { method: "DELETE" }),

@@ -23,6 +23,10 @@ const THING = `<?xml version="1.0" encoding="utf-8"?><items termsofuse="https://
     <yearpublished value="2019" /><minplayers value="1" /><maxplayers value="5" />
     <playingtime value="70" /><minplaytime value="40" /><maxplaytime value="70" />
     <statistics page="1"><ratings><usersrated value="1" /><averageweight value="2.4783" /></ratings></statistics>
+    <link type="boardgamecategory" id="1089" value="Animals" />
+    <link type="boardgamecategory" id="1002" value="Card Game" />
+    <link type="boardgamemechanic" id="2041" value="Hand Management" />
+    <link type="boardgamedesigner" id="1" value="Elizabeth Hargrave" />
   </item>
 </items>`;
 
@@ -46,6 +50,8 @@ describe("BGG XML", () => {
       maxPlayers: 5,
       playingTime: 70,
       weight: 2.48,
+      categories: ["Animals", "Card Game"],
+      mechanics: ["Hand Management"],
     });
     expect(parseThing("<items></items>")).toBeNull();
   });

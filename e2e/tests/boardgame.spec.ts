@@ -171,7 +171,17 @@ test("rate games out of 10 after a night; leaderboard by rating and by tag; frie
   await rows.filter({ hasText: "Codenames" }).click();
   await expect(visible(page, "game-info")).toContainText("8/10 (2)");
   await expect(visible(page, "game-info")).toContainText("Played once");
-  await expect(visible(page, "game-review")).toContainText("Best with 6+");
+  const reviews = visible(page, "game-review");
+  await expect(reviews).toHaveCount(2); // mine (first, marked) and the friend's
+  await expect(reviews.nth(0)).toContainText("Organizer · you");
+  await expect(reviews.nth(0)).toContainText("6/10");
+  await expect(reviews.nth(1)).toContainText("Best with 6+");
+
+  // Scores can have one decimal: 6 → 6.4 shows in the list and the average right away.
+  await button(page, "6.4 out of 10").click();
+  await button(page, "Save rating").click();
+  await expect(reviews.nth(0)).toContainText("6.4/10");
+  await expect(visible(page, "game-info")).toContainText("8.2/10 (2)");
   void codenames;
 });
 
@@ -190,6 +200,10 @@ test("BoardGameGeek: search by name, pick a game, and its box art and player cou
   await expect(field(page, "Name")).toHaveValue("Wingspan");
   await expect(field(page, "BoardGameGeek link")).toHaveValue("https://boardgamegeek.com/boardgame/266192");
   await expect(visible(page, "bgg-picked")).toContainText("1–5 players · 70 min · weight 2.5/5");
+  // Tags start from BGG's categories; its mechanics are a tap away.
+  await expect(field(page, "Tags")).toHaveValue("Animals, Card Game");
+  await visible(page, "bgg-tags").getByRole("button", { name: "+ Hand Management" }).click();
+  await expect(field(page, "Tags")).toHaveValue("Animals, Card Game, Hand Management");
   await field(page, "Tags").fill("birds");
   await button(page, "Save").click();
 
@@ -270,4 +284,37 @@ test("who's coming: answer, bring guests, see too many players; afterwards recor
   await expect(after).toContainText("Didn't come (1)  Pat");
   // Pat can't record others.
   expect((await friend.request.put(`/api/nights/${past.id}/rsvp`, { headers: WEB, data: { status: "going", userId: (await me(page.request)).user.id } })).status()).toBe(403);
+});
+
+test("record games already played (a date when adding, or later), and add a BGG game straight from a night", async ({ page }) => {
+  await signIn(page, "Logger");
+  const groupId = await newBoardGameGroup(page, "Log Club");
+  await button(page, "Games").click();
+  await button(page, "Add a game").click();
+  await field(page, "Name").fill("Hanabi");
+  await field(page, "Played on (optional)").fill("2026-10-03");
+  await button(page, "Save").click();
+  const info = visible(page, "game-info");
+  await expect(info).toContainText("Played once");
+  await expect(page.getByText("Oct 3, 2026", { exact: true }).filter({ visible: true })).toBeVisible();
+
+  // Later: another day, from the game page.
+  await field(page, "Played on").fill("2026-10-10");
+  await button(page, "Add play").click();
+  await expect(info).toContainText("Played 2 times");
+  await field(page, "Played on").fill("2099-01-01");
+  await button(page, "Add play").click();
+  await expect(page.getByText("That day hasn't happened yet", { exact: false }).filter({ visible: true })).toBeVisible();
+
+  // That day's night has the game; the BGG search there adds a new game with its categories as tags.
+  await page.getByText("Oct 10, 2026", { exact: true }).filter({ visible: true }).click();
+  await expect(visible(page, "lineup-card")).toContainText(["Hanabi"]);
+  await field(page, "From the games").pressSequentially("casc", { delay: 20 });
+  const bgg = visible(page, "night-bgg-results");
+  await expect(bgg).toContainText("Powered by BGG");
+  await bgg.getByRole("button", { name: "Cascadia (2021)" }).click();
+  await expect(visible(page, "lineup-card")).toHaveCount(2);
+  await expect(visible(page, "lineup-card").filter({ hasText: "Cascadia" }).getByTestId("game-thumb")).toBeVisible();
+  const games = (await (await page.request.get(`/api/groups/${groupId}/games`)).json()).games as { name: string; tags: string[] }[];
+  expect(games.find((g) => g.name === "Cascadia")?.tags).toEqual(["Animals", "Environmental"]);
 });

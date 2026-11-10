@@ -74,7 +74,10 @@
     "confirmDelete": "Delete this game night?",
     "lineupLocked": "{{name}} is picking this time. Queue a game to suggest it.",
     "count_one": "{{count}} game",
-    "count_other": "{{count}} games"
+    "count_other": "{{count}} games",
+    "fromBgg": "From BoardGameGeek",
+    "bggSearching": "Searching BGG…",
+    "bggNone": "Nothing on BGG by that name"
   },
   "queue": {
     "title": "Queue",
@@ -141,7 +144,9 @@
     "none": "Not rated yet",
     "count_one": "{{count}} rating",
     "count_other": "{{count}} ratings",
-    "mine": "you: {{score}}"
+    "mine": "you: {{score}}",
+    "me": "you",
+    "change": "Change your rating"
   },
   "leaderboard": {
     "byRating": "Top rated",
@@ -160,7 +165,8 @@
     "weight": "weight {{weight}}/5",
     "searchPlaceholder": "Type a name to search BoardGameGeek",
     "refresh": "Get picture from BGG",
-    "noPicture": "Add a BGG link to show the box art."
+    "noPicture": "Add a BGG link to show the box art.",
+    "tags": "From BGG (tap to add)"
   },
   "rsvp": {
     "titleUpcoming": "Who's coming",
@@ -188,5 +194,14 @@
     "tooMany": "Up to {{max}} players · {{going}} coming",
     "tooFew": "Needs {{min}}+ players · {{going}} coming",
     "you": "You: {{answer}}"
+  },
+  "play": {
+    "field": "Played on",
+    "hint": "Already played it? Add the date and it goes on that day's game night.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "add": "Add play",
+    "logged": "Play recorded",
+    "newGameField": "Played on (optional)"
   }
 }

@@ -166,7 +166,7 @@ export const restaurantDetails = pgTable(
 
 /**
  * A member's rating of a menu: one per person per menu, updated when they eat it again.
- * score is in half stars, 1..10 (= 0.5..5 stars).
+ * score: menus use half stars, whole numbers 1..10 (= 0.5..5 stars); board games use 1.0..10.0 in steps of 0.1.
  */
 export const ratings = pgTable(
   "ratings",
@@ -181,7 +181,7 @@ export const ratings = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    score: integer("score").notNull(),
+    score: doublePrecision("score").notNull(),
     review: text("review").notNull().default(""),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

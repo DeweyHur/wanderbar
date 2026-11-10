@@ -77,38 +77,49 @@ export function ScoreBadge({ rating, mine }: { rating: Rating; mine?: number | n
   );
 }
 
-/** Ten buttons, 1..10. */
+/** Ten buttons for the whole number (1..10), then tenths (7.0 … 7.9) to fine-tune it. */
 export function ScoreInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const c = useColors();
   const { t } = useTranslation();
-  return (
-    <View style={{ flexDirection: "row", gap: 4, maxWidth: 440 }}>
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
-        const on = value === n;
-        return (
-          <Pressable
-            key={n}
-            accessibilityRole="button"
-            accessibilityLabel={t("boardgame:rating.score", { score: n })}
-            accessibilityState={{ selected: on }}
-            onPress={() => onChange(n)}
-            style={({ pressed }) => ({
-              flex: 1,
-              minWidth: 24,
-              height: 40,
-              borderRadius: 8,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: on ? c.accent : c.border,
-              backgroundColor: on ? c.accent : value >= n ? `${c.accent}33` : "transparent",
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text style={{ color: on ? (c.dark ? c.onPink : "#fff") : c.text, fontSize: 15, fontWeight: "600" }}>{n}</Text>
-          </Pressable>
-        );
+  const whole = Math.floor(value + 1e-9);
+  const tenth = Math.round((value - whole) * 10);
+  const cell = (label: string, on: boolean, filled: boolean, onPress: () => void, a11y: string, small?: boolean) => (
+    <Pressable
+      key={label}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+      accessibilityState={{ selected: on }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 24,
+        height: small ? 32 : 40,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: on ? c.accent : c.border,
+        backgroundColor: on ? c.accent : filled ? `${c.accent}33` : "transparent",
+        opacity: pressed ? 0.6 : 1,
       })}
+    >
+      <Text style={{ color: on ? (c.dark ? c.onPink : "#fff") : c.text, fontSize: small ? 13 : 15, fontWeight: "600" }}>{label}</Text>
+    </Pressable>
+  );
+  return (
+    <View style={{ gap: 6, maxWidth: 440 }}>
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => cell(String(n), whole === n, value >= n, () => onChange(n), t("boardgame:rating.score", { score: n })))}
+      </View>
+      {whole >= 1 && whole < 10 && (
+        <View testID="score-tenths" style={{ flexDirection: "row", gap: 4 }}>
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => {
+            const v = whole + d / 10;
+            const label = `${whole}.${d}`;
+            return cell(label, tenth === d, false, () => onChange(Math.round(v * 10) / 10), t("boardgame:rating.score", { score: label }), true);
+          })}
+        </View>
+      )}
     </View>
   );
 }

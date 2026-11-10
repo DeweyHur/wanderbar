@@ -7,6 +7,7 @@ import { ErrorText, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { bgApi, type GameInput } from "@/modules/boardgame/api";
 import { GameForm } from "@/modules/boardgame/GameForm";
+import { PlayDateField } from "@/modules/boardgame/PlayedOn";
 import { allTags } from "@/modules/boardgame/parts";
 import { FormScroll } from "@/components/FormScroll";
 
@@ -18,6 +19,7 @@ export default function NewGame() {
   const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [playedOn, setPlayedOn] = useState("");
 
   useEffect(() => {
     bgApi.games(groupId).then((g) => setTags(allTags(g)), () => {});
@@ -28,6 +30,16 @@ export default function NewGame() {
     setError("");
     try {
       const game = await bgApi.createGame(groupId, g);
+      if (!nightId && playedOn.trim()) {
+        try {
+          await bgApi.logPlay(game.id, playedOn.trim());
+        } catch (e) {
+          // The game is saved; open it so the date can be fixed there.
+          router.replace({ pathname: "/game/[id]", params: { id: game.id } });
+          setError(errorText(t, e));
+          return;
+        }
+      }
       if (nightId) {
         await bgApi.addGame(nightId, game.id);
         router.back();
@@ -44,7 +56,12 @@ export default function NewGame() {
     <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: t("boardgame:game.add") }} />
       <GroupBar groupId={groupId} />
-      <GameForm knownTags={tags} busy={busy} onSave={save} />
+      <GameForm
+        knownTags={tags}
+        busy={busy}
+        onSave={save}
+        extra={nightId ? null : <PlayDateField value={playedOn} onChange={setPlayedOn} label={t("boardgame:play.newGameField")} />}
+      />
       <ErrorText>{error}</ErrorText>
     </FormScroll>
   );

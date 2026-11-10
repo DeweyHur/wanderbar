@@ -1,16 +1,16 @@
 import { Attendance, playerWarning } from "@/modules/boardgame/Attendance";
 import { GroupBar } from "@/components/GroupSwitcher";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
-import { bgApi, type GameSummary, type Night, type NightGame, type QueueEntry } from "@/modules/boardgame/api";
+import { bgApi, bggApi, bggAvailable, bggLink, type BggHit, type GameSummary, type Night, type NightGame, type QueueEntry } from "@/modules/boardgame/api";
 import { localParts, nightWhen } from "@/modules/boardgame/format";
-import { GameLinks, GameThumb, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
+import { GameLinks, GameThumb, PoweredByBgg, ScoreBadge, ScoreInput, SectionTitle } from "@/modules/boardgame/parts";
 import { FormScroll } from "@/components/FormScroll";
 
 /** One game night: who picks, the games (with their links), rating them afterwards, notes. */
@@ -28,6 +28,34 @@ export default function NightScreen() {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [bggOn, setBggOn] = useState(false);
+  const [bggHits, setBggHits] = useState<BggHit[]>([]);
+  const [bggBusy, setBggBusy] = useState(false);
+
+  useEffect(() => {
+    bggAvailable().then(setBggOn);
+  }, []);
+  // Games not in the library yet: look them up on BGG as you type.
+  useEffect(() => {
+    const q = search.trim();
+    if (!bggOn || q.length < 2) {
+      setBggHits([]);
+      setBggBusy(false);
+      return;
+    }
+    setBggBusy(true);
+    let stale = false;
+    const timer = setTimeout(() => {
+      bggApi.search(q).then(
+        (r) => !stale && (setBggHits(r), setBggBusy(false)),
+        () => !stale && (setBggHits([]), setBggBusy(false)),
+      );
+    }, 400);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [search, bggOn]);
 
   const show = (x: Night) => {
     setN(x);
@@ -74,9 +102,25 @@ export default function NightScreen() {
       }
     });
 
+  // Pick a BGG result: add it to the library (box art comes from BGG) and to this night.
+  const addFromBgg = async (h: BggHit) => {
+    setError("");
+    try {
+      const known = library.find((g) => g.bgg?.id === h.id);
+      const categories = known ? [] : await bggApi.game(h.id).then((g) => g.categories ?? [], () => []);
+      const game = known ?? (await bgApi.createGame(n.groupId, { name: h.name, links: [{ kind: "bgg", url: bggLink(h.id) }], tags: categories }));
+      if (!known) setLibrary((l) => [...l, game as unknown as GameSummary]);
+      await addGame(game.id);
+    } catch (e) {
+      setError(errorText(t, e));
+    }
+  };
+
   const inLineup = new Set(n.games.map((g) => g.id));
   const s = search.trim().toLowerCase();
   const matches = s ? library.filter((g) => !inLineup.has(g.id) && g.name.toLowerCase().includes(s)).slice(0, 8) : [];
+  const libraryBgg = new Set(library.map((g) => g.bgg?.id).filter(Boolean));
+  const fromBgg = bggHits.filter((h) => !libraryBgg.has(h.id)).slice(0, 8);
   // The queue is for picking what to play next, not for recording a night that already happened.
   const queued = n.status === "past" ? [] : queue.filter((q) => !inLineup.has(q.id));
   const canNote = n.canManage || n.picker?.id === me;
@@ -165,6 +209,19 @@ export default function NightScreen() {
               {matches.map((g) => (
                 <Chip key={g.id} label={g.name} onPress={() => addGame(g.id)} />
               ))}
+            </View>
+          )}
+          {bggOn && s.length >= 2 && (
+            <View testID="night-bgg-results" style={{ gap: 6 }}>
+              <Text style={{ color: c.muted, fontSize: 14, fontWeight: "600" }}>{t("boardgame:night.fromBgg")}</Text>
+              {bggBusy && !fromBgg.length ? <Body muted>{t("boardgame:night.bggSearching")}</Body> : null}
+              {!bggBusy && !fromBgg.length ? <Body muted>{t("boardgame:night.bggNone")}</Body> : null}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {fromBgg.map((h) => (
+                  <Chip key={h.id} label={h.year ? `${h.name} (${h.year})` : h.name} onPress={() => addFromBgg(h)} />
+                ))}
+              </View>
+              <PoweredByBgg />
             </View>
           )}
           <Button kind="plain" label={t("boardgame:night.newGame")} onPress={() => router.push({ pathname: "/game/new", params: { groupId: n.groupId, nightId: n.id } })} />

@@ -126,7 +126,7 @@
     },
     "rating": {
       "stars_invalid": "Pick between half a star and five stars",
-      "score_invalid": "Pick a score from 1 to 10"
+      "score_invalid": "Pick a score from 1 to 10 (one decimal place is fine, like 7.5)"
     },
     "visit": {
       "not_found": "Visit not found",
@@ -184,6 +184,10 @@
       "too_long": "That message is too long (2,000 characters max).",
       "not_found": "That message is gone.",
       "delete_forbidden": "You can only delete your own messages."
+    },
+    "play": {
+      "date_invalid": "Use a date like 2026-11-07",
+      "future": "That day hasn't happened yet. Plan it as a game night instead."
     }
   },
   "photo": {

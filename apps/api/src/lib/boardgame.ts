@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, lte, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { externalLinks, gameDetails, gameQueue, nightGuests, nightRsvps, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
 import { bggAvailable, bggIdFromUrl, getBggGame } from "./bgg";
@@ -267,8 +267,9 @@ export async function deleteGame(db: Db, id: string, userId: string) {
 /** One rating per member per game, 1..10, updated after each play. */
 export async function rateGame(db: Db, id: string, userId: string, input: { score: number; review?: string }) {
   const { game } = await memberGame(db, id, userId);
-  const score = input.score;
-  if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.score_invalid");
+  // 1.0..10.0, one decimal place (7.5, 8.3).
+  const score = Math.round(input.score * 10) / 10;
+  if (!Number.isFinite(input.score) || Math.abs(input.score - score) > 1e-9 || score < 1 || score > 10) throw badRequest("rating.score_invalid");
   const review = (input.review ?? "").trim();
   const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
   if (ratingNews(before, score, review))
@@ -664,6 +665,41 @@ export async function removeNightGame(db: Db, id: string, gameId: string, userId
   if (!canEditLineup(night, role, userId)) throw forbidden("night.lineup_forbidden");
   await db.delete(nightGames).where(and(eq(nightGames.nightId, id), eq(nightGames.itemId, gameId)));
   return getNight(db, id, userId);
+}
+
+/**
+ * Record that the group played a game on a past day (or today): it goes on that day's game night,
+ * which is created (at the meetup's usual time, or 19:00) when there wasn't one. Any member can do this;
+ * it's history, so nobody gets a push and the queue stays as it is.
+ */
+export async function logPlay(db: Db, gameId: string, userId: string, date: string, now = new Date()) {
+  const { game } = await memberGame(db, gameId, userId);
+  const tz = await groupTimezone(db, game.groupId);
+  if (!DATE_RE.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) throw badRequest("play.date_invalid");
+  if (date > localDate(now, tz)) throw badRequest("play.future");
+  const dayStart = zonedInstant(date, "00:00", tz);
+  const around = await db
+    .select()
+    .from(meetupNights)
+    .where(
+      and(
+        eq(meetupNights.groupId, game.groupId),
+        gt(meetupNights.startsAt, new Date(dayStart.getTime() - 86_400_000)),
+        lt(meetupNights.startsAt, new Date(dayStart.getTime() + 2 * 86_400_000)),
+      ),
+    )
+    .orderBy(asc(meetupNights.startsAt));
+  let night = around.find((n) => localDate(n.startsAt, tz) === date);
+  if (!night) {
+    const [series] = await db.select().from(meetupSeries).where(eq(meetupSeries.groupId, game.groupId)).orderBy(asc(meetupSeries.createdAt)).limit(1);
+    [night] = await db
+      .insert(meetupNights)
+      .values({ groupId: game.groupId, startsAt: zonedInstant(date, series?.time ?? "19:00", tz), location: series?.location ?? "" })
+      .returning();
+  }
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(nightGames).where(eq(nightGames.nightId, night.id));
+  await db.insert(nightGames).values({ nightId: night.id, itemId: gameId, orderIndex: n, addedBy: userId }).onConflictDoNothing();
+  return getGame(db, gameId, userId);
 }
 
 // ---------- the group's board game home ----------

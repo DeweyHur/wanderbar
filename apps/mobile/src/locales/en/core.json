@@ -80,8 +80,9 @@
     "auth": {
       "required": "Please sign in",
       "invalid_google_token": "Google sign-in couldn't be verified",
-      "email_unverified": "Your Google account email isn't verified",
-      "no_id_token": "Google didn't return a sign-in token (check the web client ID)"
+      "email_unverified": "Your account's email isn't verified",
+      "no_id_token": "Google didn't return a sign-in token (check the web client ID)",
+      "invalid_apple_token": "Apple sign-in didn't work. Try again."
     },
     "group": {
       "not_found": "Group not found",

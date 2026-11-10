@@ -11,6 +11,8 @@ type Session = {
   state: State;
   /** Exchange a Google ID token for an app session. */
   signInWithIdToken: (idToken: string) => Promise<void>;
+  /** Exchange a Sign in with Apple identity token (and the name Apple gives on the first sign-in). */
+  signInWithApple: (idToken: string, name: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -67,6 +69,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [signedIn],
   );
 
+  const signInWithApple = useCallback(
+    async (idToken: string, name: string | null) => {
+      const client = Platform.OS === "web" ? "web" : "app";
+      const out = await api<Me & { token?: string }>("/api/auth/apple", { body: { idToken, name, client } });
+      if (out.token) await saveToken(out.token);
+      await signedIn(out);
+    },
+    [signedIn],
+  );
+
   const signOut = useCallback(async () => {
     await forgetDevice().catch(() => {});
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -75,7 +87,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setState({ status: "signedOut" });
   }, []);
 
-  const value = useMemo(() => ({ state, signInWithIdToken, signOut, refresh }), [state, signInWithIdToken, signOut, refresh]);
+  const value = useMemo(
+    () => ({ state, signInWithIdToken, signInWithApple, signOut, refresh }),
+    [state, signInWithIdToken, signInWithApple, signOut, refresh],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

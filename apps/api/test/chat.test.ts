@@ -90,6 +90,6 @@ describe("group chat", () => {
     await registerPushToken(db, me, { token: "my-phone", platform: "ios", locale: "en" });
     await sendMessage(db, groupId, me, "Saturday at 7?");
     await flushPush();
-    expect(sent).toEqual([{ token: "amy-phone", title: "Game Club", body: "💬 me: Saturday at 7?", data: { path: `/group/${groupId}/chat`, type: "chat", groupId } }]);
+    expect(sent).toEqual([{ token: "amy-phone", platform: "android", title: "Game Club", body: "💬 me: Saturday at 7?", data: { path: `/group/${groupId}/chat`, type: "chat", groupId } }]);
   });
 });

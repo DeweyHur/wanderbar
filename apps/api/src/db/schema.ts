@@ -12,7 +12,10 @@ export const groupModule = pgEnum("group_module", ["food", "boardgame"]);
 
 export const users = pgTable("users", {
   id: id(),
-  googleSub: text("google_sub").notNull().unique(),
+  /** Google account (sub claim); null for an Apple-only account. */
+  googleSub: text("google_sub").unique(),
+  /** Sign in with Apple account (sub claim); null until the user signs in with Apple. */
+  appleSub: text("apple_sub").unique(),
   email: text("email").notNull(),
   name: text("name"),
   image: text("image"),

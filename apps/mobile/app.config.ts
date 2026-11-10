@@ -35,6 +35,8 @@ const config: ExpoConfig = {
     supportsTablet: false,
     // No custom encryption (HTTPS only), so TestFlight doesn't ask about export compliance each build.
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
+    // Sign in with Apple (App Store rule 4.8: apps with Google sign-in must offer it too).
+    usesAppleSignIn: true,
   },
   android: {
     package: "app.wanderbar.mobile",
@@ -61,6 +63,7 @@ const config: ExpoConfig = {
     // Photos for restaurants, menus and dishes (picked from the library; resized on the device).
     ["expo-image-picker", { photosPermission: "Pick photos of what you ate to add them to your group's log.", cameraPermission: false, microphonePermission: false }],
     "expo-router",
+    "expo-apple-authentication",
     "expo-localization",
     [
       "expo-share-intent",

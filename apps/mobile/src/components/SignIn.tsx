@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { errorText } from "@/core/errors";
+import { AppleSignInButton } from "@/core/platform/AppleSignInButton";
 import { GoogleSignInButton } from "@/core/platform/GoogleSignInButton";
 import { api } from "@/core/api";
 import { useSession } from "@/core/session";
@@ -40,7 +41,7 @@ function TestSignIn({ onError }: { onError: (e: unknown) => void }) {
 
 export function SignIn({ message }: { message?: string }) {
   const { t } = useTranslation();
-  const { signInWithIdToken } = useSession();
+  const { signInWithIdToken, signInWithApple } = useSession();
   // Web redirect sign-in comes back with ?signin=failed|csrf when Google's answer couldn't be used.
   // Kept apart from other errors so a later one (e.g. the Google button failing to load) doesn't hide it.
   const [redirectError] = useState(() =>
@@ -59,6 +60,13 @@ export function SignIn({ message }: { message?: string }) {
     <Screen>
       <Title>{t("appName")}</Title>
       <Body muted>{message ?? t("tagline")}</Body>
+      <AppleSignInButton
+        onToken={async (idToken, name) => {
+          setError("");
+          await signInWithApple(idToken, name);
+        }}
+        onError={onError}
+      />
       <GoogleSignInButton onIdToken={onIdToken} onError={onError} />
       <TestSignIn onError={onError} />
       <ErrorText>{redirectError}</ErrorText>

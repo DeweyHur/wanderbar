@@ -10,6 +10,16 @@ on:
         description: "Build the Play Store bundle (AAB, signed with the EAS upload key) instead of the test APK"
         type: boolean
         default: false
+      play_track:
+        description: "With play: Play Console track to upload to (needs the PLAY_SERVICE_ACCOUNT_JSON secret; 'none' = draft release only)"
+        type: choice
+        options: [internal, alpha, none]
+        default: internal
+      play_status:
+        description: "With play: release status. Use 'draft' until the app has had its first release rolled out in the Play Console"
+        type: choice
+        options: [completed, draft]
+        default: completed
 
 permissions:
   contents: write
@@ -63,6 +73,40 @@ jobs:
           gh release create "play-build-$GITHUB_RUN_NUMBER" wanderbar.aab --draft --target "$GITHUB_SHA" \
             --title "wanderbar play bundle (run #$GITHUB_RUN_NUMBER, draft)" \
             --notes "Google Play app bundle of ${GITHUB_SHA::7}. Draft: only visible to the repo owner."
+
+      # Upload to the Play Console with a service account (Play Console → Users and permissions → invite its
+      # email with "Release to testing tracks" for this app). The secret is the key's JSON, raw or base64.
+      # Google only accepts API uploads after the first bundle was uploaded by hand in the Play Console.
+      - name: Service account key
+        id: play_key
+        if: inputs.play_track != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::warning::PLAY_SERVICE_ACCOUNT_JSON is not set: bundle left in the draft release only, not uploaded to Play."
+            exit 0
+          fi
+          node -e '
+            const raw = process.env.PLAY_SERVICE_ACCOUNT_JSON.trim();
+            const text = raw.startsWith("{") ? raw : Buffer.from(raw.replace(/\s+/g, ""), "base64").toString("utf8");
+            let key;
+            try { key = JSON.parse(text); } catch { console.error("::error::PLAY_SERVICE_ACCOUNT_JSON is not the key JSON (or base64 of it)"); process.exit(1); }
+            if (key.type !== "service_account" || !key.client_email || !key.private_key) { console.error("::error::PLAY_SERVICE_ACCOUNT_JSON is not a service account key"); process.exit(1); }
+            console.log("Service account: " + key.client_email);
+            require("fs").writeFileSync(process.argv[1], JSON.stringify(key), { mode: 0o600 });
+          ' "$RUNNER_TEMP/play-key.json"
+          echo "path=$RUNNER_TEMP/play-key.json" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Google Play (${{ inputs.play_track }})
+        if: steps.play_key.outputs.path
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.play_key.outputs.path }}
+          packageName: app.wanderbar.mobile
+          releaseFiles: wanderbar.aab
+          track: ${{ inputs.play_track }}
+          status: ${{ inputs.play_status }}
 
   build:
     if: ${{ !inputs.play }}

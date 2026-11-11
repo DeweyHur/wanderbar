@@ -75,6 +75,15 @@ Android SHA-1: `npx expo prebuild` 후 `cd apps/mobile/android && ./gradlew sign
    - 안드로이드(Flip 6, USB 디버깅): `npx expo run:android --device`
 3. 이후 JS만 바뀌면 `npm run mobile:start`로 바로 반영된다. 네이티브 설정(플러그인, 클라이언트 ID)이 바뀌면 다시 빌드.
 
+### 5. 구글 플레이 내부 테스트 (워크플로 `Mobile Android APK`, `play` 체크)
+CI가 EAS 업로드 키로 서명한 AAB를 만들어 초안 릴리스에 두고, 서비스 계정 키가 있으면 플레이 콘솔 트랙(기본 `internal`)에 올린다.
+1. Google Cloud → IAM → 서비스 계정 만들기(역할 없음) → 키 → JSON 받기. 그 프로젝트에서 **Google Play Android Developer API** 사용 설정
+2. Play Console → 사용자 및 권한 → 서비스 계정 이메일 초대 → 앱 `app.wanderbar.mobile`에 "테스트 트랙으로 출시" 권한
+3. GitHub → Settings → Secrets → Actions → `PLAY_SERVICE_ACCOUNT_JSON` = JSON 내용 그대로(또는 base64)
+4. **처음 한 번은 손으로**: 초안 릴리스의 `wanderbar.aab`를 Play Console → 테스트 → 내부 테스트에 직접 올리고 테스터 목록을 정한다.
+   구글은 첫 번들이 콘솔로 올라가기 전에는 API 업로드를 받지 않는다. 앱이 한 번도 출시(rollout)되지 않았으면 `play_status`를 `draft`로
+5. 이후: Actions → Mobile Android APK → Run workflow → `play` 체크 (`play_track` internal / alpha / none)
+
 ## M1 확인 체크리스트
 
 | # | 할 일 | 아이폰 | Flip 6 |

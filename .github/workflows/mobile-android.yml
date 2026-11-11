@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   # Google Play: an app bundle signed with the upload key EAS keeps (made on first run), built here on
-  # the runner. Lands in a private draft release for the first manual upload to the Play Console.
+  # the runner. Goes to the internal testing track when the Play service account secret is set, and
+  # always to a private draft release too (for a manual upload).
   play:
     if: inputs.play
     runs-on: ubuntu-latest
@@ -53,6 +54,21 @@ jobs:
       - name: Upload key fingerprint
         working-directory: apps/mobile
         run: npx --yes eas-cli@27 credentials:configure-build --platform android --profile production --non-interactive 2>&1 | tail -20 || true
+      # Straight to the Play internal testing track once the PLAY_SERVICE_ACCOUNT_JSON secret is set
+      # (a service account invited in Play Console with "release to testing tracks" on Wanderbar only).
+      - name: Upload to Play internal testing
+        id: play_upload
+        env:
+          HAS_PLAY_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: env.HAS_PLAY_KEY == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.wanderbar.mobile
+          releaseFiles: wanderbar.aab
+          releaseName: "${{ github.run_number }} (${{ github.sha }})"
+          track: internal
+          status: completed
       - name: Private draft release with the bundle
         env:
           GH_TOKEN: ${{ github.token }}

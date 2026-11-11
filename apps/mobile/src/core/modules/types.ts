@@ -1,4 +1,4 @@
-export type ModuleId = "food" | "boardgame";
+export type ModuleId = "food" | "boardgame" | "fitness";
 
 /**
  * What a module plugs into the shared core. Stage 1 fills in only what exists so far; item and event

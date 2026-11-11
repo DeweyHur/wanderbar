@@ -163,6 +163,14 @@ function AppStack() {
             options={{ title: t("boardgame:schedule.title") }}
           />
           <Stack.Screen
+            name="fitness/routine"
+            options={{ title: t("fitness:routine.title") }}
+          />
+          <Stack.Screen
+            name="fitness/workout"
+            options={{ title: t("fitness:workout.title") }}
+          />
+          <Stack.Screen
             name="invite/[token]"
             options={{ title: t("invite.title") }}
           />

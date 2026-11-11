@@ -11,7 +11,7 @@ export type Role = "owner" | "host" | "member";
 /** Color themes the apps can draw. Stored as an id; the apps own the colors. */
 export const GROUP_THEMES = ["pink", "mint", "sky", "lavender", "peach", "night"] as const;
 export type GroupTheme = (typeof GROUP_THEMES)[number];
-export type GroupModule = "food" | "boardgame";
+export type GroupModule = "food" | "boardgame" | "fitness";
 
 export type NewGroup = {
   name: string;

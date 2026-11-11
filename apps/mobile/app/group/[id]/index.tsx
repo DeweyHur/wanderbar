@@ -5,7 +5,7 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, isThemeId, Loading, useColors, useTheme, Text } from "@/components/ui";
@@ -13,6 +13,7 @@ import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
 import { GroupBar } from "@/components/GroupSwitcher";
 import { BoardGameHome } from "@/modules/boardgame/BoardGameHome";
+import { FitnessHome } from "@/modules/fitness/FitnessHome";
 import { errorText } from "@/core/errors";
 import { saveLastGroup } from "@/core/lastGroup";
 import { getModule } from "@/core/modules/registry";
@@ -56,10 +57,11 @@ export default function GroupHome() {
     else api<GroupDetail>(`/api/groups/${id}`).then((g) => setModule(g.module), () => setModule("food"));
   }, [id, known]);
   if (!module) return <Loading />;
-  return module === "boardgame" ? <BoardGameGroup id={id} /> : <FoodHome id={id} />;
+  return module === "boardgame" ? <SimpleGroup id={id} body={<BoardGameHome groupId={id} />} /> : module === "fitness" ? <SimpleGroup id={id} body={<FitnessHome groupId={id} />} /> : <FoodHome id={id} />;
 }
 
-function BoardGameGroup({ id }: { id: string }) {
+/** A group whose module draws its own home under the group bar (board game night, fitness). */
+function SimpleGroup({ id, body }: { id: string; body: ReactNode }) {
   const { t } = useTranslation();
   const c = useColors();
   const [name, setName] = useState("");
@@ -73,7 +75,7 @@ function BoardGameGroup({ id }: { id: string }) {
     <FormScroll testID="group-home" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: name, headerTitle: () => null, headerRight: () => <SettingsLink /> }} />
       <GroupBar groupId={id} />
-      <BoardGameHome groupId={id} />
+      {body}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
       </View>

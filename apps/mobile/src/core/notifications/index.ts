@@ -24,7 +24,8 @@ export const notificationsSupported = Platform.OS !== "web";
 export const pushSupported = Platform.OS === "android" || Platform.OS === "ios";
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+  // The rest timer's "rest's over" rings even with the app open; other notifications stay quiet.
+  handleNotification: async (n) => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: n.request.content.data?.kind === "rest", shouldSetBadge: false }),
 });
 
 let ready: Promise<void> | null = null;

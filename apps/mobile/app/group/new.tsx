@@ -10,6 +10,8 @@ import { isLanguage, type Language } from "@/core/i18n";
 import { useSession } from "@/core/session";
 import { FormScroll } from "@/components/FormScroll";
 
+const KIND_LABEL: Record<GroupModuleId, string> = { boardgame: "group.kindBoardgame", food: "group.kindFood", fitness: "group.kindFitness" };
+
 /** Another group: food & day routes, or a board game night (often in English for an international group). */
 export default function NewGroup() {
   const { t, i18n } = useTranslation();
@@ -27,7 +29,7 @@ export default function NewGroup() {
     try {
       const g = await api<GroupSummary>("/api/groups", {
         body: {
-          name: name.trim() || (module === "boardgame" ? t("group.kindBoardgame") : t("group.kindFood")),
+          name: name.trim() || t(KIND_LABEL[module]),
           module,
           defaultLocale: lang,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -50,8 +52,9 @@ export default function NewGroup() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Chip label={t("group.kindBoardgame")} selected={module === "boardgame"} onPress={() => setModule("boardgame")} />
         <Chip label={t("group.kindFood")} selected={module === "food"} onPress={() => setModule("food")} />
+        <Chip label={t("group.kindFitness")} selected={module === "fitness"} onPress={() => setModule("fitness")} />
       </View>
-      <Field label={t("group.name")} value={name} onChangeText={setName} placeholder={module === "boardgame" ? t("group.kindBoardgame") : t("group.kindFood")} />
+      <Field label={t("group.name")} value={name} onChangeText={setName} placeholder={t(KIND_LABEL[module])} />
       {label(t("group.language"))}
       <View style={{ flexDirection: "row", gap: 6 }}>
         <Chip label="English" selected={lang === "en"} onPress={() => setLang("en")} />

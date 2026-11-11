@@ -4,7 +4,7 @@ import { authed, json } from "@/lib/http";
 
 const Body = z.object({
   name: z.string().min(1).max(60),
-  module: z.enum(["food", "boardgame"]).default("food"),
+  module: z.enum(["food", "boardgame", "fitness"]).default("food"),
   defaultLocale: z.enum(["en", "ko"]).default("en"),
   timezone: z.string().min(1).max(64).default("UTC"),
   currency: z.string().length(3).default("USD"),

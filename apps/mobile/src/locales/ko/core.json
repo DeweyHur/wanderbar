@@ -35,6 +35,7 @@
     "kind": "어떤 모임인가요?",
     "kindFood": "맛집·동선",
     "kindBoardgame": "보드게임 나이트",
+    "kindFitness": "운동",
     "language": "그룹 언어",
     "language_hint": "초대 미리보기와 새 멤버의 처음 언어로 써요. 언어는 각자 바꿀 수 있어요.",
     "create": "그룹 만들기",
@@ -187,6 +188,15 @@
     "play": {
       "date_invalid": "2026-11-07처럼 날짜를 넣어 주세요",
       "future": "아직 오지 않은 날이에요. 게임 나이트로 일정을 잡아 주세요."
+    },
+    "fitness": {
+      "duplicate_id": "루틴에 같은 항목이 두 번 있어요. 다시 저장해 주세요.",
+      "reps_required": "횟수로 하는 동작에는 횟수를 넣어 주세요.",
+      "seconds_required": "시간으로 하는 동작에는 초를 넣어 주세요.",
+      "bad_time": "폰 시계가 맞지 않아 운동을 저장하지 못했어요.",
+      "bad_id": "이 운동을 저장하지 못했어요.",
+      "bad_group": "다른 그룹의 운동이에요.",
+      "workout_not_found": "그 운동 기록이 없어요."
     }
   },
   "photo": {

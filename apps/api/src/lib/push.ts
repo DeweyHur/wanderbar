@@ -26,7 +26,8 @@ export type PushEvent =
   | { type: "night_new"; at: Date; tz: string; nightId: string }
   | { type: "night_game"; who: string; game: string; at: Date; tz: string; nightId: string }
   | { type: "night_tomorrow"; at: Date; tz: string; where: string; games: string[]; nightId: string }
-  | { type: "chat"; who: string; text: string; groupId: string };
+  | { type: "chat"; who: string; text: string; groupId: string }
+  | { type: "workout"; who: string; day: string; minutes: number; groupId: string };
 
 /** "Fri, Nov 14, 7:00 PM" / "11월 14일 (금) 오후 7:00" in the group's time zone. */
 export function nightWhen(locale: string, at: Date, tz: string) {
@@ -120,6 +121,8 @@ export function pushText(locale: string, e: PushEvent): string {
       const text = e.text.length > 120 ? `${e.text.slice(0, 117)}…` : e.text;
       return `💬 ${e.who}: ${text}`;
     }
+    case "workout":
+      return ko ? `💪 ${e.who}님이 ${e.day} 운동을 마쳤어요 (${e.minutes}분)` : `💪 ${e.who} finished ${e.day} (${e.minutes} min)`;
     case "night_tomorrow": {
       const extra = [e.where, e.games.join(", ")].filter(Boolean).map((x) => ` · ${x}`).join("");
       return ko ? `🎲 내일 보드게임 나이트! ${nightWhen(locale, e.at, e.tz)}${extra}` : `🎲 Board game night tomorrow! ${nightWhen(locale, e.at, e.tz)}${extra}`;
@@ -146,6 +149,8 @@ export function pushPath(e: PushEvent) {
       return `/${e.kind}/${e.itemId}`;
     case "chat":
       return `/group/${e.groupId}/chat`;
+    case "workout":
+      return `/group/${e.groupId}`;
     default:
       return `/night/${e.nightId}`;
   }

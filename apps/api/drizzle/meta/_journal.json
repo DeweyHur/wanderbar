@@ -120,6 +120,13 @@
       "when": 1794301091105,
       "tag": "0016_decimal_scores",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794384226661,
+      "tag": "0017_fitness",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,7 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 
 export const memberRole = pgEnum("member_role", ["owner", "host", "member"]);
 /** Which module a group runs (food & day route first, board game night later). */
-export const groupModule = pgEnum("group_module", ["food", "boardgame"]);
+export const groupModule = pgEnum("group_module", ["food", "boardgame", "fitness"]);
 
 export const users = pgTable("users", {
   id: id(),
@@ -565,4 +565,52 @@ export const chatMessages = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [index("chat_messages_group_idx").on(t.groupId, t.createdAt)],
+);
+
+// ---- Fitness module: each member's split routine and workouts (attendance) ----
+
+/** A member's routine in a fitness group: days → exercises (sets, reps or seconds, weight, rest). */
+export const fitnessRoutines = pgTable(
+  "fitness_routines",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** RoutineDay[] (see @wanderbar/route fitness). Edited and read as a whole. */
+    days: jsonb("days").$type<unknown[]>().notNull().default([]),
+    /** Workouts a week I'm aiming for (the group's attendance board shows it). */
+    weeklyGoal: integer("weekly_goal").notNull().default(3),
+    unit: text("unit").notNull().default("kg"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("fitness_routines_group_user_uq").on(t.groupId, t.userId)],
+);
+
+/**
+ * One workout. Starting it is the check-in the group sees; the sets (weights, reps) are only the
+ * member's own. The id comes from the phone, so a workout started offline syncs later as the same row.
+ */
+export const workouts = pgTable(
+  "workouts",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dayId: text("day_id").notNull(),
+    dayName: text("day_name").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    /** DoneSet[] — private to the member. */
+    sets: jsonb("sets").$type<unknown[]>().notNull().default([]),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("workouts_group_started_idx").on(t.groupId, t.startedAt), index("workouts_user_started_idx").on(t.userId, t.startedAt)],
 );

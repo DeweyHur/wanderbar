@@ -41,6 +41,8 @@ const config: ExpoConfig = {
   android: {
     package: "app.wanderbar.mobile",
     versionCode: buildNumber,
+    // The workout rest timer's notification rings on the exact second (the user allows it in "Alarms & reminders").
+    permissions: ["android.permission.SCHEDULE_EXACT_ALARM"],
     adaptiveIcon: {
       // Pin-chan on baby pink (assets are drawn by scripts/icon.cjs).
       backgroundColor: "#FBD3E0",

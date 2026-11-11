@@ -36,6 +36,7 @@
     "kind": "What is it for?",
     "kindFood": "Food & day routes",
     "kindBoardgame": "Board game night",
+    "kindFitness": "Fitness",
     "language": "Group language",
     "language_hint": "Used for invite previews and new members' first language. Everyone can still pick their own.",
     "create": "Create group",
@@ -188,6 +189,15 @@
     "play": {
       "date_invalid": "Use a date like 2026-11-07",
       "future": "That day hasn't happened yet. Plan it as a game night instead."
+    },
+    "fitness": {
+      "duplicate_id": "Something in the routine is listed twice. Try saving again.",
+      "reps_required": "Every exercise done by reps needs a number of reps.",
+      "seconds_required": "Every timed exercise needs seconds.",
+      "bad_time": "This phone's clock looks off, so the workout couldn't be saved.",
+      "bad_id": "This workout couldn't be saved.",
+      "bad_group": "This workout belongs to another group.",
+      "workout_not_found": "That workout isn't here anymore."
     }
   },
   "photo": {

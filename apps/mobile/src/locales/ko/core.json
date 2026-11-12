@@ -80,7 +80,8 @@
     "notifyRemindersHint": "동선 전날 저녁과 당일 아침, 집에 있는 날 전에 남은 장보기를 알려줘요.",
     "notifyPush": "그룹 소식",
     "notifyPushHint": "누가 가게를 저장하거나, 별점을 주거나, 사진을 올리거나, 보드게임 나이트를 잡으면 알려줘요.",
-    "notifyDenied": "폰 설정에서 wanderbar 알림이 꺼져 있어요."
+    "notifyDenied": "폰 설정에서 wanderbar 알림이 꺼져 있어요.",
+    "version": "버전 {{version}}"
   },
   "errors": {
     "unknown": "문제가 생겼어요",

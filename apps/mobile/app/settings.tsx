@@ -1,7 +1,9 @@
+import * as Application from "expo-application";
+import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Body, Button, ErrorText, Title, useColors } from "@/components/ui";
+import { Body, Button, ErrorText, Text, Title, useColors } from "@/components/ui";
 import { api } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { applyLanguage, savedLanguage, type Language } from "@/core/i18n";
@@ -81,6 +83,17 @@ export default function Settings() {
       )}
       {state.status === "signedIn" && <Body muted>{t("settings.signedInAs", { email: state.user.email })}</Body>}
       <Button kind="plain" label={t("common.signOut")} onPress={signOut} />
+      <Text testID="app-version" selectable style={{ color: c.muted, fontSize: 13, textAlign: "center" }}>
+        {t("settings.version", { version: versionText() })}
+      </Text>
     </FormScroll>
   );
+}
+
+/** "Version 0.3.0 (50) · b84e4a1": the app's version, its build number, and the commit it was built from. */
+function versionText() {
+  const extra = (Constants.expoConfig?.extra ?? {}) as { commit?: string };
+  const version = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? "";
+  const build = Application.nativeBuildVersion;
+  return [`v${version}${build ? ` (${build})` : ""}`, extra.commit].filter(Boolean).join(" · ");
 }

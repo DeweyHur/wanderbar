@@ -90,7 +90,11 @@ const config: ExpoConfig = {
     ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey }],
   ],
   experiments: { typedRoutes: true },
-  ...(easProjectId.startsWith("REPLACE") ? {} : { extra: { eas: { projectId: easProjectId } } }),
+  extra: {
+    ...(easProjectId.startsWith("REPLACE") ? {} : { eas: { projectId: easProjectId } }),
+    // Which commit this build is (shown in Settings, so you can tell an update arrived).
+    commit: (process.env.EAS_BUILD_GIT_COMMIT_HASH || process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7),
+  },
 };
 
 export default config;

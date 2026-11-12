@@ -81,7 +81,8 @@
     "notifyRemindersHint": "The evening before and the morning of a route; what's left to buy before a day at home.",
     "notifyPush": "Group news",
     "notifyPushHint": "When someone saves a restaurant, rates something, adds photos, or plans a board game night.",
-    "notifyDenied": "Notifications are turned off for wanderbar in your phone's settings."
+    "notifyDenied": "Notifications are turned off for wanderbar in your phone's settings.",
+    "version": "Version {{version}}"
   },
   "errors": {
     "unknown": "Something went wrong",

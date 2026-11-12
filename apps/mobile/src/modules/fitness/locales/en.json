@@ -106,6 +106,7 @@
     "restOverBody": "{{name}} · set {{n}} of {{total}}",
     "channel": "Workout rest timer",
     "today": "Today: {{sets}}",
-    "weight": "Weight ({{unit}})"
+    "weight": "Weight ({{unit}})",
+    "justDidOf": "Just did: {{name}}, set {{n}}"
   }
 }

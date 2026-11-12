@@ -12,7 +12,6 @@ import {
   plannedWeight,
   restClock,
   secondsLeft,
-  setPlannedWeight,
   setsDone,
   skipRest,
   startTimed,
@@ -168,10 +167,21 @@ export default function WorkoutScreen() {
       router.replace({ pathname: "/group/[id]", params: { id: groupId } });
     };
     const elapsed = Math.max(0, Math.floor((now.getTime() - new Date(w.startedAt).getTime()) / 60_000));
+    // The last set of an exercise lands back here: record what was really done.
+    const lastSet = w.sets.at(-1);
+    const lastEx = lastSet && w.exercises.find((x) => x.id === lastSet.exerciseId);
     return (
       <FormScroll testID="exercise-list" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 20, gap: 12 }}>
         {header}
         <Body muted>{t("fitness:workout.elapsed", { n: elapsed })}</Body>
+        {lastSet && lastEx ? (
+          <JustDid
+            set={lastSet}
+            label={t("fitness:workout.justDidOf", { name: lastSet.name, n: lastSet.set })}
+            step={lastSet.unit === "lb" ? 5 : 2.5}
+            onEdit={(patch) => commit(editLastSet(w, lastSet.exerciseId, patch))}
+          />
+        ) : null}
         {w.exercises.map((e) => {
           const n = setsDone(w, e.id);
           const finished = exerciseDone(w, e);
@@ -210,7 +220,8 @@ export default function WorkoutScreen() {
   const e = cur.exercise;
   const phase = w.phase!;
   const lastHere = setsText(lastSets[e.id]);
-  const justDid: DoneSet | undefined = phase.kind === "rest" ? [...w.sets].reverse().find((s) => s.exerciseId === e.id) : undefined;
+  const lastOfThis: DoneSet | undefined = [...w.sets].reverse().find((s) => s.exerciseId === e.id);
+  const justDid = phase.kind === "rest" ? lastOfThis : undefined;
   const isLast = cur.set >= cur.total;
   const weightStep = e.unit === "lb" ? 5 : 2.5;
   return (
@@ -233,32 +244,7 @@ export default function WorkoutScreen() {
             <Chip label={t("fitness:workout.minus15")} onPress={() => commit(adjustRest(w, -15, new Date()))} />
             <Chip label={t("fitness:workout.plus30")} onPress={() => commit(adjustRest(w, 30, new Date()))} />
           </View>
-          {justDid ? (
-            <Card testID="just-did">
-              <Body muted>{t("fitness:workout.justDid", { n: justDid.set })}</Body>
-              {justDid.seconds != null ? (
-                <Stepper
-                  value={`${justDid.seconds}s`}
-                  less={t("fitness:workout.lessTime")}
-                  more={t("fitness:workout.moreTime")}
-                  onChange={(d) => commit(editLastSet(w, e.id, { seconds: Math.max(0, (justDid.seconds ?? 0) + d * 5) }))}
-                />
-              ) : (
-                <Stepper
-                  value={t("fitness:workout.reps", { n: justDid.reps ?? 0 })}
-                  less={t("fitness:workout.fewerReps")}
-                  more={t("fitness:workout.moreReps")}
-                  onChange={(d) => commit(editLastSet(w, e.id, { reps: Math.max(0, (justDid.reps ?? 0) + d) }))}
-                />
-              )}
-              <WeightStepper
-                weight={justDid.weight}
-                unit={justDid.unit}
-                step={weightStep}
-                onChange={(weight) => commit(editLastSet(w, e.id, { weight }))}
-              />
-            </Card>
-          ) : null}
+          {justDid ? <JustDid set={justDid} label={t("fitness:workout.justDid", { n: justDid.set })} step={weightStep} onEdit={(patch) => commit(editLastSet(w, e.id, patch))} /> : null}
           <View style={{ flex: 1 }} />
           <BigButton label={t("fitness:workout.skipRest")} height={72} onPress={() => commit(skipRest(w))} />
         </>
@@ -268,10 +254,9 @@ export default function WorkoutScreen() {
             {t("fitness:workout.setOf", { n: cur.set, total: cur.total })}
           </Text>
           <Text style={{ color: c.text, fontSize: 20, textAlign: "center" }}>{targetText(t, { ...e, weight: plannedWeight(w, e) })}</Text>
-          {e.target === "reps" && phase.kind === "work" ? (
-            <Card testID="set-weight">
-              <WeightStepper weight={plannedWeight(w, e)} unit={e.unit} step={weightStep} onChange={(weight) => commit(setPlannedWeight(w, e.id, weight))} />
-            </Card>
+          {/* No rest between sets: the set just done can still be fixed here. */}
+          {phase.kind === "work" && lastOfThis ? (
+            <JustDid set={lastOfThis} label={t("fitness:workout.justDid", { n: lastOfThis.set })} step={weightStep} onEdit={(patch) => commit(editLastSet(w, e.id, patch))} />
           ) : null}
           {lastHere ? <Text style={{ color: c.muted, textAlign: "center" }}>{t("fitness:workout.last", { sets: lastHere })}</Text> : null}
           {e.note ? <Text style={{ color: c.muted, textAlign: "center" }}>{e.note}</Text> : null}
@@ -378,5 +363,31 @@ function WeightStepper({ weight, unit, step, onChange }: { weight: number | null
       </View>
       {btn(t("fitness:workout.moreWeight"), "+", 1)}
     </View>
+  );
+}
+
+/** The set just done, as it really went: reps (or seconds) and the weight used. */
+function JustDid({ set, label, step, onEdit }: { set: DoneSet; label: string; step: number; onEdit: (patch: { reps?: number; seconds?: number; weight?: number | null }) => void }) {
+  const { t } = useTranslation();
+  return (
+    <Card testID="just-did">
+      <Body muted>{label}</Body>
+      {set.seconds != null ? (
+        <Stepper
+          value={`${set.seconds}s`}
+          less={t("fitness:workout.lessTime")}
+          more={t("fitness:workout.moreTime")}
+          onChange={(d) => onEdit({ seconds: Math.max(0, (set.seconds ?? 0) + d * 5) })}
+        />
+      ) : (
+        <Stepper
+          value={t("fitness:workout.reps", { n: set.reps ?? 0 })}
+          less={t("fitness:workout.fewerReps")}
+          more={t("fitness:workout.moreReps")}
+          onChange={(d) => onEdit({ reps: Math.max(0, (set.reps ?? 0) + d) })}
+        />
+      )}
+      <WeightStepper weight={set.weight} unit={set.unit} step={step} onChange={(weight) => onEdit({ weight })} />
+    </Card>
   );
 }

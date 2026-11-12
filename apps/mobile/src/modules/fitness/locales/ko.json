@@ -105,6 +105,7 @@
     "restOverBody": "{{name}} · 세트 {{n}} / {{total}}",
     "channel": "운동 휴식 타이머",
     "today": "오늘: {{sets}}",
-    "weight": "무게 ({{unit}})"
+    "weight": "무게 ({{unit}})",
+    "justDidOf": "방금 한 세트: {{name}} {{n}}세트"
   }
 }

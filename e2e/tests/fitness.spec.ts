@@ -52,11 +52,12 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   await button(page, "Dips").click();
   await expect(visible(page, "set-counter")).toHaveText("Set 1 of 1");
   await expect(page.getByText("12 reps · bodyweight").filter({ visible: true })).toBeVisible();
-  // Weighted dips today: the weight for this set can be set before doing it.
-  await visible(page, "set-weight").getByRole("textbox").fill("10");
-  await expect(page.getByText("12 reps · 10 kg").filter({ visible: true })).toBeVisible();
   await button(page, "Set done").click();
   await expect(visible(page, "exercise-list")).toContainText("✓ Dips");
+  // Its last set lands back on the list, where the weight actually used is recorded (weighted dips).
+  const lastDone = visible(page, "just-did");
+  await expect(lastDone).toContainText("Just did: Dips, set 1");
+  await lastDone.getByRole("textbox").fill("10");
   await expect(visible(page, "today-sets")).toHaveText("Today: 10kg×12");
 
   // Bench right after: its rest runs first (counted from the dips set), then set 1.
@@ -79,6 +80,7 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   await expect(visible(page, "set-counter")).toHaveText("Set 2 of 2", { timeout: 15_000 });
   await expect(page.getByText("10 reps · 62.5 kg").filter({ visible: true })).toBeVisible();
   await button(page, "Set done").click();
+  await expect(visible(page, "just-did")).toContainText("Just did: Bench press, set 2");
   await expect(visible(page, "exercise-list")).toContainText("Today: 62.5kg×8, 62.5kg×10");
 
   await button(page, "Finish workout").click();

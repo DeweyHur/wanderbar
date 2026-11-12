@@ -11,6 +11,9 @@ export type Role = "owner" | "host" | "member";
 /** Color themes the apps can draw. Stored as an id; the apps own the colors. */
 export const GROUP_THEMES = ["pink", "mint", "sky", "lavender", "peach", "night"] as const;
 export type GroupTheme = (typeof GROUP_THEMES)[number];
+/** Font sets the apps can draw (round: Jua + Gowun Dodum; clean: the system font; bold: Do Hyeon; hand: Nanum Pen). */
+export const GROUP_FONTS = ["round", "clean", "bold", "hand"] as const;
+export type GroupFont = (typeof GROUP_FONTS)[number];
 export type GroupModule = "food" | "boardgame" | "fitness";
 
 export type NewGroup = {
@@ -46,7 +49,7 @@ export async function myGroups(db: Db, userId: string) {
 
 function groupsOf(db: Db, userId: string) {
   return db
-    .select({ id: groups.id, name: groups.name, module: groups.module, theme: groups.theme, role: memberships.role })
+    .select({ id: groups.id, name: groups.name, module: groups.module, theme: groups.theme, font: groups.font, role: memberships.role })
     .from(memberships)
     .innerJoin(groups, eq(groups.id, memberships.groupId))
     .where(eq(memberships.userId, userId))
@@ -84,6 +87,7 @@ export async function groupDetail(db: Db, groupId: string, userId: string) {
     timezone: group.timezone,
     currency: group.currency,
     theme: group.theme,
+    font: group.font,
     myRole: role,
     members,
   };
@@ -138,8 +142,8 @@ export async function revokeInvites(db: Db, groupId: string, userId: string, now
   await db.update(invites).set({ revokedAt: now }).where(eq(invites.groupId, groupId));
 }
 
-/** Rename the group or change its color theme. Owners only. */
-export async function updateGroup(db: Db, groupId: string, userId: string, input: { name?: string; theme?: GroupTheme }) {
+/** Rename the group or change its color theme or font. Owners only. */
+export async function updateGroup(db: Db, groupId: string, userId: string, input: { name?: string; theme?: GroupTheme; font?: GroupFont }) {
   const role = await requireMember(db, groupId, userId);
   if (role !== "owner") throw forbidden("group.owner_only");
   const set: Partial<typeof groups.$inferInsert> = {};
@@ -148,6 +152,7 @@ export async function updateGroup(db: Db, groupId: string, userId: string, input
     set.name = input.name.trim();
   }
   if (input.theme !== undefined) set.theme = input.theme;
+  if (input.font !== undefined) set.font = input.font;
   if (Object.keys(set).length) await db.update(groups).set(set).where(eq(groups.id, groupId));
   return groupDetail(db, groupId, userId);
 }

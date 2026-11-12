@@ -27,19 +27,30 @@ export function FitnessHome({ groupId }: { groupId: string }) {
 
   useFocusEffect(
     useCallback(() => {
-      workoutStore.load(groupId).then(async (s) => {
+      const stored = workoutStore.load(groupId).then(async (s) => {
         // A finished workout that the server already has is done with.
         if (s?.workout.endedAt && s.synced) {
           await workoutStore.clear(groupId);
           setLocal(null);
-        } else setLocal(s?.workout ?? null);
-        // Still unsynced (no signal at the gym): try again now.
-        if (s && !s.synced) fitApi.saveWorkout(s.workout).then(() => workoutStore.save(groupId, { ...s, synced: true }), () => {});
+          return null;
+        }
+        setLocal(s?.workout ?? null);
+        // Still unsynced (no signal at the gym): try again now. Only this version is marked as sent:
+        // more sets may be done meanwhile, and they must not be overwritten by this older copy.
+        if (s && !s.synced) fitApi.saveWorkout(s.workout).then(() => workoutStore.markSynced(groupId, s.workout), () => {});
+        return s;
       });
       fitApi.home(groupId).then(
-        (h) => {
+        async (h) => {
           setHome(h);
           setError("");
+          // The server has more of this workout than the phone (sets done on another device): take them.
+          const s = await stored;
+          if (s && h.active && h.active.id === s.workout.id && h.active.sets.length > s.workout.sets.length) {
+            const w = { ...s.workout, sets: h.active.sets };
+            await workoutStore.save(groupId, { workout: w, synced: true });
+            setLocal(w);
+          }
         },
         (e) => setError(errorText(t, e)),
       );

@@ -9,6 +9,8 @@ import {
   finishWorkout,
   nextDay,
   openExercise,
+  plannedWeight,
+  setPlannedWeight,
   secondsLeft,
   skipRest,
   startTimed,
@@ -123,4 +125,36 @@ describe("a workout", () => {
 it("restClock", () => {
   expect(restClock(65)).toBe("1:05");
   expect(restClock(0)).toBe("0:00");
+});
+
+describe("weights and rests between exercises", () => {
+  it("the next exercise starts with its rest, counted from the last set (any exercise)", () => {
+    let w = openExercise(startWorkout({ id: "w", groupId: "g", day: push, now: T0 }), "dips");
+    expect(w.phase?.kind).toBe("work"); // nothing done yet
+    w = completeSet(w, at(10)); // dips: its only set → back to the list
+    expect(w.phase).toBeNull();
+    const bench = openExercise(w, "bench", at(30));
+    expect(bench.phase).toEqual({ exerciseId: "bench", kind: "rest", endsAt: at(10 + 90).toISOString() });
+    expect(currentSet(bench)).toMatchObject({ set: 1, total: 2 });
+    // Already rested long enough: straight to work. No clock given: work.
+    expect(openExercise(w, "bench", at(200)).phase?.kind).toBe("work");
+    expect(openExercise(w, "bench").phase?.kind).toBe("work");
+  });
+
+  it("the weight can change for the next set, and a fixed weight carries on", () => {
+    let w = openExercise(startWorkout({ id: "w", groupId: "g", day: push, now: T0 }), "dips");
+    const dips = w.exercises[1];
+    expect(plannedWeight(w, dips)).toBeNull(); // bodyweight
+    w = setPlannedWeight(w, "dips", 10);
+    w = completeSet(w, T0);
+    expect(w.sets[0]).toMatchObject({ exerciseId: "dips", weight: 10, unit: "kg" });
+    // Bench: set 1 at the routine's 60, then "it was 65" → set 2 is 65 too.
+    w = openExercise(w, "bench");
+    w = completeSet(skipRest(w), at(100));
+    expect(w.sets[1].weight).toBe(60);
+    w = editLastSet(w, "bench", { weight: 65 });
+    w = completeSet(skipRest(w), at(200));
+    expect(w.sets.map((s) => s.weight)).toEqual([10, 65, 65]);
+    expect(setPlannedWeight(w, "bench", 0).plan?.bench.weight).toBeNull();
+  });
 });

@@ -141,6 +141,16 @@ describe("workouts", () => {
     expect(await status(saveWorkout(db, "bad id!", me, workout(), NOW))).toBe(400);
   });
 
+  it("an older copy arriving late (fewer sets) doesn't wipe newer sets", async () => {
+    const three = [set("bench", 1, min(1)), set("bench", 2, min(3)), set("bench", 3, min(5))];
+    await saveWorkout(db, "w-race001", me, workout({ sets: three }), NOW);
+    expect(await saveWorkout(db, "w-race001", me, workout({ sets: three.slice(0, 1) }), NOW)).toMatchObject({ stale: true });
+    expect((await fitnessHome(db, groupId, me, NOW)).active?.sets).toHaveLength(3);
+    // Fixing a set (same count) still goes through.
+    await saveWorkout(db, "w-race001", me, workout({ sets: [three[0], three[1], { ...three[2], reps: 8 }] }), NOW);
+    expect((await fitnessHome(db, groupId, me, NOW)).active?.sets[2].reps).toBe(8);
+  });
+
   it("a workout started by mistake can be dropped (and its check-in with it)", async () => {
     await saveWorkout(db, "w-oops001", me, workout(), NOW);
     await deleteWorkout(db, "w-oops001", me);

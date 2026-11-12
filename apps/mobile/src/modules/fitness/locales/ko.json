@@ -52,7 +52,14 @@
     "unit": "무게 단위",
     "save": "저장",
     "saved": "저장했어요",
-    "nameRequired": "모든 날과 동작에 이름을 넣어 주세요."
+    "nameRequired": "모든 날과 동작에 이름을 넣어 주세요.",
+    "colSets": "세트",
+    "colTarget": "횟수/초",
+    "colRest": "휴식",
+    "more": "더 보기",
+    "exercisePlaceholder": "이름",
+    "moveLeft": "◀ 앞으로",
+    "moveRight": "뒤로 ▶"
   },
   "workout": {
     "title": "운동",
@@ -96,6 +103,8 @@
     "elapsed": "{{n}}분째",
     "restOverTitle": "휴식 끝",
     "restOverBody": "{{name}} · 세트 {{n}} / {{total}}",
-    "channel": "운동 휴식 타이머"
+    "channel": "운동 휴식 타이머",
+    "today": "오늘: {{sets}}",
+    "weight": "무게 ({{unit}})"
   }
 }

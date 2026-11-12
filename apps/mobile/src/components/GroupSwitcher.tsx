@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { loadLastGroup, saveLastGroup } from "@/core/lastGroup";
 import { useSession } from "@/core/session";
-import { isThemeId, Text, THEMES, useColors, useTheme } from "./ui";
+import { isFontId, isThemeId, Text, THEMES, useColors, useTheme } from "./ui";
 
 const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲" };
 
@@ -23,7 +23,7 @@ export function GroupBar({ groupId, chat = true }: { groupId?: string | null; ch
       if (chat) refresh().catch(() => {});
     }, [chat, refresh]),
   );
-  const { setThemeId } = useTheme();
+  const { setThemeId, setFontId } = useTheme();
   const [lastId, setLastId] = useState<string | null>(null);
   useEffect(() => {
     if (!groupId) loadLastGroup().then(setLastId, () => {});
@@ -34,8 +34,9 @@ export function GroupBar({ groupId, chat = true }: { groupId?: string | null; ch
   useEffect(() => {
     if (!g) return;
     setThemeId(isThemeId(g.theme) ? g.theme : "pink");
+    setFontId(isFontId(g.font) ? g.font : "round");
     saveLastGroup(g.id);
-  }, [g, setThemeId]);
+  }, [g, setThemeId, setFontId]);
   if (!g) return null;
   const fill = (isThemeId(g.theme) ? THEMES[g.theme] : THEMES.pink).pink;
   return (

@@ -51,7 +51,18 @@
       "lavender": "Lavender",
       "peach": "Peach",
       "night": "Night"
-    }
+    },
+    "look": "🎨 Theme & font",
+    "lookTitle": "Theme & font",
+    "font": "Font",
+    "fonts": {
+      "round": "Round",
+      "clean": "Basic",
+      "bold": "Bold",
+      "hand": "Handwriting"
+    },
+    "fontSample": "Game night 게임 나이트 123",
+    "ownerOnly": "Only the group owner can change these."
   },
   "invite": {
     "title": "Group invite",

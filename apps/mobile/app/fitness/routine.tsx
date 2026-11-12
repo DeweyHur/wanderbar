@@ -2,7 +2,8 @@ import { LIMITS, type RoutineDay, type RoutineExercise, type WeightUnit } from "
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { useGroupLook } from "@/core/groupLook";
 import { FormScroll } from "@/components/FormScroll";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, Text, TextInput, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
@@ -37,6 +38,9 @@ export default function RoutineScreen() {
   const [r, setR] = useState<Routine | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dayIx, setDayIx] = useState(0);
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  useGroupLook(groupId);
 
   useEffect(() => {
     fitApi.home(groupId).then(
@@ -65,6 +69,10 @@ export default function RoutineScreen() {
     }
   };
 
+  const di = Math.min(dayIx, r.days.length - 1);
+  const day = r.days[di];
+  const head = { color: c.muted, fontSize: 12, fontWeight: "600" as const, textAlign: "center" as const };
+  const cell = { color: c.text, backgroundColor: c.card, borderColor: c.border, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, textAlign: "center" as const };
   const label = (s: string) => <Text style={{ color: c.muted, fontSize: 14, fontWeight: "600" }}>{s}</Text>;
   return (
     <FormScroll testID="routine-editor" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
@@ -82,48 +90,98 @@ export default function RoutineScreen() {
         ))}
       </View>
 
-      {r.days.map((d, di) => (
-        <Card key={d.id} testID={`day-${di}`}>
-          <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("fitness:routine.day", { n: di + 1 })}</Text>
-          <Field label={t("fitness:routine.dayName")} value={d.name} onChangeText={(name) => setDay(di, { name })} />
-          {d.exercises.length === 0 ? <Body muted>{t("fitness:routine.noExercises")}</Body> : null}
-          {d.exercises.map((e, ei) => (
-            <View key={e.id} testID={`exercise-${di}-${ei}`} style={{ borderColor: c.border, borderWidth: 1.5, borderRadius: 18, padding: 12, gap: 8 }}>
-              <Field label={t("fitness:routine.exercise")} value={e.name} onChangeText={(name) => setEx(di, ei, { name })} />
-              <View style={{ flexDirection: "row", gap: 6 }}>
-                <Chip label={t("fitness:routine.byReps")} selected={e.target === "reps"} onPress={() => setEx(di, ei, { target: "reps", reps: e.reps ?? 10, seconds: null })} />
-                <Chip label={t("fitness:routine.byTime")} selected={e.target === "time"} onPress={() => setEx(di, ei, { target: "time", seconds: e.seconds ?? 60, reps: null })} />
+      {/* One day at a time: tabs for the days, a table for the day's exercises. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }} testID="day-tabs">
+        {r.days.map((d, di) => (
+          <Chip key={d.id} label={`${di + 1}. ${d.name || t("fitness:routine.day", { n: di + 1 })}`} selected={di === dayIx} onPress={() => setDayIx(di)} />
+        ))}
+        {r.days.length < LIMITS.days ? (
+          <Chip
+            label={`+ ${t("fitness:routine.addDay")}`}
+            onPress={() => {
+              setDays([...r.days, { id: uid("d"), name: t("fitness:routine.day", { n: r.days.length + 1 }), exercises: [] }]);
+              setDayIx(r.days.length);
+            }}
+          />
+        ) : null}
+      </View>
+
+      {day ? (
+        <Card testID={`day-${di}`}>
+          <Field label={t("fitness:routine.dayName")} value={day.name} onChangeText={(name) => setDay(di, { name })} />
+          {day.exercises.length === 0 ? (
+            <Body muted>{t("fitness:routine.noExercises")}</Body>
+          ) : (
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: CELL_GAP }}>
+                <Text style={[head, { flex: 1, flexBasis: 0, minWidth: 0, textAlign: "left" }]}>{t("fitness:routine.exercise")}</Text>
+                <Text style={[head, { width: CELL }]}>{t("fitness:routine.colSets")}</Text>
+                <Text style={[head, { width: CELL }]}>{t("fitness:routine.colTarget")}</Text>
+                <Text style={[head, { width: CELL + 8 }]}>{r.unit}</Text>
+                <Text style={[head, { width: CELL }]}>{t("fitness:routine.colRest")}</Text>
+                <View style={{ width: MORE }} />
               </View>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                <NumField label={t("fitness:routine.sets")} value={e.sets} max={LIMITS.sets} min={1} onChange={(sets) => setEx(di, ei, { sets: sets ?? 1 })} />
-                {e.target === "reps" ? (
-                  <NumField label={t("fitness:routine.reps")} value={e.reps} max={LIMITS.reps} min={1} onChange={(reps) => setEx(di, ei, { reps: reps ?? 1 })} />
-                ) : (
-                  <NumField label={t("fitness:routine.seconds")} value={e.seconds} max={LIMITS.seconds} min={1} onChange={(seconds) => setEx(di, ei, { seconds: seconds ?? 1 })} />
-                )}
-                <NumField label={t("fitness:routine.weight", { unit: r.unit })} value={e.weight} max={LIMITS.weight} decimals optional onChange={(weight) => setEx(di, ei, { weight })} />
-                <NumField label={t("fitness:routine.rest")} value={e.restSec} max={LIMITS.restSec} min={0} onChange={(restSec) => setEx(di, ei, { restSec: restSec ?? 0 })} />
-              </View>
-              <Field label={t("fitness:routine.note")} value={e.note} onChangeText={(note) => setEx(di, ei, { note: note.slice(0, LIMITS.note) })} />
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                <Chip label={t("fitness:routine.moveUp")} disabled={ei === 0} onPress={() => setDay(di, { exercises: move(d.exercises, ei, -1) })} />
-                <Chip label={t("fitness:routine.moveDown")} disabled={ei === d.exercises.length - 1} onPress={() => setDay(di, { exercises: move(d.exercises, ei, 1) })} />
-                <Chip label={t("fitness:routine.remove")} onPress={() => setDay(di, { exercises: d.exercises.filter((_, j) => j !== ei) })} />
-              </View>
+              {day.exercises.map((e, ei) => {
+                const open = openRow === e.id;
+                return (
+                  <View key={e.id} testID={`exercise-${di}-${ei}`} style={{ gap: 6, borderTopWidth: 1, borderColor: c.border, paddingTop: 6 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: CELL_GAP }}>
+                      <TextInput
+                        accessibilityLabel={t("fitness:routine.exercise")}
+                        value={e.name}
+                        onChangeText={(name) => setEx(di, ei, { name })}
+                        placeholder={t("fitness:routine.exercisePlaceholder")}
+                        placeholderTextColor={c.muted}
+                        style={[cell, { flex: 1, flexBasis: 0, minWidth: 0, width: 0, textAlign: "left" }]}
+                      />
+                      <NumCell label={t("fitness:routine.sets")} value={e.sets} max={LIMITS.sets} min={1} onChange={(sets) => setEx(di, ei, { sets: sets ?? 1 })} />
+                      {e.target === "reps" ? (
+                        <NumCell label={t("fitness:routine.reps")} value={e.reps} max={LIMITS.reps} min={1} onChange={(reps) => setEx(di, ei, { reps: reps ?? 1 })} />
+                      ) : (
+                        <NumCell label={t("fitness:routine.seconds")} value={e.seconds} max={LIMITS.seconds} min={1} suffix="s" onChange={(seconds) => setEx(di, ei, { seconds: seconds ?? 1 })} />
+                      )}
+                      <NumCell label={t("fitness:routine.weight", { unit: r.unit })} value={e.weight} max={LIMITS.weight} decimals optional wide placeholder="–" onChange={(weight) => setEx(di, ei, { weight })} />
+                      <NumCell label={t("fitness:routine.rest")} value={e.restSec} max={LIMITS.restSec} min={0} onChange={(restSec) => setEx(di, ei, { restSec: restSec ?? 0 })} />
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t("fitness:routine.more")}
+                        accessibilityState={{ expanded: open }}
+                        onPress={() => setOpenRow(open ? null : e.id)}
+                        hitSlop={6}
+                        style={{ width: MORE, height: 40, alignItems: "center", justifyContent: "center" }}
+                      >
+                        <Text style={{ color: c.accent, fontSize: 20, fontWeight: "700" }}>{open ? "▴" : "⋯"}</Text>
+                      </Pressable>
+                    </View>
+                    {e.note && !open ? <Text style={{ color: c.muted, fontSize: 13 }}>{e.note}</Text> : null}
+                    {open ? (
+                      <View style={{ gap: 8, paddingBottom: 6 }}>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                          <Chip label={t("fitness:routine.byReps")} selected={e.target === "reps"} onPress={() => setEx(di, ei, { target: "reps", reps: e.reps ?? 10, seconds: null })} />
+                          <Chip label={t("fitness:routine.byTime")} selected={e.target === "time"} onPress={() => setEx(di, ei, { target: "time", seconds: e.seconds ?? 60, reps: null })} />
+                        </View>
+                        <Field label={t("fitness:routine.note")} value={e.note} onChangeText={(note) => setEx(di, ei, { note: note.slice(0, LIMITS.note) })} />
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                          <Chip label={t("fitness:routine.moveUp")} disabled={ei === 0} onPress={() => setDay(di, { exercises: move(day.exercises, ei, -1) })} />
+                          <Chip label={t("fitness:routine.moveDown")} disabled={ei === day.exercises.length - 1} onPress={() => setDay(di, { exercises: move(day.exercises, ei, 1) })} />
+                          <Chip label={t("fitness:routine.remove")} onPress={() => setDay(di, { exercises: day.exercises.filter((_, j) => j !== ei) })} />
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
             </View>
-          ))}
-          {d.exercises.length < LIMITS.exercises ? (
-            <Button kind="plain" label={t("fitness:routine.addExercise")} onPress={() => setDay(di, { exercises: [...d.exercises, blankExercise(r.unit)] })} />
+          )}
+          {day.exercises.length < LIMITS.exercises ? (
+            <Button kind="plain" label={t("fitness:routine.addExercise")} onPress={() => setDay(di, { exercises: [...day.exercises, blankExercise(r.unit)] })} />
           ) : null}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            <Chip label={t("fitness:routine.moveUp")} disabled={di === 0} onPress={() => setDays(move(r.days, di, -1))} />
-            <Chip label={t("fitness:routine.moveDown")} disabled={di === r.days.length - 1} onPress={() => setDays(move(r.days, di, 1))} />
-            {r.days.length > 1 ? <Chip label={t("fitness:routine.removeDay")} onPress={() => setDays(r.days.filter((_, j) => j !== di))} /> : null}
+            <Chip label={t("fitness:routine.moveLeft")} disabled={di === 0} onPress={() => (setDays(move(r.days, di, -1)), setDayIx(di - 1))} />
+            <Chip label={t("fitness:routine.moveRight")} disabled={di === r.days.length - 1} onPress={() => (setDays(move(r.days, di, 1)), setDayIx(di + 1))} />
+            {r.days.length > 1 ? <Chip label={t("fitness:routine.removeDay")} onPress={() => (setDays(r.days.filter((_, j) => j !== di)), setDayIx(Math.max(0, di - 1)))} /> : null}
           </View>
         </Card>
-      ))}
-      {r.days.length < LIMITS.days ? (
-        <Button kind="plain" label={t("fitness:routine.addDay")} onPress={() => setDays([...r.days, { id: uid("d"), name: t("fitness:routine.day", { n: r.days.length + 1 }), exercises: [] }])} />
       ) : null}
       <Button label={t("fitness:routine.save")} busy={busy} onPress={save} />
       <ErrorText>{error}</ErrorText>
@@ -131,8 +189,34 @@ export default function RoutineScreen() {
   );
 }
 
-/** A small number box. Empty means "none" only where that's allowed (weight). */
-function NumField({ label, value, onChange, min = 0, max, decimals, optional }: { label: string; value: number | null; onChange: (n: number | null) => void; min?: number; max: number; decimals?: boolean; optional?: boolean }) {
+const CELL = 44;
+const CELL_GAP = 4;
+const MORE = 28;
+
+/** A number cell in the table. Empty means "none" only where that's allowed (weight). */
+function NumCell({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max,
+  decimals,
+  optional,
+  wide,
+  placeholder,
+  suffix,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (n: number | null) => void;
+  min?: number;
+  max: number;
+  decimals?: boolean;
+  optional?: boolean;
+  wide?: boolean;
+  placeholder?: string;
+  suffix?: string;
+}) {
   const c = useColors();
   const [text, setText] = useState(value == null ? "" : String(value));
   useEffect(() => {
@@ -148,18 +232,26 @@ function NumField({ label, value, onChange, min = 0, max, decimals, optional }: 
     if (Number.isFinite(n)) onChange(Math.min(max, Math.max(min, decimals ? Math.round(n * 100) / 100 : Math.round(n))));
   };
   return (
-    <View style={{ gap: 4, width: 96 }}>
-      <Text style={{ color: c.muted, fontSize: 12, fontWeight: "600" }} numberOfLines={1}>
-        {label}
-      </Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={text}
-        onChangeText={change}
-        keyboardType={decimals ? "decimal-pad" : "number-pad"}
-        style={{ color: c.text, backgroundColor: c.card, borderColor: c.border, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 18 }}
-      />
-    </View>
+    <TextInput
+      accessibilityLabel={label}
+      value={text}
+      onChangeText={change}
+      placeholder={placeholder ?? suffix}
+      placeholderTextColor={c.muted}
+      keyboardType={decimals ? "decimal-pad" : "number-pad"}
+      selectTextOnFocus
+      style={{
+        width: wide ? CELL + 8 : CELL,
+        color: c.text,
+        backgroundColor: c.card,
+        borderColor: c.border,
+        borderWidth: 1.5,
+        borderRadius: 10,
+        paddingHorizontal: 2,
+        paddingVertical: 8,
+        fontSize: 16,
+        textAlign: "center",
+      }}
+    />
   );
 }
-

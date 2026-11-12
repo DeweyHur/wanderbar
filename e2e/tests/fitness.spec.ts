@@ -23,16 +23,22 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
 
   // The routine starts as a 3-day split; fill in day 1 and day 3.
   await button(page, "Set up my routine").click();
+  // One day at a time (tabs), the exercises as a table.
   const day1 = visible(page, "day-0");
   await expect(day1.getByRole("textbox", { name: "Day name", exact: true })).toHaveValue("Chest · shoulders · triceps");
+  await expect(visible(page, "day-1")).toHaveCount(0);
+  await button(page, "2. Lats · back · biceps").click();
   await expect(visible(page, "day-1").getByRole("textbox", { name: "Day name", exact: true })).toHaveValue("Lats · back · biceps");
+  await button(page, "1. Chest · shoulders · triceps").click();
   await day1.getByRole("button", { name: "Add exercise", exact: true }).click();
   await exercise(page, 0, 0, { Exercise: "Bench press", Sets: "2", Reps: "10", "Weight (kg)": "60", "Rest (sec)": "4" });
   await day1.getByRole("button", { name: "Add exercise", exact: true }).click();
   await exercise(page, 0, 1, { Exercise: "Dips", Sets: "1", Reps: "12", "Rest (sec)": "0" });
+  await button(page, "3. Legs · abs").click();
   const day3 = visible(page, "day-2");
   await day3.getByRole("button", { name: "Add exercise", exact: true }).click();
   const plank = await exercise(page, 2, 0, { Exercise: "Plank" });
+  await plank.getByRole("button", { name: "More", exact: true }).click();
   await plank.getByRole("button", { name: "Time", exact: true }).click();
   await exercise(page, 2, 0, { Sets: "1", Seconds: "2" });
   await button(page, "Save").click();
@@ -46,11 +52,17 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   await button(page, "Dips").click();
   await expect(visible(page, "set-counter")).toHaveText("Set 1 of 1");
   await expect(page.getByText("12 reps · bodyweight").filter({ visible: true })).toBeVisible();
+  // Weighted dips today: the weight for this set can be set before doing it.
+  await visible(page, "set-weight").getByRole("textbox").fill("10");
+  await expect(page.getByText("12 reps · 10 kg").filter({ visible: true })).toBeVisible();
   await button(page, "Set done").click();
   await expect(visible(page, "exercise-list")).toContainText("✓ Dips");
+  await expect(visible(page, "today-sets")).toHaveText("Today: 10kg×12");
 
-  // Bench: set 1 → rest (says the next set) → fix the reps during the rest → set 2 comes back by itself.
+  // Bench right after: its rest runs first (counted from the dips set), then set 1.
   await button(page, "Bench press").click();
+  await expect(visible(page, "set-counter")).toHaveText("Next: set 1 of 2");
+  await button(page, "Skip rest").click();
   await expect(visible(page, "set-counter")).toHaveText("Set 1 of 2");
   await button(page, "Set done · rest").click();
   await expect(visible(page, "set-counter")).toHaveText("Next: set 2 of 2");
@@ -59,10 +71,15 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   await justDid.getByRole("button", { name: "Fewer reps", exact: true }).click();
   await justDid.getByRole("button", { name: "Fewer reps", exact: true }).click();
   await expect(justDid).toContainText("8 reps");
+  // It was heavier: the weight is recorded per set and carries on to the next one.
+  await justDid.getByRole("button", { name: "More weight", exact: true }).click();
+  await expect(justDid.getByRole("textbox")).toHaveValue("62.5");
   // Closing the page doesn't lose the workout.
   await page.reload();
   await expect(visible(page, "set-counter")).toHaveText("Set 2 of 2", { timeout: 15_000 });
+  await expect(page.getByText("10 reps · 62.5 kg").filter({ visible: true })).toBeVisible();
   await button(page, "Set done").click();
+  await expect(visible(page, "exercise-list")).toContainText("Today: 62.5kg×8, 62.5kg×10");
 
   await button(page, "Finish workout").click();
   const done = visible(page, "workout-done");
@@ -81,9 +98,10 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   const mine = await (await page.request.get(`/api/groups/${groupId}/workouts`)).json();
   const bench = mine.workouts[0].sets.filter((s: { name: string }) => s.name === "Bench press");
   expect(bench.map((s: { set: number; reps: number; weight: number }) => [s.set, s.reps, s.weight])).toEqual([
-    [1, 8, 60],
-    [2, 10, 60],
+    [1, 8, 62.5],
+    [2, 10, 62.5],
   ]);
+  expect(mine.workouts[0].sets.find((s: { name: string }) => s.name === "Dips")).toMatchObject({ reps: 12, weight: 10 });
 
   // Another day than the suggested one: legs, with a timed plank that finishes by itself.
   await button(page, "Legs · abs").click();
@@ -113,4 +131,16 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   await expect(visible(fp, "week-board")).toContainText("Buddy");
   await expect(fp.getByText("Set up your split first", { exact: false }).filter({ visible: true })).toBeVisible();
   await friend.close();
+
+  // The owner dresses the group: theme and font, for everyone in it.
+  await page.goto(`/group/${groupId}`);
+  await button(page, "🎨 Theme & font").click();
+  await visible(page, "theme-night").click();
+  await visible(page, "font-clean").click();
+  await expect.poll(async () => (await me(page.request)).groups.find((g) => g.id === groupId)).toMatchObject({ theme: "night", font: "clean" });
+  await page.goBack();
+  const title = page.getByText("Next: Chest · shoulders · triceps").filter({ visible: true });
+  await expect(title).toBeVisible();
+  expect(await title.evaluate((el) => getComputedStyle(el).fontFamily)).not.toContain("Jua");
+  expect(await visible(page, "group-home").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(29, 27, 38)");
 });

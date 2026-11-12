@@ -9,10 +9,10 @@ export function targetText(t: TFunction, e: Pick<RoutineExercise, "target" | "re
   return e.weight ? `${amount} · ${num(e.weight)} ${e.unit}` : e.target === "reps" ? `${amount} · ${t("fitness:workout.bodyweight")}` : amount;
 }
 
-/** One set done: "60×10", "10", "60 s". */
-export const setText = (s: DoneSet) => (s.seconds != null ? `${s.seconds}s` : s.weight ? `${num(s.weight)}×${s.reps ?? 0}` : String(s.reps ?? 0));
+/** One set done: "60kg×10", "10", "60 s". */
+export const setText = (s: DoneSet) => (s.seconds != null ? `${s.seconds}s` : s.weight ? `${num(s.weight)}${s.unit}×${s.reps ?? 0}` : String(s.reps ?? 0));
 
-/** "60×10, 60×10, 57.5×8" */
+/** "60kg×10, 60kg×10, 57.5kg×8" */
 export const setsText = (sets: DoneSet[] | undefined) => (sets?.length ? sets.map(setText).join(", ") : "");
 
 /** "Mon, Nov 9, 7:10 PM" in the device's locale. */

@@ -53,7 +53,14 @@
     "unit": "Weight unit",
     "save": "Save",
     "saved": "Saved",
-    "nameRequired": "Give every day and exercise a name."
+    "nameRequired": "Give every day and exercise a name.",
+    "colSets": "Sets",
+    "colTarget": "Reps/s",
+    "colRest": "Rest",
+    "more": "More",
+    "exercisePlaceholder": "Name",
+    "moveLeft": "◀ Earlier",
+    "moveRight": "Later ▶"
   },
   "workout": {
     "title": "Workout",
@@ -97,6 +104,8 @@
     "elapsed": "{{n}} min in",
     "restOverTitle": "Rest's over",
     "restOverBody": "{{name}} · set {{n}} of {{total}}",
-    "channel": "Workout rest timer"
+    "channel": "Workout rest timer",
+    "today": "Today: {{sets}}",
+    "weight": "Weight ({{unit}})"
   }
 }

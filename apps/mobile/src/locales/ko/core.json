@@ -50,7 +50,18 @@
       "lavender": "라벤더",
       "peach": "피치",
       "night": "나이트"
-    }
+    },
+    "look": "🎨 테마·글꼴",
+    "lookTitle": "테마·글꼴",
+    "font": "글꼴",
+    "fonts": {
+      "round": "둥글게",
+      "clean": "기본",
+      "bold": "굵게",
+      "hand": "손글씨"
+    },
+    "fontSample": "Game night 게임 나이트 123",
+    "ownerOnly": "그룹장만 바꿀 수 있어요."
   },
   "invite": {
     "title": "그룹 초대",

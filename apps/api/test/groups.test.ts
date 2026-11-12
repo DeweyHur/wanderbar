@@ -23,7 +23,7 @@ describe("groups", () => {
   it("creator becomes the owner", async () => {
     const g = await createGroup(db, owner, { name: "  맛집 탐방대 ", defaultLocale: "ko" });
     expect(g).toMatchObject({ name: "맛집 탐방대", module: "food", role: "owner" });
-    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", theme: "pink", role: "owner", unread: 0 }]);
+    expect(await myGroups(db, owner)).toEqual([{ id: g.id, name: "맛집 탐방대", module: "food", theme: "pink", font: "round", role: "owner", unread: 0 }]);
     expect((await groupDetail(db, g.id, owner)).defaultLocale).toBe("ko");
   });
 
@@ -96,6 +96,8 @@ describe("group theme", () => {
     await acceptInvite(db, (await createInvite(db, g.id, owner)).token, member);
     expect((await groupDetail(db, g.id, owner)).theme).toBe("pink");
     expect((await updateGroup(db, g.id, owner, { theme: "night", name: " Game Night " })).theme).toBe("night");
+    expect(await updateGroup(db, g.id, owner, { font: "hand" })).toMatchObject({ theme: "night", font: "hand" });
+    expect((await myGroups(db, owner)).find((x) => x.id === g.id)?.font).toBe("hand");
     expect((await myGroups(db, member))[0]).toMatchObject({ name: "Game Night", theme: "night" });
     await expect(updateGroup(db, g.id, member, { theme: "mint" })).rejects.toMatchObject({ status: 403 });
     await expect(updateGroup(db, g.id, owner, { name: "  " })).rejects.toMatchObject({ status: 400 });

@@ -209,6 +209,9 @@ export async function saveWorkout(db: Db, id: string, userId: string, input: Wor
   const [before] = await db.select().from(workouts).where(eq(workouts.id, id));
   if (before && before.userId !== userId) throw notFound("fitness.workout_not_found");
   if (before && before.groupId !== input.groupId) throw badRequest("fitness.bad_group");
+  // Sets only ever get added (or fixed), so a copy with fewer is an older one arriving late (a retry
+  // from a phone that lost signal): keep what's here.
+  if (before && (before.sets as unknown[]).length > input.sets.length && !before.endedAt) return { id, endedAt: null, stale: true };
   const values = { dayId: input.dayId, dayName: input.dayName, startedAt, endedAt, sets: input.sets, updatedAt: now };
   if (before) await db.update(workouts).set(values).where(eq(workouts.id, id));
   else await db.insert(workouts).values({ id, groupId: input.groupId, userId, ...values });

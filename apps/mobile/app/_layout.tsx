@@ -16,7 +16,7 @@ import { installCrashHandler, reportCrash } from "@/core/crash";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { useFonts } from "expo-font";
-import { fonts, ThemeProvider, useColors } from "@/components/ui";
+import { ThemeProvider, useColors, useFontSet } from "@/components/ui";
 
 /** A share from another app (Android intent / iOS extension) opens the share screen. */
 function ShareRedirect() {
@@ -78,6 +78,7 @@ export default function RootLayout() {
 function AppStack() {
   const { t } = useTranslation();
   const palette = useColors();
+  const font = useFontSet();
   return (
     <IncomingShareProvider>
       <SessionProvider>
@@ -90,7 +91,7 @@ function AppStack() {
             headerShadowVisible: false,
             headerStyle: { backgroundColor: palette.bg },
             headerTintColor: palette.accent,
-            headerTitleStyle: { fontFamily: fonts.heading, color: palette.text, fontSize: 20 },
+            headerTitleStyle: font.heading ? { fontFamily: font.heading, color: palette.text, fontSize: 20 } : { color: palette.text, fontSize: 20, fontWeight: "700" },
             contentStyle: { backgroundColor: palette.bg },
           }}
         >
@@ -106,6 +107,7 @@ function AppStack() {
             name="group/[id]/members"
             options={{ title: t("food:route.members") }}
           />
+          <Stack.Screen name="group/[id]/look" options={{ title: t("group.lookTitle") }} />
           <Stack.Screen
             name="plan/[id]/index"
             options={{ title: t("food:route.title") }}

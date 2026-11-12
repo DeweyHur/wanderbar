@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/do-hyeon": "^0.4.1",
     "@expo-google-fonts/gowun-dodum": "^0.4.1",
     "@expo-google-fonts/jua": "^0.4.1",
+    "@expo-google-fonts/nanum-pen-script": "^0.4.0",
     "@expo/metro-runtime": "~58.0.16",
     "@react-native-google-signin/google-signin": "^17.0.0",
     "@wanderbar/route": "*",

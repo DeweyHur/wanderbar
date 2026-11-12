@@ -46,19 +46,55 @@ export type ThemeId = keyof typeof THEMES;
 export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
 export const isThemeId = (x: unknown): x is ThemeId => typeof x === "string" && x in THEMES;
 
-const ThemeContext = createContext<{ themeId: ThemeId; setThemeId: (t: ThemeId) => void }>({ themeId: "pink", setThemeId: () => {} });
+/**
+ * Font sets a group can pick. "round" (Jua headings, Gowun Dodum text) ships with the app; the others
+ * are fetched the first time a group uses them. No family = the phone's own font.
+ */
+export const FONT_IDS = ["round", "clean", "bold", "hand"] as const;
+export type FontId = (typeof FONT_IDS)[number];
+export const isFontId = (x: unknown): x is FontId => typeof x === "string" && (FONT_IDS as readonly string[]).includes(x);
+type FontSet = { heading?: string; body?: string; load?: () => Record<string, number> };
+export const FONT_SETS: Record<FontId, FontSet> = {
+  round: { heading: "Jua_400Regular", body: "GowunDodum_400Regular" },
+  clean: {},
+  bold: { heading: "DoHyeon_400Regular", load: () => ({ DoHyeon_400Regular: require("@expo-google-fonts/do-hyeon").DoHyeon_400Regular }) },
+  hand: {
+    heading: "NanumPenScript_400Regular",
+    body: "NanumPenScript_400Regular",
+    load: () => ({ NanumPenScript_400Regular: require("@expo-google-fonts/nanum-pen-script").NanumPenScript_400Regular }),
+  },
+};
 
-/** The current group's theme colors everything; the last one is remembered so the app opens without a flash. */
+type Look = { themeId: ThemeId; setThemeId: (t: ThemeId) => void; fontId: FontId; setFontId: (f: FontId) => void; font: FontSet };
+const ThemeContext = createContext<Look>({ themeId: "pink", setThemeId: () => {}, fontId: "round", setFontId: () => {}, font: FONT_SETS.round });
+
+/** The current group's theme and font; the last ones are remembered so the app opens without a flash. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeId, setId] = useState<ThemeId>("pink");
+  const [fontId, setFont] = useState<FontId>("round");
+  const [loaded, setLoaded] = useState<Partial<Record<FontId, boolean>>>({ round: true, clean: true });
   useEffect(() => {
     prefs.get("theme").then((v) => isThemeId(v) && setId(v), () => {});
+    prefs.get("font").then((v) => isFontId(v) && setFont(v), () => {});
   }, []);
+  useEffect(() => {
+    const set = FONT_SETS[fontId];
+    if (loaded[fontId] || !set.load) return;
+    import("expo-font")
+      .then((Font) => Font.loadAsync(set.load!()))
+      .then(() => setLoaded((l) => ({ ...l, [fontId]: true })), () => {});
+  }, [fontId, loaded]);
   const setThemeId = useCallback((t: ThemeId) => {
     setId(t);
     prefs.set("theme", t).catch(() => {});
   }, []);
-  const value = useMemo(() => ({ themeId, setThemeId }), [themeId, setThemeId]);
+  const setFontId = useCallback((f: FontId) => {
+    setFont(f);
+    prefs.set("font", f).catch(() => {});
+  }, []);
+  // Until a fetched font has arrived, the round set (always there) stands in.
+  const font = loaded[fontId] ? FONT_SETS[fontId] : FONT_SETS.round;
+  const value = useMemo(() => ({ themeId, setThemeId, fontId, setFontId, font }), [themeId, setThemeId, fontId, setFontId, font]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
@@ -68,23 +104,31 @@ export function useColors(): Palette {
   return THEMES[useContext(ThemeContext).themeId];
 }
 
+/** The fonts in use now (no family = the phone's own font). */
+export const useFontSet = () => useContext(ThemeContext).font;
+
+/** @deprecated The round set; use useFontSet() so a group's font choice shows. */
 export const fonts = { heading: "Jua_400Regular", body: "GowunDodum_400Regular" };
 
-/** Bold text uses the round display face (custom fonts can't be faux-bolded nicely on Android). */
-function fontStyle(style: TextProps["style"]): TextStyle {
+/** Bold text uses the heading face (custom fonts can't be faux-bolded nicely on Android). */
+function fontStyle(style: TextProps["style"], f: FontSet): TextStyle {
   const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
   const w = flat.fontWeight;
   const heavy = w === "bold" || w === "600" || w === "700" || w === "800" || w === "900" || w === 600 || w === 700 || w === 800;
-  return { fontFamily: heavy ? fonts.heading : fonts.body, fontWeight: "normal" };
+  const family = heavy ? f.heading : f.body;
+  // The phone's font keeps real bold.
+  return family ? { fontFamily: family, fontWeight: "normal" } : {};
 }
 
-/** Text in the app's fonts. Use instead of react-native's Text. */
+/** Text in the group's fonts. Use instead of react-native's Text. */
 export function Text(props: TextProps) {
-  return <RNText {...props} style={[props.style, fontStyle(props.style)]} />;
+  const f = useFontSet();
+  return <RNText {...props} style={[props.style, fontStyle(props.style, f)]} />;
 }
 
 export function TextInput(props: TextInputProps) {
-  return <RNTextInput {...props} style={[props.style, { fontFamily: fonts.body }]} />;
+  const f = useFontSet();
+  return <RNTextInput {...props} style={[props.style, f.body ? { fontFamily: f.body } : null]} />;
 }
 
 const squish = (pressed: boolean) => (pressed ? [{ scale: 0.96 }] : []);

@@ -61,6 +61,8 @@ export type Workout = {
   sets: DoneSet[];
   /** Which exercise is open, and whether it's a set or a rest. null = the exercise list. */
   phase: Phase | null;
+  /** The weight for each exercise's next set when it differs from the routine (changed today). */
+  plan?: Record<string, { weight: number | null }>;
 };
 
 export const LIMITS = { days: 7, exercises: 20, sets: 20, reps: 200, seconds: 3600, weight: 2000, restSec: 900, name: 60, note: 300, weeklyGoal: 7 } as const;
@@ -102,11 +104,28 @@ export function currentSet(w: Workout): { exercise: RoutineExercise; set: number
   return { exercise, set: Math.min(setsDone(w, exercise.id) + 1, exercise.sets), total: exercise.sets };
 }
 
-/** Tap an exercise in the list (any order; the machine may be taken). */
-export function openExercise(w: Workout, exerciseId: string): Workout {
+/**
+ * Tap an exercise in the list (any order; the machine may be taken). When a set was just done (on any
+ * exercise), the exercise's rest runs first, counted from that set.
+ */
+export function openExercise(w: Workout, exerciseId: string, now?: Date): Workout {
   const e = exerciseOf(w, exerciseId);
   if (!e || exerciseDone(w, e) || w.endedAt) return w;
+  const last = w.sets.at(-1);
+  const restEnds = last && now && e.restSec > 0 ? ms(last.at) + e.restSec * 1000 : 0;
+  if (now && restEnds > now.getTime()) return { ...w, phase: { exerciseId, kind: "rest", endsAt: iso(restEnds) } };
   return { ...w, phase: { exerciseId, kind: "work" } };
+}
+
+/** The weight the next set of this exercise will be done with: changed today, else the routine's. */
+export function plannedWeight(w: Workout, e: RoutineExercise): number | null {
+  return w.plan && e.id in w.plan ? w.plan[e.id].weight : e.weight;
+}
+
+/** Changes the weight for this exercise's next sets (null = bodyweight). */
+export function setPlannedWeight(w: Workout, exerciseId: string, weight: number | null): Workout {
+  const clean = weight == null || weight <= 0 ? null : Math.min(LIMITS.weight, Math.round(weight * 100) / 100);
+  return { ...w, plan: { ...w.plan, [exerciseId]: { weight: clean } } };
 }
 
 /** Back to the list (a rest in progress is dropped). */
@@ -132,7 +151,7 @@ export function completeSet(w: Workout, now: Date): Workout {
     set: setsDone(w, e.id) + 1,
     reps: e.target === "reps" ? e.reps : null,
     seconds: e.target === "time" ? e.seconds : null,
-    weight: e.weight,
+    weight: plannedWeight(w, e),
     unit: e.unit,
     at: now.toISOString(),
   };
@@ -175,7 +194,9 @@ export function editLastSet(w: Workout, exerciseId: string, patch: Partial<Pick<
     seconds: "seconds" in patch ? clean(patch.seconds, LIMITS.seconds) : s.seconds,
     weight: "weight" in patch ? clean(patch.weight, LIMITS.weight) : s.weight,
   };
-  return { ...w, sets: w.sets.map((x, j) => (j === i ? fixed : x)) };
+  const next = { ...w, sets: w.sets.map((x, j) => (j === i ? fixed : x)) };
+  // A different weight on the set just done carries on to the next ones.
+  return "weight" in patch ? setPlannedWeight(next, exerciseId, fixed.weight) : next;
 }
 
 /** Done for today (all of it, or "finish now" with some left). */

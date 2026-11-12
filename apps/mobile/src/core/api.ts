@@ -7,7 +7,7 @@ export const API_URL = Platform.OS === "web" ? "" : (process.env.EXPO_PUBLIC_API
 export type User = { id: string; email: string; name: string | null; image: string | null; locale: string | null };
 export type Role = "owner" | "host" | "member";
 export type GroupModuleId = "food" | "boardgame" | "fitness";
-export type GroupSummary = { id: string; name: string; module: GroupModuleId; theme?: string; role: Role; unread?: number };
+export type GroupSummary = { id: string; name: string; module: GroupModuleId; theme?: string; font?: string; role: Role; unread?: number };
 export type Member = { id: string; name: string | null; email: string; image: string | null; role: Role };
 export type GroupDetail = {
   id: string;
@@ -17,6 +17,7 @@ export type GroupDetail = {
   timezone: string;
   currency: string;
   theme?: string;
+  font?: string;
   myRole: Role;
   members: Member[];
 };

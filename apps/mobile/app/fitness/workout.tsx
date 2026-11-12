@@ -9,8 +9,10 @@ import {
   finishWorkout,
   nextDay,
   openExercise,
+  plannedWeight,
   restClock,
   secondsLeft,
+  setPlannedWeight,
   setsDone,
   skipRest,
   startTimed,
@@ -23,8 +25,9 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
+import { useGroupLook } from "@/core/groupLook";
 import { FormScroll } from "@/components/FormScroll";
-import { Body, Button, Card, Chip, Loading, Text, useColors } from "@/components/ui";
+import { Body, Button, Card, Chip, Loading, Text, TextInput, useColors } from "@/components/ui";
 import { confirm } from "@/core/platform/confirm";
 import { fitApi, type FitnessHome } from "@/modules/fitness/api";
 import { BigButton } from "@/modules/fitness/FitnessHome";
@@ -46,6 +49,7 @@ export default function WorkoutScreen() {
   const [home, setHome] = useState<FitnessHome | null>(null);
   const [now, setNow] = useState(() => new Date());
   const latest = useRef<Workout | null>(null);
+  useGroupLook(groupId);
 
   useEffect(() => {
     workoutStore.load(groupId).then((s) => {
@@ -172,6 +176,7 @@ export default function WorkoutScreen() {
           const n = setsDone(w, e.id);
           const finished = exerciseDone(w, e);
           const last = setsText(lastSets[e.id]);
+          const today = setsText(w.sets.filter((s) => s.exerciseId === e.id));
           return (
             <Pressable
               key={e.id}
@@ -179,7 +184,7 @@ export default function WorkoutScreen() {
               accessibilityLabel={e.name}
               testID={`exercise-${e.id}`}
               disabled={finished}
-              onPress={() => commit(openExercise(w, e.id))}
+              onPress={() => commit(openExercise(w, e.id, new Date()))}
               style={{ backgroundColor: c.card, borderColor: c.border, borderWidth: 1.5, borderRadius: 24, padding: 18, gap: 4, opacity: finished ? 0.5 : 1 }}
             >
               <Text style={{ color: c.text, fontSize: 20, fontWeight: "700" }}>
@@ -187,8 +192,9 @@ export default function WorkoutScreen() {
                 {e.name}
               </Text>
               <Text style={{ color: c.text }}>
-                {t("fitness:workout.progress", { done: n, total: e.sets })} · {targetText(t, e)}
+                {t("fitness:workout.progress", { done: n, total: e.sets })} · {targetText(t, { ...e, weight: plannedWeight(w, e) })}
               </Text>
+              {today ? <Text testID="today-sets" style={{ color: c.text }}>{t("fitness:workout.today", { sets: today })}</Text> : null}
               {last ? <Text style={{ color: c.muted }}>{t("fitness:workout.last", { sets: last })}</Text> : null}
             </Pressable>
           );
@@ -245,14 +251,12 @@ export default function WorkoutScreen() {
                   onChange={(d) => commit(editLastSet(w, e.id, { reps: Math.max(0, (justDid.reps ?? 0) + d) }))}
                 />
               )}
-              {justDid.weight != null ? (
-                <Stepper
-                  value={`${justDid.weight} ${justDid.unit}`}
-                  less={t("fitness:workout.lessWeight")}
-                  more={t("fitness:workout.moreWeight")}
-                  onChange={(d) => commit(editLastSet(w, e.id, { weight: Math.max(0, (justDid.weight ?? 0) + d * weightStep) }))}
-                />
-              ) : null}
+              <WeightStepper
+                weight={justDid.weight}
+                unit={justDid.unit}
+                step={weightStep}
+                onChange={(weight) => commit(editLastSet(w, e.id, { weight }))}
+              />
             </Card>
           ) : null}
           <View style={{ flex: 1 }} />
@@ -263,7 +267,12 @@ export default function WorkoutScreen() {
           <Text testID="set-counter" style={{ color: c.text, fontSize: 56, fontWeight: "700", textAlign: "center" }}>
             {t("fitness:workout.setOf", { n: cur.set, total: cur.total })}
           </Text>
-          <Text style={{ color: c.text, fontSize: 20, textAlign: "center" }}>{targetText(t, e)}</Text>
+          <Text style={{ color: c.text, fontSize: 20, textAlign: "center" }}>{targetText(t, { ...e, weight: plannedWeight(w, e) })}</Text>
+          {e.target === "reps" && phase.kind === "work" ? (
+            <Card testID="set-weight">
+              <WeightStepper weight={plannedWeight(w, e)} unit={e.unit} step={weightStep} onChange={(weight) => commit(setPlannedWeight(w, e.id, weight))} />
+            </Card>
+          ) : null}
           {lastHere ? <Text style={{ color: c.muted, textAlign: "center" }}>{t("fitness:workout.last", { sets: lastHere })}</Text> : null}
           {e.note ? <Text style={{ color: c.muted, textAlign: "center" }}>{e.note}</Text> : null}
           {phase.kind === "timed" ? (
@@ -321,6 +330,53 @@ function Stepper({ value, less, more, onChange }: { value: string; less: string;
       {btn(less, "−", -1)}
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{value}</Text>
       {btn(more, "+", 1)}
+    </View>
+  );
+}
+
+/** −/+ by a plate step, or type it in. 0 / empty = bodyweight. */
+function WeightStepper({ weight, unit, step, onChange }: { weight: number | null; unit: string; step: number; onChange: (w: number | null) => void }) {
+  const { t } = useTranslation();
+  const c = useColors();
+  const [text, setText] = useState(weight ? String(weight) : "");
+  useEffect(() => {
+    if ((Number(text) || null) !== weight) setText(weight ? String(weight) : "");
+    // Only when it changes from outside (the buttons, the next set).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weight]);
+  const btn = (label: string, sign: string, d: number) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => onChange(Math.max(0, (weight ?? 0) + d * step) || null)}
+      hitSlop={8}
+      style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.pinkSoft, alignItems: "center", justifyContent: "center" }}
+    >
+      <Text style={{ color: c.text, fontSize: 26, fontWeight: "700" }}>{sign}</Text>
+    </Pressable>
+  );
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+      {btn(t("fitness:workout.lessWeight"), "−", -1)}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 }}>
+        <TextInput
+          accessibilityLabel={t("fitness:workout.weight", { unit })}
+          testID="weight-input"
+          value={text}
+          placeholder={t("fitness:workout.bodyweight")}
+          placeholderTextColor={c.muted}
+          keyboardType="decimal-pad"
+          onChangeText={(s) => {
+            const clean = s.replace(/[^\d.]/g, "");
+            setText(clean);
+            const n = Number(clean);
+            onChange(clean && Number.isFinite(n) && n > 0 ? n : null);
+          }}
+          style={{ color: c.text, fontSize: 24, minWidth: 64, maxWidth: 120, textAlign: "center", borderBottomWidth: 1.5, borderColor: c.border, paddingVertical: 4 }}
+        />
+        <Text style={{ color: c.text, fontSize: 20 }}>{unit}</Text>
+      </View>
+      {btn(t("fitness:workout.moreWeight"), "+", 1)}
     </View>
   );
 }

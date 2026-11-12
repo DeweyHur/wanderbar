@@ -8,7 +8,8 @@ import {
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, isThemeId, Loading, useColors, useTheme, Text } from "@/components/ui";
+import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
+import { useGroupLook } from "@/core/groupLook";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
 import { useSession } from "@/core/session";
 import { GroupBar } from "@/components/GroupSwitcher";
@@ -42,14 +43,8 @@ export default function GroupHome() {
   const { state } = useSession();
   const summary = state.status === "signedIn" ? state.groups.find((g) => g.id === id) : undefined;
   const known = summary?.module;
-  // The group's color theme colors the app while you're in it.
-  const { setThemeId } = useTheme();
-  const theme = summary?.theme;
-  useFocusEffect(
-    useCallback(() => {
-      if (summary) setThemeId(isThemeId(theme) ? theme : "pink");
-    }, [summary, theme, setThemeId]),
-  );
+  // The group's theme and font dress the app while you're in it.
+  useGroupLook(id);
   const [module, setModule] = useState<GroupModuleId | null>(known ?? null);
   useEffect(() => {
     if (known) setModule(known);
@@ -78,6 +73,7 @@ function SimpleGroup({ id, body }: { id: string; body: ReactNode }) {
       {body}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label={t("food:route.members")} onPress={() => router.push({ pathname: "/group/[id]/members", params: { id } })} />
+        <Chip label={t("group.look")} onPress={() => router.push({ pathname: "/group/[id]/look", params: { id } })} />
       </View>
     </FormScroll>
   );
@@ -220,6 +216,7 @@ function FoodHome({ id }: { id: string }) {
             router.push({ pathname: "/group/[id]/members", params: { id } })
           }
         />
+        <Chip label={t("group.look")} onPress={() => router.push({ pathname: "/group/[id]/look", params: { id } })} />
       </View>
     </FormScroll>
   );

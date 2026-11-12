@@ -1,0 +1,1 @@
+ALTER TABLE "groups" ADD COLUMN "font" text DEFAULT 'round' NOT NULL;

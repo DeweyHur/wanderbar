@@ -173,6 +173,18 @@ function AppStack() {
             options={{ title: t("fitness:workout.title") }}
           />
           <Stack.Screen
+            name="property/new"
+            options={{ title: t("realestate:new.title") }}
+          />
+          <Stack.Screen
+            name="property/[id]"
+            options={{ title: t("realestate:detail.title") }}
+          />
+          <Stack.Screen
+            name="tour/[id]"
+            options={{ title: t("realestate:tour.title") }}
+          />
+          <Stack.Screen
             name="invite/[token]"
             options={{ title: t("invite.title") }}
           />

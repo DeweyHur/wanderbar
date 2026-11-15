@@ -8,3 +8,4 @@ export * from "./googleHours";
 export * from "./restaurant";
 export * from "./reminders";
 export * from "./fitness";
+export * from "./realestate";

@@ -10,7 +10,7 @@ import { isLanguage, type Language } from "@/core/i18n";
 import { useSession } from "@/core/session";
 import { FormScroll } from "@/components/FormScroll";
 
-const KIND_LABEL: Record<GroupModuleId, string> = { boardgame: "group.kindBoardgame", food: "group.kindFood", fitness: "group.kindFitness" };
+const KIND_LABEL: Record<GroupModuleId, string> = { boardgame: "group.kindBoardgame", food: "group.kindFood", fitness: "group.kindFitness", realestate: "group.kindRealestate" };
 
 /** Another group: food & day routes, or a board game night (often in English for an international group). */
 export default function NewGroup() {
@@ -53,6 +53,7 @@ export default function NewGroup() {
         <Chip label={t("group.kindBoardgame")} selected={module === "boardgame"} onPress={() => setModule("boardgame")} />
         <Chip label={t("group.kindFood")} selected={module === "food"} onPress={() => setModule("food")} />
         <Chip label={t("group.kindFitness")} selected={module === "fitness"} onPress={() => setModule("fitness")} />
+        <Chip label={t("group.kindRealestate")} selected={module === "realestate"} onPress={() => setModule("realestate")} />
       </View>
       <Field label={t("group.name")} value={name} onChangeText={setName} placeholder={t(KIND_LABEL[module])} />
       {label(t("group.language"))}

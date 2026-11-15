@@ -61,7 +61,8 @@
       "hand": "손글씨"
     },
     "fontSample": "Game night 게임 나이트 123",
-    "ownerOnly": "그룹장만 바꿀 수 있어요."
+    "ownerOnly": "그룹장만 바꿀 수 있어요.",
+    "kindRealestate": "부동산 탐방"
   },
   "invite": {
     "title": "그룹 초대",
@@ -182,7 +183,8 @@
       "type_invalid": "JPEG, PNG, WebP 사진만 올릴 수 있어요",
       "too_large": "사진이 너무 커요 (최대 4MB)",
       "file_required": "사진을 골라 주세요",
-      "delete_forbidden": "올린 사람이나 그룹장만 지울 수 있어요"
+      "delete_forbidden": "올린 사람이나 그룹장만 지울 수 있어요",
+      "tour_invalid": "이 집의 탐방 기록이 아니에요"
     },
     "bgg": {
       "unavailable": "서버에 BoardGameGeek 연결이 아직 설정되지 않았어요 (BGG 토큰)",
@@ -209,6 +211,18 @@
       "bad_id": "이 운동을 저장하지 못했어요.",
       "bad_group": "다른 그룹의 운동이에요.",
       "workout_not_found": "그 운동 기록이 없어요."
+    },
+    "property": {
+      "not_found": "집을 찾을 수 없어요",
+      "link_unreadable": "링크에서 주소를 못 찾았어요",
+      "address_required": "주소를 입력하세요",
+      "duplicate": "같은 주소의 집이 이미 있어요",
+      "delete_forbidden": "담은 사람이나 그룹장만 지울 수 있어요"
+    },
+    "tour": {
+      "not_found": "탐방 기록을 찾을 수 없어요",
+      "not_yours": "내 탐방 기록만 고칠 수 있어요",
+      "future": "미래 날짜예요"
     }
   },
   "photo": {

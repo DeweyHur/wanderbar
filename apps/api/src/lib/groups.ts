@@ -14,7 +14,7 @@ export type GroupTheme = (typeof GROUP_THEMES)[number];
 /** Font sets the apps can draw (round: Jua + Gowun Dodum; clean: the system font; bold: Do Hyeon; hand: Nanum Pen). */
 export const GROUP_FONTS = ["round", "clean", "bold", "hand"] as const;
 export type GroupFont = (typeof GROUP_FONTS)[number];
-export type GroupModule = "food" | "boardgame" | "fitness";
+export type GroupModule = "food" | "boardgame" | "fitness" | "realestate";
 
 export type NewGroup = {
   name: string;

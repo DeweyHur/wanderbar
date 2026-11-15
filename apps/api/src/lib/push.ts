@@ -20,7 +20,9 @@ export type PushEvent =
   | { type: "visit"; who: string; name: string; itemId: string; kind: "restaurant" | "dish" }
   | { type: "rating"; who: string; name: string; stars: number; review?: string; again?: boolean; itemId: string; kind: "menu" | "dish" }
   | { type: "game_rating"; who: string; name: string; score: number; review?: string; again?: boolean; itemId: string }
-  | { type: "photo"; who: string; name: string; itemId: string; kind: "restaurant" | "menu" | "dish" }
+  | { type: "photo"; who: string; name: string; itemId: string; kind: "restaurant" | "menu" | "dish" | "property" }
+  | { type: "property"; who: string; name: string; itemId: string }
+  | { type: "tour"; who: string; name: string; score: number; itemId: string }
   | { type: "night_edit"; who: string; at: Date; tz: string; nightId: string }
   | { type: "rsvp"; who: string; status: "going" | "maybe" | "no"; at: Date; tz: string; nightId: string }
   | { type: "night_new"; at: Date; tz: string; nightId: string }
@@ -111,6 +113,10 @@ export function pushText(locale: string, e: PushEvent): string {
     }
     case "photo":
       return ko ? `📷 ${e.who}님이 ${e.name} 사진을 올렸어요` : `📷 ${e.who} added photos of ${e.name}`;
+    case "property":
+      return ko ? `🏠 ${e.who}님이 ${e.name}을(를) 담았어요` : `🏠 ${e.who} saved ${e.name}`;
+    case "tour":
+      return ko ? `🏠 ${e.who}님이 ${e.name}에 다녀와서 ${e.score}/10점을 줬어요` : `🏠 ${e.who} toured ${e.name} and gave it ${e.score}/10`;
     case "night_new":
       return ko ? `🎲 새 보드게임 나이트: ${nightWhen(locale, e.at, e.tz)}` : `🎲 New board game night: ${nightWhen(locale, e.at, e.tz)}`;
     case "night_game":
@@ -142,6 +148,9 @@ export function pushPath(e: PushEvent) {
     case "game":
     case "game_rating":
       return `/game/${e.itemId}`;
+    case "property":
+    case "tour":
+      return `/property/${e.itemId}`;
     case "rating":
     case "photo":
     case "edit":

@@ -15,6 +15,7 @@ import { useSession } from "@/core/session";
 import { GroupBar } from "@/components/GroupSwitcher";
 import { BoardGameHome } from "@/modules/boardgame/BoardGameHome";
 import { FitnessHome } from "@/modules/fitness/FitnessHome";
+import { RealEstateHome } from "@/modules/realestate/RealEstateHome";
 import { errorText } from "@/core/errors";
 import { saveLastGroup } from "@/core/lastGroup";
 import { getModule } from "@/core/modules/registry";
@@ -52,7 +53,7 @@ export default function GroupHome() {
     else api<GroupDetail>(`/api/groups/${id}`).then((g) => setModule(g.module), () => setModule("food"));
   }, [id, known]);
   if (!module) return <Loading />;
-  return module === "boardgame" ? <SimpleGroup id={id} body={<BoardGameHome groupId={id} />} /> : module === "fitness" ? <SimpleGroup id={id} body={<FitnessHome groupId={id} />} /> : <FoodHome id={id} />;
+  return module === "boardgame" ? <SimpleGroup id={id} body={<BoardGameHome groupId={id} />} /> : module === "fitness" ? <SimpleGroup id={id} body={<FitnessHome groupId={id} />} /> : module === "realestate" ? <SimpleGroup id={id} body={<RealEstateHome groupId={id} />} /> : <FoodHome id={id} />;
 }
 
 /** A group whose module draws its own home under the group bar (board game night, fitness). */

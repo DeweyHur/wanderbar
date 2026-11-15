@@ -8,7 +8,7 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 
 export const memberRole = pgEnum("member_role", ["owner", "host", "member"]);
 /** Which module a group runs (food & day route first, board game night later). */
-export const groupModule = pgEnum("group_module", ["food", "boardgame", "fitness"]);
+export const groupModule = pgEnum("group_module", ["food", "boardgame", "fitness", "realestate"]);
 
 export const users = pgTable("users", {
   id: id(),
@@ -95,8 +95,8 @@ export const invites = pgTable(
 // ---- Core: items (what a group rates) and their links ----
 
 /** Food module: restaurant, its menus, and dishes made at home. Board game module: games. */
-export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish", "game"]);
-export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other", "tts"]);
+export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish", "game", "property"]);
+export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other", "tts", "zillow", "redfin", "realtor"]);
 
 export const items = pgTable(
   "items",
@@ -237,6 +237,9 @@ export const photos = pgTable(
     width: integer("width"),
     height: integer("height"),
     takenAt: timestamp("taken_at", { withTimezone: true }),
+    /** Real estate: the space the photo shows ("kitchen", …) and the tour it was taken on. */
+    room: text("room"),
+    tourId: text("tour_id").references((): AnyPgColumn => tours.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [index("photos_item_idx").on(t.itemId, t.createdAt)],
@@ -615,4 +618,76 @@ export const workouts = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("workouts_group_started_idx").on(t.groupId, t.startedAt), index("workouts_user_started_idx").on(t.userId, t.startedAt)],
+);
+
+// ---- Real estate: houses (items of type "property") and open-house tours ----
+
+/** A house's facts and where it is in our process. Facts are typed in or filled from the listing link. */
+export const propertyDetails = pgTable(
+  "property_details",
+  {
+    itemId: text("item_id")
+      .primaryKey()
+      .references(() => items.id, { onDelete: "cascade" }),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    address: text("address").notNull(),
+    /** addressKey(address): one house per group. */
+    addressKey: text("address_key").notNull(),
+    city: text("city").notNull().default(""),
+    zip: text("zip").notNull().default(""),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    googlePlaceId: text("google_place_id"),
+    /** Whole dollars (the group's currency). */
+    price: integer("price"),
+    beds: doublePrecision("beds"),
+    baths: doublePrecision("baths"),
+    sqft: integer("sqft"),
+    lotSqft: integer("lot_sqft"),
+    yearBuilt: integer("year_built"),
+    hoaMonthly: integer("hoa_monthly"),
+    /** interested / to_tour / toured / considering / offered / contract / rejected (shared by the group). */
+    stage: text("stage").notNull().default("interested"),
+    rejectReason: text("reject_reason").notNull().default(""),
+    /** Free text, e.g. "Sun 1–4pm". */
+    openHouse: text("open_house").notNull().default(""),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("property_details_group_address_uq").on(t.groupId, t.addressKey)],
+);
+
+/** One member's record of one visit: scores, checks, notes per room, overall 1–10, pros and cons. */
+export const tours = pgTable(
+  "tours",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    visitedOn: date("visited_on").notNull(),
+    /** 1–10, null until given. */
+    overall: integer("overall"),
+    /** again / once / reject */
+    quick: text("quick"),
+    scores: jsonb("scores").$type<Record<string, number>>().notNull().default({}),
+    checks: jsonb("checks").$type<Record<string, boolean>>().notNull().default({}),
+    roomNotes: jsonb("room_notes").$type<Record<string, string>>().notNull().default({}),
+    pros: text("pros").notNull().default(""),
+    cons: text("cons").notNull().default(""),
+    /** Listing agent met at the open house (name, phone). */
+    agent: text("agent").notNull().default(""),
+    /** What we heard there (offer deadline, how many offers…). */
+    heard: text("heard").notNull().default(""),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("tours_item_idx").on(t.itemId, t.visitedOn), index("tours_group_idx").on(t.groupId)],
 );

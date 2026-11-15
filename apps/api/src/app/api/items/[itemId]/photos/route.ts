@@ -16,6 +16,8 @@ const JsonBody = z.object({
   takenAt: z.string().max(40).nullable().optional(),
   width: z.number().int().min(0).max(99999).nullable().optional(),
   height: z.number().int().min(0).max(99999).nullable().optional(),
+  room: z.string().max(40).nullable().optional(),
+  tourId: z.string().max(64).nullable().optional(),
 });
 const bytes = (b64: string) => new Uint8Array(Buffer.from(b64, "base64"));
 
@@ -33,6 +35,8 @@ export const POST = authed<{ itemId: string }>(async (req, { db, user, params })
       height: b.height ?? null,
       takenAt: b.takenAt ? new Date(b.takenAt) : null,
       thumb: b.thumb ? { body: bytes(b.thumb.data), contentType: b.thumb.type } : null,
+      room: b.room ?? null,
+      tourId: b.tourId ?? null,
     });
     return json(photo, 201);
   }
@@ -41,6 +45,10 @@ export const POST = authed<{ itemId: string }>(async (req, { db, user, params })
   if (!form || !file || typeof file === "string") throw badRequest("photo.file_required");
   const takenAt = form.get("takenAt");
   const thumb = form.get("thumb");
+  const text = (k: string) => {
+    const v = form.get(k);
+    return typeof v === "string" && v ? v.slice(0, 64) : null;
+  };
   const photo = await addPhoto(db, params.itemId, user.id, {
     body: new Uint8Array(await file.arrayBuffer()),
     contentType: file.type,
@@ -48,6 +56,8 @@ export const POST = authed<{ itemId: string }>(async (req, { db, user, params })
     height: int(form.get("height")),
     takenAt: typeof takenAt === "string" && takenAt ? new Date(takenAt) : null,
     thumb: thumb && typeof thumb !== "string" ? { body: new Uint8Array(await thumb.arrayBuffer()), contentType: thumb.type } : null,
+    room: text("room"),
+    tourId: text("tourId"),
   });
   return json(photo, 201);
 });

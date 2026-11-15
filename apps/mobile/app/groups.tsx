@@ -7,7 +7,8 @@ import { loadLastGroup, saveLastGroup } from "@/core/lastGroup";
 import { useSession } from "@/core/session";
 import { FormScroll } from "@/components/FormScroll";
 
-const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲" };
+const KIND: Record<string, string> = { food: "group.kindFood", boardgame: "group.kindBoardgame", fitness: "group.kindFitness", realestate: "group.kindRealestate" };
+const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲", fitness: "💪", realestate: "🏠" };
 
 /** All my groups: tap one to open it; or make a new one. */
 export default function Groups() {
@@ -47,7 +48,7 @@ export default function Groups() {
                   {g.name}
                 </Text>
                 <Body muted>
-                  {g.module === "boardgame" ? t("group.kindBoardgame") : t("group.kindFood")}
+                  {t(KIND[g.module] ?? "group.kindFood")}
                   {g.role !== "member" ? ` · ${t(`group.role.${g.role}`)}` : ""}
                 </Body>
               </View>

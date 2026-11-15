@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { groups, items, photos, users, visits } from "../db/schema";
+import { ROOMS } from "@wanderbar/route";
+import { groups, items, photos, tours, users, visits } from "../db/schema";
 import { badRequest, forbidden, notFound } from "./errors";
 import { requireMember } from "./groups";
 import { photoStore } from "./photoStore";
@@ -12,7 +13,7 @@ import { todayIn } from "./plans";
  * the camera time it read first comes along as takenAt and records the visit / "made it" for that day.
  */
 
-const PHOTO_ITEMS = ["restaurant", "menu", "dish"] as const;
+const PHOTO_ITEMS = ["restaurant", "menu", "dish", "property"] as const;
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 export const MAX_THUMB_BYTES = 256 * 1024;
@@ -36,6 +37,8 @@ const dto = (p: typeof photos.$inferSelect, who: { name: string | null; email: s
   createdAt: p.createdAt,
   width: p.width,
   height: p.height,
+  room: p.room,
+  tourId: p.tourId,
   url: `/api/photos/${p.id}`,
   /** Small copy for strips and lists (falls back to the full photo when there is none). */
   thumbUrl: `/api/photos/${p.id}?size=thumb`,
@@ -49,10 +52,20 @@ export type NewPhoto = {
   takenAt?: Date | null;
   /** Optional small copy made on the device. */
   thumb?: { body: Uint8Array; contentType: string } | null;
+  /** Real estate: the space it shows and the tour it was taken on. */
+  room?: string | null;
+  tourId?: string | null;
 };
 
 export async function addPhoto(db: Db, itemId: string, userId: string, f: NewPhoto) {
   const { item } = await memberItem(db, itemId, userId);
+  const room = item.type === "property" && f.room && (ROOMS as readonly string[]).includes(f.room) ? f.room : null;
+  let tourId: string | null = null;
+  if (item.type === "property" && f.tourId) {
+    const [t] = await db.select({ itemId: tours.itemId }).from(tours).where(eq(tours.id, f.tourId));
+    if (!t || t.itemId !== item.id) throw badRequest("photo.tour_invalid");
+    tourId = f.tourId;
+  }
   const ext = TYPES[f.contentType];
   if (!ext) throw badRequest("photo.type_invalid");
   if (!f.body.byteLength || f.body.byteLength > MAX_PHOTO_BYTES) throw badRequest("photo.too_large");
@@ -78,10 +91,10 @@ export async function addPhoto(db: Db, itemId: string, userId: string, f: NewPho
   if (f.thumb && thumbPath) await photoStore().put(thumbPath, f.thumb.body, f.thumb.contentType);
   const [row] = await db
     .insert(photos)
-    .values({ id, groupId: item.groupId, itemId, uploadedBy: userId, blobPath, contentType: f.contentType, thumbPath, thumbType, width: f.width ?? null, height: f.height ?? null, takenAt })
+    .values({ id, groupId: item.groupId, itemId, uploadedBy: userId, blobPath, contentType: f.contentType, thumbPath, thumbType, width: f.width ?? null, height: f.height ?? null, takenAt, room, tourId })
     .returning();
-  if (takenAt) await recordFromPhoto(db, item, userId, takenAt);
-  if (!recent) notifyGroup(db, item.groupId, userId, { type: "photo", who: await displayName(db, userId), name: item.name, itemId: item.id, kind: item.type as "restaurant" | "menu" | "dish" });
+  if (takenAt && item.type !== "property") await recordFromPhoto(db, item, userId, takenAt);
+  if (!recent) notifyGroup(db, item.groupId, userId, { type: "photo", who: await displayName(db, userId), name: item.name, itemId: item.id, kind: item.type as "restaurant" | "menu" | "dish" | "property" });
   const [who] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId));
   return dto(row, who);
 }

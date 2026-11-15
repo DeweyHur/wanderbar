@@ -13,6 +13,9 @@ export type Photo = {
   createdAt: string;
   width: number | null;
   height: number | null;
+  /** Real estate: the room it shows and the visit it was taken on. */
+  room?: string | null;
+  tourId?: string | null;
   url: string;
   thumbUrl: string;
 };
@@ -22,8 +25,8 @@ export const photoApi = {
     api<{ photos: Photo[] }>(`/api/items/${itemId}/photos`).then(
       (r) => r.photos,
     ),
-  upload: (itemId: string, p: PickedPhoto) => {
-    if (Platform.OS !== "web") return uploadJson(itemId, p);
+  upload: (itemId: string, p: PickedPhoto, extra: PhotoExtra = {}) => {
+    if (Platform.OS !== "web") return uploadJson(itemId, p, extra);
     const form = new FormData();
     const ext = (b: unknown) =>
       (b as Blob).type === "image/webp" ? "webp" : "jpg";
@@ -32,15 +35,18 @@ export const photoApi = {
     if (p.takenAt) form.append("takenAt", p.takenAt.toISOString());
     form.append("width", String(p.width));
     form.append("height", String(p.height));
+    if (extra.room) form.append("room", extra.room);
+    if (extra.tourId) form.append("tourId", extra.tourId);
     return apiUpload<Photo>(`/api/items/${itemId}/photos`, form);
   },
   remove: (id: string) => api(`/api/photos/${id}`, { method: "DELETE" }),
 };
 
+export type PhotoExtra = { room?: string | null; tourId?: string | null };
 type FilePart = { uri: string; type: string };
 
 /** Phones: React Native's multipart upload failed on Android, so the files go as base64 in JSON (~200KB each). */
-async function uploadJson(itemId: string, p: PickedPhoto) {
+async function uploadJson(itemId: string, p: PickedPhoto, extra: PhotoExtra) {
   const { File } = await import("expo-file-system");
   const part = async (f: FilePart) => ({
     data: await new File(f.uri).base64(),
@@ -53,6 +59,8 @@ async function uploadJson(itemId: string, p: PickedPhoto) {
       takenAt: p.takenAt?.toISOString() ?? null,
       width: p.width,
       height: p.height,
+      room: extra.room ?? null,
+      tourId: extra.tourId ?? null,
     },
   });
 }

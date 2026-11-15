@@ -10,6 +10,8 @@ import enBoardgame from "@/modules/boardgame/locales/en.json";
 import koBoardgame from "@/modules/boardgame/locales/ko.json";
 import enFitness from "@/modules/fitness/locales/en.json";
 import koFitness from "@/modules/fitness/locales/ko.json";
+import enRealestate from "@/modules/realestate/locales/en.json";
+import koRealestate from "@/modules/realestate/locales/ko.json";
 
 export const LANGUAGES = ["en", "ko"] as const;
 export type Language = (typeof LANGUAGES)[number];
@@ -25,12 +27,12 @@ const PREF_KEY = "language";
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: { core: enCore, food: enFood, boardgame: enBoardgame, fitness: enFitness },
-    ko: { core: koCore, food: koFood, boardgame: koBoardgame, fitness: koFitness },
+    en: { core: enCore, food: enFood, boardgame: enBoardgame, fitness: enFitness, realestate: enRealestate },
+    ko: { core: koCore, food: koFood, boardgame: koBoardgame, fitness: koFitness, realestate: koRealestate },
   },
   lng: deviceLanguage(),
   fallbackLng: "en",
-  ns: ["core", "food", "boardgame", "fitness"],
+  ns: ["core", "food", "boardgame", "fitness", "realestate"],
   defaultNS: "core",
   interpolation: { escapeValue: false },
 });

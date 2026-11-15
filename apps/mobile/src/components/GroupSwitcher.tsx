@@ -6,7 +6,7 @@ import { loadLastGroup, saveLastGroup } from "@/core/lastGroup";
 import { useSession } from "@/core/session";
 import { isFontId, isThemeId, Text, THEMES, useColors, useTheme } from "./ui";
 
-const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲" };
+const ICON: Record<string, string> = { food: "🍜", boardgame: "🎲", fitness: "💪", realestate: "🏠" };
 
 /**
  * The bar at the top of every group screen (home, game night, game, schedule, members): which group

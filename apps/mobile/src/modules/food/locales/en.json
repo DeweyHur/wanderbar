@@ -121,7 +121,13 @@
     "searchPlaceholder": "Search a place, or type cafe, park, jazz bar",
     "inRoute": "In this route · {{status}}",
     "upcoming": "Upcoming",
-    "past": "Past"
+    "past": "Past",
+    "zip": "ZIP",
+    "zipNotFound": "Couldn't find that ZIP code",
+    "nearZip": "📍 Nearest to {{place}} first",
+    "nearMe": "📍 Nearest to you first",
+    "beenThere_one": "been {{date}}",
+    "beenThere_other": "been {{count}} times · last {{date}}"
   },
   "hours": {
     "open": "Open · until {{time}}",

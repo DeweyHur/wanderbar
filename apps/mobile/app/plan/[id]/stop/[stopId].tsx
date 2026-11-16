@@ -24,6 +24,7 @@ export default function StopScreen() {
   const now = useNow();
   const googleAvailable = useGoogleAvailable();
   const [stop, setStop] = useState<Stop | null>(null);
+  const [groupId, setGroupId] = useState<string | undefined>();
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });
   const [geo, setGeo] = useState<{ lat: number | null; lng: number | null; googlePlaceId: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -38,6 +39,7 @@ export default function StopScreen() {
         const s = p.stops.find((x) => x.id === stopId);
         if (!s) return setError(t("errors.not_found"));
         setStop(s);
+        setGroupId(p.groupId);
         setForm({ name: s.name, address: s.address, mapsUrl: s.mapsUrl, hoursRaw: s.hoursRaw, memo: s.memo });
       })
       .catch((e) => setError(errorText(t, e)));
@@ -130,6 +132,8 @@ export default function StopScreen() {
           value={search}
           onChangeText={setSearch}
           near={stop.lat != null && stop.lng != null ? { lat: stop.lat, lng: stop.lng } : null}
+          around
+          visitedGroupId={groupId}
           onPick={(d) => {
             setSearch("");
             setForm((f) => ({ ...f, name: d.name || f.name, address: d.address, mapsUrl: d.mapsUrl, hoursRaw: d.hoursRaw || f.hoursRaw }));

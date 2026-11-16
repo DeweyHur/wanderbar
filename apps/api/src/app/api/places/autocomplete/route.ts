@@ -7,9 +7,11 @@ const Body = z.object({
   /** One token per search-and-pick (Google bills autocomplete + details as one session). */
   sessionToken: z.string().min(8).max(100),
   near: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().default(null),
+  /** Where distances are measured from (you, or a ZIP you typed). */
+  origin: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().default(null),
 });
 
 export const POST = authed(async (req) => {
-  const { input, sessionToken, near } = Body.parse(await req.json());
-  return json({ suggestions: await autocomplete(input, sessionToken, near) });
+  const { input, sessionToken, near, origin } = Body.parse(await req.json());
+  return json({ suggestions: await autocomplete(input, sessionToken, near, fetch, origin) });
 });

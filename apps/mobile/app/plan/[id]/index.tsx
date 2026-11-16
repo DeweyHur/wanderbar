@@ -230,6 +230,8 @@ export default function PlanScreen() {
         onPick={(d) => addPicked(d).catch((e) => setError(errorText(t, e)))}
         onSubmit={() => add()}
         near={near}
+        around
+        visitedGroupId={plan.groupId}
         placeholder={googleAvailable ? t("food:route.searchPlaceholder") : t("food:route.addPlaceholder")}
       />
       <Button kind="plain" label={t("food:route.add")} busy={adding} disabled={!quick.trim()} onPress={add} />

@@ -1,5 +1,5 @@
 import { PlanFlow, type StopStatus } from "@wanderbar/route";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { groups, planStops, plans, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
@@ -219,3 +219,40 @@ export async function setTeslaFormat(db: Db, userId: string, platform: Platform,
 }
 
 export type { StopStatus };
+
+/**
+ * Places you've been on your day routes in this group (finished stops with a location), newest first and
+ * one per place, so place search can offer them before Google's results.
+ */
+export async function visitedPlaces(db: Db, groupId: string, userId: string) {
+  await requireMember(db, groupId, userId);
+  const rows = await db
+    .select({ s: planStops, at: plans.createdAt, date: plans.date })
+    .from(planStops)
+    .innerJoin(plans, eq(plans.id, planStops.planId))
+    .where(and(eq(plans.groupId, groupId), eq(plans.userId, userId), eq(planStops.status, "done"), isNotNull(planStops.lat), isNotNull(planStops.lng)))
+    .orderBy(desc(plans.createdAt))
+    .limit(500);
+  const seen = new Map<string, ReturnType<typeof visitedView>>();
+  for (const r of rows) {
+    const key = r.s.googlePlaceId || `${r.s.name.trim().toLowerCase()}|${r.s.address.trim().toLowerCase()}`;
+    const prev = seen.get(key);
+    if (prev) prev.times += 1;
+    else seen.set(key, visitedView(key, r.s, r.date ?? r.at.toISOString().slice(0, 10)));
+  }
+  return [...seen.values()];
+}
+
+const visitedView = (key: string, s: typeof planStops.$inferSelect, last: string) => ({
+  key,
+  name: s.name,
+  address: s.address,
+  lat: s.lat!,
+  lng: s.lng!,
+  googlePlaceId: s.googlePlaceId,
+  mapsUrl: s.mapsUrl,
+  hoursRaw: s.hoursRaw,
+  itemId: s.itemId,
+  last,
+  times: 1,
+});

@@ -121,7 +121,13 @@
     "searchPlaceholder": "장소 검색, 또는 카페, 공원, 재즈바",
     "inRoute": "이 동선에서 · {{status}}",
     "upcoming": "예정",
-    "past": "지난 동선"
+    "past": "지난 동선",
+    "zip": "우편번호",
+    "zipNotFound": "그 우편번호를 찾지 못했어요",
+    "nearZip": "📍 {{place}}에서 가까운 순",
+    "nearMe": "📍 내 위치에서 가까운 순",
+    "beenThere_other": "{{count}}번 다녀옴 · 최근 {{date}}",
+    "beenThere_one": "{{date}} 다녀옴"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",

@@ -1,4 +1,4 @@
-import { googlePeriodsToHoursRaw, type GooglePeriod } from "@wanderbar/route";
+import { googlePeriodsToHoursRaw, metersBetween, type GooglePeriod } from "@wanderbar/route";
 import { isInMemoryDb } from "../db/client";
 import { HttpError } from "./errors";
 
@@ -8,7 +8,7 @@ import { HttpError } from "./errors";
  */
 export type Fetch = typeof fetch;
 
-export type Suggestion = { placeId: string; primary: string; secondary: string };
+export type Suggestion = { placeId: string; primary: string; secondary: string; distanceMeters?: number | null };
 export type PlaceDetails = {
   googlePlaceId: string;
   name: string;
@@ -58,17 +58,47 @@ async function call<T>(f: Fetch, url: string, init: RequestInit & { fieldMask?: 
   return data;
 }
 
-export async function autocomplete(input: string, sessionToken: string, near: LatLng | null, f: Fetch = fetch): Promise<Suggestion[]> {
-  if (googleFakeEnabled()) return fake.autocomplete(input);
+/**
+ * Suggestions as you type. `near` leans results toward an area (50 km); `origin` (where you are, or the
+ * ZIP you typed) makes Google say how far each one is.
+ */
+export async function autocomplete(input: string, sessionToken: string, near: LatLng | null, f: Fetch = fetch, origin: LatLng | null = null): Promise<Suggestion[]> {
+  if (googleFakeEnabled()) return fake.autocomplete(input, origin);
   const body: Record<string, unknown> = { input, sessionToken };
-  if (near) body.locationBias = { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 50000 } };
+  const center = near ?? origin;
+  if (center) body.locationBias = { circle: { center: { latitude: center.lat, longitude: center.lng }, radius: 50000 } };
+  if (origin) body.origin = { latitude: origin.lat, longitude: origin.lng };
   const data = await call<{
-    suggestions?: { placePrediction?: { placeId: string; structuredFormat?: { mainText?: { text: string }; secondaryText?: { text: string } } } }[];
+    suggestions?: {
+      placePrediction?: { placeId: string; distanceMeters?: number; structuredFormat?: { mainText?: { text: string }; secondaryText?: { text: string } } };
+    }[];
   }>(f, "https://places.googleapis.com/v1/places:autocomplete", { method: "POST", body: JSON.stringify(body) });
   return (data.suggestions ?? [])
     .map((s) => s.placePrediction)
     .filter((p): p is NonNullable<typeof p> => !!p)
-    .map((p) => ({ placeId: p.placeId, primary: p.structuredFormat?.mainText?.text ?? "", secondary: p.structuredFormat?.secondaryText?.text ?? "" }));
+    .map((p) => ({
+      placeId: p.placeId,
+      primary: p.structuredFormat?.mainText?.text ?? "",
+      secondary: p.structuredFormat?.secondaryText?.text ?? "",
+      distanceMeters: p.distanceMeters ?? null,
+    }));
+}
+
+/** Where a US ZIP code is (its center), to search around it. */
+export async function zipCenter(zip: string, f: Fetch = fetch): Promise<{ lat: number; lng: number; label: string }> {
+  if (googleFakeEnabled()) return { lat: 37.7793, lng: -122.4192, label: `San Francisco, CA ${zip}` };
+  const data = await call<{ places?: { location?: { latitude: number; longitude: number }; formattedAddress?: string }[] }>(
+    f,
+    "https://places.googleapis.com/v1/places:searchText",
+    {
+      method: "POST",
+      fieldMask: "places.location,places.formattedAddress",
+      body: JSON.stringify({ textQuery: `${zip}, USA`, regionCode: "US", pageSize: 1 }),
+    },
+  );
+  const p = data.places?.[0];
+  if (!p?.location) throw new HttpError(404, "places.zip_not_found");
+  return { lat: p.location.latitude, lng: p.location.longitude, label: (p.formattedAddress ?? zip).replace(/, USA$/, "") };
 }
 
 export async function placeDetails(placeId: string, sessionToken: string | null, f: Fetch = fetch): Promise<PlaceDetails> {
@@ -174,11 +204,12 @@ export const FAKE_SHORT_LINKS: Record<string, string> = {
   "https://maps.app.goo.gl/mensho": "https://www.google.com/maps/place/Mensho+Tokyo/@37.7866,-122.4146,17z",
 };
 const fake = {
-  autocomplete: (input: string): Suggestion[] =>
+  autocomplete: (input: string, origin: LatLng | null): Suggestion[] =>
     FAKE_PLACES.filter((p) => p.name.toLowerCase().includes(input.trim().toLowerCase())).map((p) => ({
       placeId: p.googlePlaceId,
       primary: p.name,
       secondary: p.address,
+      distanceMeters: origin && p.lat != null && p.lng != null ? metersBetween(origin, { lat: p.lat, lng: p.lng }) : null,
     })),
   find: (q: string): string | null => {
     const s = q.toLowerCase();

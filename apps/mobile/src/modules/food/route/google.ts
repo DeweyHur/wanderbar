@@ -33,14 +33,34 @@ export function useGoogleAvailable() {
 const newSession = () => Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join("");
 let session = newSession();
 
-export type Suggestion = { placeId: string; primary: string; secondary: string };
+export type Suggestion = { placeId: string; primary: string; secondary: string; distanceMeters?: number | null };
 export type PlaceDetails = { googlePlaceId: string; name: string; address: string; lat: number | null; lng: number | null; mapsUrl: string; hoursRaw: string };
 
-export async function suggestPlaces(input: string, near?: { lat: number; lng: number } | null): Promise<Suggestion[]> {
+export async function suggestPlaces(input: string, near?: { lat: number; lng: number } | null, origin?: { lat: number; lng: number } | null): Promise<Suggestion[]> {
   if (!input.trim()) return [];
-  const r = await api<{ suggestions: Suggestion[] }>("/api/places/autocomplete", { body: { input, sessionToken: session, near: near ?? null } });
+  const r = await api<{ suggestions: Suggestion[] }>("/api/places/autocomplete", {
+    body: { input, sessionToken: session, near: near ?? null, origin: origin ?? null },
+  });
   return r.suggestions;
 }
+
+/** Where a US ZIP code is, to search around it. */
+export const zipCenter = (zip: string) => api<{ zip: string; lat: number; lng: number; label: string }>("/api/places/zip", { body: { zip } });
+
+export type VisitedPlace = {
+  key: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  googlePlaceId: string;
+  mapsUrl: string;
+  hoursRaw: string;
+  last: string;
+  times: number;
+};
+/** Places you've finished on your routes in this group. */
+export const visitedPlaces = (groupId: string) => api<{ places: VisitedPlace[] }>(`/api/groups/${encodeURIComponent(groupId)}/visited-places`).then((r) => r.places);
 
 /** Ends the current search session and hands its token to a server call that fetches the details itself. */
 export function takeSession(): string {

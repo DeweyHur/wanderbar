@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { autocomplete, computeRoute, findPlaceId, googleFakeEnabled, placeDetails, type Fetch } from "@/lib/google";
+import { autocomplete, computeRoute, findPlaceId, googleFakeEnabled, placeDetails, zipCenter, type Fetch } from "@/lib/google";
 
 const calls: { url: string; init: RequestInit }[] = [];
 const fakeFetch = (body: unknown, status = 200): Fetch =>
@@ -22,10 +22,27 @@ describe("server-side Google", () => {
     const f = fakeFetch({
       suggestions: [{ placePrediction: { placeId: "p1", structuredFormat: { mainText: { text: "Blue Bottle" }, secondaryText: { text: "SF" } } } }, {}],
     });
-    expect(await autocomplete("blue", "session-123", { lat: 37.7, lng: -122.4 }, f)).toEqual([{ placeId: "p1", primary: "Blue Bottle", secondary: "SF" }]);
+    expect(await autocomplete("blue", "session-123", { lat: 37.7, lng: -122.4 }, f)).toEqual([{ placeId: "p1", primary: "Blue Bottle", secondary: "SF", distanceMeters: null }]);
     expect(header(0, "X-Goog-Api-Key")).toBe("server-key");
     const body = JSON.parse(calls[0].init.body as string);
     expect(body).toMatchObject({ input: "blue", sessionToken: "session-123", locationBias: { circle: { center: { latitude: 37.7, longitude: -122.4 } } } });
+  });
+
+  it("measures distances from an origin (you, or a ZIP) and leans toward it", async () => {
+    const f = fakeFetch({ suggestions: [{ placePrediction: { placeId: "p1", distanceMeters: 812, structuredFormat: { mainText: { text: "Tacos" } } } }] });
+    expect(await autocomplete("tacos", "session-123", null, f, { lat: 34.02, lng: -118.4 })).toEqual([
+      { placeId: "p1", primary: "Tacos", secondary: "", distanceMeters: 812 },
+    ]);
+    const body = JSON.parse(calls[0].init.body as string);
+    expect(body.origin).toEqual({ latitude: 34.02, longitude: -118.4 });
+    expect(body.locationBias.circle.center).toEqual({ latitude: 34.02, longitude: -118.4 });
+  });
+
+  it("finds a ZIP code's center", async () => {
+    const f = fakeFetch({ places: [{ location: { latitude: 34.0211, longitude: -118.3965 }, formattedAddress: "Culver City, CA 90230, USA" }] });
+    expect(await zipCenter("90230", f)).toEqual({ lat: 34.0211, lng: -118.3965, label: "Culver City, CA 90230" });
+    expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ textQuery: "90230, USA", regionCode: "US" });
+    await expect(zipCenter("00000", fakeFetch({ places: [] }))).rejects.toMatchObject({ status: 404 });
   });
 
   it("details asks only for the fields we use and converts opening hours", async () => {

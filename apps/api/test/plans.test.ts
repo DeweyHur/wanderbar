@@ -13,6 +13,7 @@ import {
   listPlans,
   setTeslaFormat,
   updateStop,
+  visitedPlaces,
 } from "@/lib/plans";
 import { profile, testDb } from "./db";
 
@@ -93,5 +94,38 @@ describe("plans", () => {
     await setTeslaFormat(db, me, "android", "nameAddress");
     expect(await getTeslaFormat(db, me, "android")).toBe("nameAddress");
     expect(await getTeslaFormat(db, me, "ios")).toBeNull();
+  });
+});
+
+describe("places you've been", () => {
+  it("finished stops with a location from your own routes in this group, one per place, newest first", async () => {
+    const old = await createPlan(db, groupId, me, "old", "2026-10-01");
+    const [tacos, park] = await addStops(db, old.id, me, [
+      { name: "Tacos", address: "1 Main St", lat: 34.02, lng: -118.39, googlePlaceId: "g-tacos" },
+      { name: "Park", address: "", lat: 34.03, lng: -118.4 },
+    ]);
+    await applyFlow(db, old.id, me, { action: "complete", stopId: tacos.id });
+    await applyFlow(db, old.id, me, { action: "complete", stopId: park.id });
+    const again = await createPlan(db, groupId, me, "again", "2026-11-01");
+    const [tacos2, noLoc, notYet] = await addStops(db, again.id, me, [
+      { name: "Tacos", lat: 34.02, lng: -118.39, googlePlaceId: "g-tacos" },
+      { name: "Somewhere" },
+      { name: "Later", lat: 1, lng: 1 },
+    ]);
+    await applyFlow(db, again.id, me, { action: "complete", stopId: tacos2.id });
+    await applyFlow(db, again.id, me, { action: "complete", stopId: noLoc.id });
+    void notYet;
+    // A friend's route doesn't count as yours.
+    const theirs = await createPlan(db, groupId, friend, "theirs");
+    const [x] = await addStops(db, theirs.id, friend, [{ name: "Their spot", lat: 1, lng: 1 }]);
+    await applyFlow(db, theirs.id, friend, { action: "complete", stopId: x.id });
+
+    const v = await visitedPlaces(db, groupId, me);
+    expect(v.map((p) => [p.name, p.times, p.last])).toEqual([
+      ["Tacos", 2, "2026-11-01"],
+      ["Park", 1, "2026-10-01"],
+    ]);
+    const stranger = (await signIn(db, profile("stranger"))).user.id;
+    expect(await status(visitedPlaces(db, groupId, stranger))).toBe(404);
   });
 });

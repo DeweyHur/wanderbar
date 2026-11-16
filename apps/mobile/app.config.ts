@@ -24,7 +24,7 @@ const config: ExpoConfig = {
   slug: "wanderbar",
   ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
-  version: "0.4.1",
+  version: "0.5.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
@@ -66,6 +66,8 @@ const config: ExpoConfig = {
     ["expo-image-picker", { photosPermission: "Pick photos of what you ate to add them to your group's log.", cameraPermission: false, microphonePermission: false }],
     "expo-router",
     "expo-apple-authentication",
+    // Place search: nearest places first (only while the app is open).
+    ["expo-location", { locationWhenInUsePermission: "Show the places nearest to you first when you search for a place." }],
     "expo-localization",
     [
       "expo-share-intent",

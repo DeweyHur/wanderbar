@@ -83,7 +83,13 @@
     "notifyPush": "Group news",
     "notifyPushHint": "When someone saves a restaurant, rates something, adds photos, or plans a board game night.",
     "notifyDenied": "Notifications are turned off for wanderbar in your phone's settings.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "appearance": "Light or dark",
+    "appearances": {
+      "system": "Same as phone",
+      "light": "Light",
+      "dark": "Dark"
+    }
   },
   "errors": {
     "unknown": "Something went wrong",

@@ -6,6 +6,7 @@ import {
   Text as RNText,
   TextInput as RNTextInput,
   StyleSheet,
+  useColorScheme,
   View,
   type TextInputProps,
   type TextProps,
@@ -14,7 +15,7 @@ import {
 
 /**
  * The look: baby pink and soft. Blush paper, pink pills, cocoa ink, round fonts
- * (Jua for headings and buttons, Gowun Dodum for reading). Light only: the pastel palette is the brand.
+ * (Jua for headings and buttons, Gowun Dodum for reading). Each theme also has a dark version.
  */
 export const palette = {
   bg: "#FFF3F6", // blush paper
@@ -43,6 +44,22 @@ export const THEMES = {
   night: { bg: "#1D1B26", card: "#282536", text: "#EEE9F7", muted: "#A39DB8", accent: "#F2A7C3", pink: "#F2A7C3", pinkSoft: "#3A3550", onPink: "#2A2333", border: "#3A3550", danger: "#FF7A8A", ok: "#6CD4A6", warn: "#F5C26B", dark: true },
 } satisfies Record<string, Palette>;
 export type ThemeId = keyof typeof THEMES;
+
+/** Each theme after dark: a deep background tinted with the theme's color, pastel accents on top. */
+const darkBase = { danger: "#FF7A8A", ok: "#6CD4A6", warn: "#F5C26B", dark: true };
+export const DARK_THEMES: Record<ThemeId, Palette> = {
+  pink: { ...darkBase, bg: "#221A1F", card: "#2E2329", text: "#F6E8EE", muted: "#B39AA6", accent: "#F2A7C3", pink: "#F2A7C3", pinkSoft: "#43303A", onPink: "#2A1D24", border: "#46333D" },
+  mint: { ...darkBase, bg: "#17221F", card: "#20302B", text: "#E3F4EE", muted: "#93B3A8", accent: "#7FD8B9", pink: "#7FD8B9", pinkSoft: "#2A4239", onPink: "#14231E", border: "#2F4740" },
+  sky: { ...darkBase, bg: "#171D27", card: "#212A37", text: "#E5EEFA", muted: "#95A5BD", accent: "#8DB9F2", pink: "#8DB9F2", pinkSoft: "#2B3A50", onPink: "#142033", border: "#304056" },
+  lavender: { ...darkBase, bg: "#1D1A26", card: "#282436", text: "#EEE8FA", muted: "#A69DBD", accent: "#B9A2EE", pink: "#B9A2EE", pinkSoft: "#3A3352", onPink: "#211A33", border: "#3D3556" },
+  peach: { ...darkBase, bg: "#241C17", card: "#312620", text: "#F8EAE0", muted: "#B9A090", accent: "#F5A97A", pink: "#F5A97A", pinkSoft: "#47362B", onPink: "#2A1B12", border: "#4A392E" },
+  night: THEMES.night,
+};
+
+/** Light or dark is each person's choice (not the group's): follow the phone, or always one of them. */
+export const APPEARANCES = ["system", "light", "dark"] as const;
+export type Appearance = (typeof APPEARANCES)[number];
+const isAppearance = (x: unknown): x is Appearance => typeof x === "string" && (APPEARANCES as readonly string[]).includes(x);
 export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
 export const isThemeId = (x: unknown): x is ThemeId => typeof x === "string" && x in THEMES;
 
@@ -65,18 +82,44 @@ export const FONT_SETS: Record<FontId, FontSet> = {
   },
 };
 
-type Look = { themeId: ThemeId; setThemeId: (t: ThemeId) => void; fontId: FontId; setFontId: (f: FontId) => void; font: FontSet };
-const ThemeContext = createContext<Look>({ themeId: "pink", setThemeId: () => {}, fontId: "round", setFontId: () => {}, font: FONT_SETS.round });
+type Look = {
+  themeId: ThemeId;
+  setThemeId: (t: ThemeId) => void;
+  fontId: FontId;
+  setFontId: (f: FontId) => void;
+  font: FontSet;
+  appearance: Appearance;
+  setAppearance: (a: Appearance) => void;
+  dark: boolean;
+};
+const ThemeContext = createContext<Look>({
+  themeId: "pink",
+  setThemeId: () => {},
+  fontId: "round",
+  setFontId: () => {},
+  font: FONT_SETS.round,
+  appearance: "system",
+  setAppearance: () => {},
+  dark: false,
+});
 
 /** The current group's theme and font; the last ones are remembered so the app opens without a flash. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeId, setId] = useState<ThemeId>("pink");
   const [fontId, setFont] = useState<FontId>("round");
+  const [appearance, setLook] = useState<Appearance>("system");
+  const scheme = useColorScheme();
   const [loaded, setLoaded] = useState<Partial<Record<FontId, boolean>>>({ round: true, clean: true });
   useEffect(() => {
     prefs.get("theme").then((v) => isThemeId(v) && setId(v), () => {});
     prefs.get("font").then((v) => isFontId(v) && setFont(v), () => {});
+    prefs.get("appearance").then((v) => isAppearance(v) && setLook(v), () => {});
   }, []);
+  const setAppearance = useCallback((a: Appearance) => {
+    setLook(a);
+    prefs.set("appearance", a).catch(() => {});
+  }, []);
+  const dark = appearance === "dark" || (appearance === "system" && scheme === "dark");
   useEffect(() => {
     const set = FONT_SETS[fontId];
     if (loaded[fontId] || !set.load) return;
@@ -94,14 +137,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
   // Until a fetched font has arrived, the round set (always there) stands in.
   const font = loaded[fontId] ? FONT_SETS[fontId] : FONT_SETS.round;
-  const value = useMemo(() => ({ themeId, setThemeId, fontId, setFontId, font }), [themeId, setThemeId, fontId, setFontId, font]);
+  const value = useMemo(
+    () => ({ themeId, setThemeId, fontId, setFontId, font, appearance, setAppearance, dark }),
+    [themeId, setThemeId, fontId, setFontId, font, appearance, setAppearance, dark],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export const useTheme = () => useContext(ThemeContext);
 
 export function useColors(): Palette {
-  return THEMES[useContext(ThemeContext).themeId];
+  const { themeId, dark } = useContext(ThemeContext);
+  return dark ? DARK_THEMES[themeId] : THEMES[themeId];
 }
 
 /** The fonts in use now (no family = the phone's own font). */

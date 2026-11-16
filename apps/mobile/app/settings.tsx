@@ -3,7 +3,8 @@ import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Body, Button, ErrorText, Text, Title, useColors } from "@/components/ui";
+import { APPEARANCES, Body, Button, Chip, ErrorText, Text, Title, useColors, useTheme } from "@/components/ui";
+import { View } from "react-native";
 import { api } from "@/core/api";
 import { errorText } from "@/core/errors";
 import { applyLanguage, savedLanguage, type Language } from "@/core/i18n";
@@ -17,6 +18,7 @@ export default function Settings() {
   const { t } = useTranslation();
   const { state, signOut } = useSession();
   const c = useColors();
+  const { appearance, setAppearance } = useTheme();
   const [choice, setChoice] = useState<Language | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [reminders, setRemindersOn] = useState(false);
@@ -49,6 +51,13 @@ export default function Settings() {
         />
       ))}
       <ErrorText>{error}</ErrorText>
+      {/* Light or dark: yours alone (the group picks the colors, each person picks how bright). */}
+      <Title>{t("settings.appearance")}</Title>
+      <View testID="appearance" style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {APPEARANCES.map((a) => (
+          <Chip key={a} label={t(`settings.appearances.${a}`)} selected={appearance === a} onPress={() => setAppearance(a)} />
+        ))}
+      </View>
       {notificationsSupported && (
         <>
           <Title>{t("settings.notifications")}</Title>

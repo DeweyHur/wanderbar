@@ -24,10 +24,11 @@ const config: ExpoConfig = {
   slug: "wanderbar",
   ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
-  version: "0.5.0",
+  version: "0.6.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
-  userInterfaceStyle: "light",
+  // Light or dark follows the choice in Settings (or the phone).
+  userInterfaceStyle: "automatic",
   ios: {
     // Different from the legacy Kotlin app (app.wanderbar) so both can be installed during the move.
     bundleIdentifier: "app.wanderbar.mobile",

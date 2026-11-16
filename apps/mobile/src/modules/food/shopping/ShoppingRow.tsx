@@ -33,7 +33,7 @@ export function ShoppingRow({ item, onToggle, onRemove, showFor = true }: { item
           justifyContent: "center",
         }}
       >
-        {item.done ? <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>✓</Text> : null}
+        {item.done ? <Text style={{ color: c.dark ? c.onPink : "#fff", fontSize: 15, fontWeight: "700" }}>✓</Text> : null}
       </Pressable>
       <View style={{ flex: 1 }}>
         <Text style={{ color: item.done ? c.muted : c.text, fontSize: 16, textDecorationLine: item.done ? "line-through" : "none" }}>

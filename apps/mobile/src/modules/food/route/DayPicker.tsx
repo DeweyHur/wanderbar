@@ -68,7 +68,7 @@ export function DayPicker({ visible, value, onPick, onClose }: { visible: boolea
                       borderColor: c.accent,
                     }}
                   >
-                    <Text style={{ color: d === value ? "#fff" : d < now ? c.muted : c.text, fontSize: 15 }}>{Number(d.slice(8))}</Text>
+                    <Text style={{ color: d === value ? (c.dark ? c.onPink : "#fff") : d < now ? c.muted : c.text, fontSize: 15 }}>{Number(d.slice(8))}</Text>
                   </Pressable>
                 )}
               </View>

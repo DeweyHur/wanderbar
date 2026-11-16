@@ -258,5 +258,13 @@
     "someone": "Former member",
     "confirmDelete": "Delete this message?",
     "deleteHint": "Long-press to delete"
+  },
+  "update": {
+    "title": "A new version is out",
+    "body": "Please update to keep using wanderbar. It only takes a moment.",
+    "versions": "This app: v{{mine}} · needed: v{{min}} or later",
+    "openPlay": "Update on Google Play",
+    "openTestFlight": "Update in TestFlight",
+    "checkAgain": "I updated, check again"
   }
 }

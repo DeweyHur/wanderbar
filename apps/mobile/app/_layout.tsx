@@ -17,6 +17,7 @@ import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { useFonts } from "expo-font";
 import { ThemeProvider, useColors, useFontSet } from "@/components/ui";
+import { UpdateGate } from "@/core/UpdateGate";
 
 /** A share from another app (Android intent / iOS extension) opens the share screen. */
 function ShareRedirect() {
@@ -197,6 +198,7 @@ function AppStack() {
             options={{ title: t("food:share.title") }}
           />
         </Stack>
+        <UpdateGate />
       </SessionProvider>
     </IncomingShareProvider>
   );

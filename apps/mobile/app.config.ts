@@ -24,7 +24,7 @@ const config: ExpoConfig = {
   slug: "wanderbar",
   ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
-  version: "0.4.0",
+  version: "0.4.1",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",

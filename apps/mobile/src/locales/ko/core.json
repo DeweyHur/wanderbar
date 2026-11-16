@@ -256,5 +256,13 @@
     "someone": "나간 멤버",
     "confirmDelete": "이 메시지를 삭제할까요?",
     "deleteHint": "길게 눌러 삭제"
+  },
+  "update": {
+    "title": "새 버전이 나왔어요",
+    "body": "계속 쓰려면 업데이트해 주세요. 금방 끝나요.",
+    "versions": "지금 앱: v{{mine}} · 필요: v{{min}} 이상",
+    "openPlay": "Google Play에서 업데이트",
+    "openTestFlight": "TestFlight에서 업데이트",
+    "checkAgain": "업데이트했어요, 다시 확인"
   }
 }

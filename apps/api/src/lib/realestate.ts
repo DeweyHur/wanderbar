@@ -128,13 +128,15 @@ export async function createProperty(db: Db, groupId: string, userId: string, in
     return { property: await getProperty(db, existing.itemId, userId), created: false };
   }
 
-  const itemId = await db.transaction(async (tx) => {
-    const [item] = await tx
-      .insert(items)
-      .values({ groupId, module: "realestate", type: "property", name: address, memo: input.memo ?? "", createdBy: userId })
-      .returning({ id: items.id });
-    await tx.insert(propertyDetails).values({
-      itemId: item.id,
+  // No transactions on the Neon HTTP driver: insert in order and undo the item if a later insert fails.
+  const [item] = await db
+    .insert(items)
+    .values({ groupId, module: "realestate", type: "property", name: address, memo: input.memo ?? "", createdBy: userId })
+    .returning({ id: items.id });
+  const itemId = item.id;
+  try {
+    await db.insert(propertyDetails).values({
+      itemId,
       groupId,
       address,
       addressKey: key,
@@ -153,9 +155,11 @@ export async function createProperty(db: Db, groupId: string, userId: string, in
       openHouse: input.openHouse ?? "",
       stage: input.stage ?? "interested",
     });
-    if (link) await tx.insert(externalLinks).values({ itemId: item.id, ...link });
-    return item.id;
-  });
+    if (link) await db.insert(externalLinks).values({ itemId, ...link });
+  } catch (e) {
+    await db.delete(items).where(eq(items.id, itemId));
+    throw e;
+  }
   notifyGroup(db, groupId, userId, { type: "property", who: await displayName(db, userId), name: address, itemId });
   return { property: await getProperty(db, itemId, userId), created: true };
 }

@@ -126,7 +126,8 @@
       "duplicate": "Another restaurant in this group already has that link or Google place",
       "delete_forbidden": "Only whoever added it or the group owner can delete it",
       "google_not_found": "Couldn't find it on Google. Try Search Google and pick it.",
-      "no_photo": "No photo"
+      "no_photo": "No photo",
+      "too_many_tags": "Up to 12 tags per restaurant"
     },
     "menu": {
       "not_found": "Menu not found",

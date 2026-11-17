@@ -66,6 +66,22 @@ describe("restaurants without Google", () => {
     expect(await status(getRestaurant(db, restaurant.id, outsider))).toBe(404);
   });
 
+  it("tags: set when saving or editing, shown in the list, shared by name across the group", async () => {
+    const { restaurant } = await createRestaurant(db, groupId, me, { name: "Tsujita", tags: [" #ramen ", "Late night", "RAMEN"] });
+    expect(restaurant.tags).toEqual(["Late night", "ramen"]);
+    // Saving the same place again adds tags; it doesn't drop the ones it had.
+    const again = await createRestaurant(db, groupId, friend, { name: "Somewhere", tags: ["date"] });
+    expect(again.restaurant.tags).toEqual(["date"]);
+    const edited = await updateRestaurant(db, restaurant.id, friend, { tags: ["Ramen", "cheap eats"] });
+    expect(edited.tags).toEqual(["cheap eats", "ramen"]); // "Ramen" is the group's existing "ramen"
+    expect((await listRestaurants(db, groupId, me)).map((r) => [r.name, r.tags])).toEqual([
+      ["Somewhere", ["date"]],
+      ["Tsujita", ["cheap eats", "ramen"]],
+    ]);
+    expect((await updateRestaurant(db, restaurant.id, me, { tags: [] })).tags).toEqual([]);
+    expect(await status(updateRestaurant(db, restaurant.id, me, { tags: Array.from({ length: 13 }, (_, i) => `t${i}`) }))).toBe(400);
+  });
+
   it("rejects a missing name and unknown categories", async () => {
     expect(await status(createRestaurant(db, groupId, me, { name: " " }))).toBe(400);
     expect(await status(createRestaurant(db, groupId, me, { name: "x", category: "한식" }))).toBe(400);
@@ -374,10 +390,11 @@ describe("been there / not yet", () => {
     await createRestaurant(db, groupId, me, { name: "Y", yelpUrl: "https://www.yelp.com/biz/y", visitedOn: "2026-10-05" });
     await createRestaurant(db, groupId, me, { name: "Y", yelpUrl: "https://www.yelp.com/biz/y", visitedOn: "2026-10-05" });
     const list = await listRestaurants(db, groupId, friend);
+    // Newest first.
     expect(list.map((r) => [r.name, r.visitCount, r.visitedByMe])).toEqual([
-      ["Been", 1, false],
-      ["Not yet", 0, false],
       ["Y", 1, false],
+      ["Not yet", 0, false],
+      ["Been", 1, false],
     ]);
     expect((await listRestaurants(db, groupId, me)).find((r) => r.name === "Been")?.visitedByMe).toBe(true);
     for (const bad of ["2026-02-30", "yesterday", "2099-01-01"]) expect(await status(createRestaurant(db, groupId, me, { name: "x", visitedOn: bad }))).toBe(400);

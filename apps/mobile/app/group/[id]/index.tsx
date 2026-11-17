@@ -7,7 +7,7 @@ import {
 } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
 import { useGroupLook } from "@/core/groupLook";
 import { api, type GroupDetail, type GroupModuleId } from "@/core/api";
@@ -115,15 +115,10 @@ function FoodHome({ id }: { id: string }) {
     prefs.set(TAB_KEY, next);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      saveLastGroup(id);
-      Promise.all([
-        api<GroupDetail>(`/api/groups/${id}`),
-        routeApi.list(id),
-        restaurantApi.list(id),
-        dishApi.list(id),
-      ])
+  const [refreshing, setRefreshing] = useState(false);
+  const load = useCallback(
+    () =>
+      Promise.all([api<GroupDetail>(`/api/groups/${id}`), routeApi.list(id), restaurantApi.list(id), dishApi.list(id)])
         .then(([g, p, r, d]) => {
           setGroup(g);
           setPlans(p);
@@ -131,9 +126,20 @@ function FoodHome({ id }: { id: string }) {
           setDishes(d);
           setError("");
         })
-        .catch((e) => setError(errorText(t, e)));
-    }, [id, t]),
+        .catch((e) => setError(errorText(t, e))),
+    [id, t],
   );
+  useFocusEffect(
+    useCallback(() => {
+      saveLastGroup(id);
+      load();
+    }, [id, load]),
+  );
+  // Pull down to fetch what others added meanwhile.
+  const refresh = () => {
+    setRefreshing(true);
+    load().finally(() => setRefreshing(false));
+  };
 
   const header = (
     <Stack.Screen
@@ -173,6 +179,7 @@ function FoodHome({ id }: { id: string }) {
       testID="group-home"
       style={{ backgroundColor: c.bg }}
       contentContainerStyle={{ padding: 20, gap: 14 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} colors={[c.accent]} />}
     >
       {header}
       <GroupBar groupId={id} />

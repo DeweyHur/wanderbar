@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, inArray, lt, lte, sql } from "drizzle-orm";
+import { cleanTags as cleanSharedTags, setTags } from "./tags";
 import type { Db } from "../db/client";
 import { externalLinks, gameDetails, gameQueue, nightGuests, nightRsvps, groups, items, itemTags, meetupNights, meetupSeries, memberships, nightGames, ratings, tags, users } from "../db/schema";
 import { bggAvailable, bggIdFromUrl, getBggGame } from "./bgg";
@@ -23,7 +24,6 @@ export type NightInput = { startsAt?: Date; date?: string; time?: string; locati
 
 /** A night counts as "on" (not yet history) until this long after it starts. */
 export const LIVE_MS = 5 * 60 * 60 * 1000;
-const MAX_TAGS = 12;
 
 const manager = (role: Role) => role === "owner" || role === "host";
 const who = (r: { name: string | null; email: string }) => r.name || r.email.split("@")[0];
@@ -54,34 +54,12 @@ function cleanLinks(links: LinkInput[]) {
   return out;
 }
 
-/** "  Co-op " → "Co-op"; duplicates (ignoring case) dropped. */
-export function cleanTags(names: string[]) {
-  const out: string[] = [];
-  for (const n of names) {
-    const name = n.replace(/\s+/g, " ").trim().slice(0, 30);
-    if (name && !out.some((o) => o.toLowerCase() === name.toLowerCase())) out.push(name);
-  }
-  if (out.length > MAX_TAGS) throw badRequest("game.too_many_tags");
-  return out;
-}
+/** Game tags: the shared rules, with the game's own error code. */
+export const cleanTags = (names: string[]) => cleanSharedTags(names, "game.too_many_tags");
 
 async function setLinks(db: Db, itemId: string, links: LinkInput[]) {
   await db.delete(externalLinks).where(eq(externalLinks.itemId, itemId));
   if (links.length) await db.insert(externalLinks).values(links.map((l) => ({ itemId, kind: l.kind, url: l.url, label: l.label ?? null })));
-}
-
-async function setTags(db: Db, groupId: string, itemId: string, names: string[]) {
-  await db.delete(itemTags).where(eq(itemTags.itemId, itemId));
-  if (!names.length) return;
-  await db
-    .insert(tags)
-    .values(names.map((name) => ({ groupId, name, key: name.toLowerCase() })))
-    .onConflictDoNothing();
-  const rows = await db
-    .select({ id: tags.id })
-    .from(tags)
-    .where(and(eq(tags.groupId, groupId), inArray(tags.key, names.map((n) => n.toLowerCase()))));
-  await db.insert(itemTags).values(rows.map((r) => ({ itemId, tagId: r.id })));
 }
 
 /** Links, tags, ratings, plays and queue entries for a set of games, keyed by game id. */

@@ -42,7 +42,13 @@
     "yelpUrl": "Yelp link",
     "saveRestaurant": "Save as a restaurant",
     "saveRestaurantHint": "Keeps it in the group's restaurant list, with menus and prices.",
-    "openRestaurant": "Restaurant page"
+    "openRestaurant": "Restaurant page",
+    "tags": "Tags",
+    "tagsPlaceholder": "date night, ramen, patio",
+    "tagsHint": "Separate with commas, or tap a tag the group already uses",
+    "allTags": "All tags",
+    "newest": "Newest",
+    "byName": "A–Z"
   },
   "menu": {
     "title": "Menus",

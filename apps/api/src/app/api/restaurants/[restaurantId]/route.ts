@@ -12,6 +12,7 @@ const Body = z.object({
   mapsUrl: z.string().max(2000).optional(),
   category: z.string().max(40).nullable().optional(),
   memo: z.string().max(2000).optional(),
+  tags: z.array(z.string().max(60)).max(30).optional(),
 });
 
 export const PATCH = authed<{ restaurantId: string }>(async (req, { db, user, params }) =>

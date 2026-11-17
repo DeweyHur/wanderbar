@@ -7,6 +7,8 @@ export type RestaurantSummary = {
   id: string;
   name: string;
   category: string | null;
+  tags: string[];
+  createdAt: string;
   address: string;
   hoursRaw: string;
   lat: number | null;
@@ -38,6 +40,7 @@ export type Restaurant = {
   groupId: string;
   name: string;
   category: string | null;
+  tags: string[];
   memo: string;
   createdBy: string;
   address: string;
@@ -65,8 +68,9 @@ export type NewRestaurant = {
   category?: string | null;
   /** "Been there" on this day (YYYY-MM-DD); omit for "want to go". */
   visitedOn?: string;
+  tags?: string[];
 };
-export type RestaurantEdit = Partial<Pick<Restaurant, "name" | "address" | "hoursRaw" | "yelpUrl" | "mapsUrl" | "category" | "memo">>;
+export type RestaurantEdit = Partial<Pick<Restaurant, "name" | "address" | "hoursRaw" | "yelpUrl" | "mapsUrl" | "category" | "memo" | "tags">>;
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };
 
 export const restaurantApi = {

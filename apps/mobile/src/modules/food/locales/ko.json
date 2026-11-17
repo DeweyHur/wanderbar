@@ -42,7 +42,13 @@
     "yelpUrl": "옐프 링크",
     "saveRestaurant": "가게로 저장",
     "saveRestaurantHint": "그룹 가게 목록에 메뉴·가격과 함께 남겨 둬요.",
-    "openRestaurant": "가게 페이지"
+    "openRestaurant": "가게 페이지",
+    "tags": "태그",
+    "tagsPlaceholder": "데이트, 라멘, 테라스",
+    "tagsHint": "쉼표로 구분하거나, 그룹에서 쓰는 태그를 눌러 추가",
+    "allTags": "모든 태그",
+    "newest": "최신순",
+    "byName": "가나다순"
   },
   "menu": {
     "title": "메뉴",

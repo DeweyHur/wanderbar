@@ -301,3 +301,43 @@ test("save as been-there or want-to-go; the list badges and filters them", async
   await page.getByRole("button", { name: "Been 1" }).click();
   await expect(cards).toContainText("Old Favorite");
 });
+
+test("tags: add on edit, newest first by default, filter by tag chip or #search", async ({ page }) => {
+  await signIn(page, "Tagger");
+  await openHome(page);
+  await restaurantsTab(page).click();
+  for (const name of ["Alpha Ramen", "Zeta Tacos"]) {
+    await page.getByRole("button", { name: "Add restaurant" }).click();
+    await page.getByLabel("Name").fill(name);
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(info(page)).toContainText(name);
+    if (name === "Alpha Ramen") {
+      await page.getByRole("button", { name: "Edit", exact: true }).click();
+      await page.getByLabel("Tags").fill("#Late night, noodles");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
+      await expect(info(page).getByTestId("restaurant-tags")).toHaveText("#Late night #noodles");
+    }
+    await page.goBack();
+  }
+  await page.reload();
+  const cards = page.getByTestId("restaurant-card");
+  await expect(cards).toHaveCount(2);
+  // Newest first, then A–Z on request.
+  await expect(cards.nth(0)).toContainText("Zeta Tacos");
+  await page.getByRole("button", { name: "A–Z" }).click();
+  await expect(cards.nth(0)).toContainText("Alpha Ramen");
+  await expect(cards.nth(0).getByTestId("restaurant-tags")).toHaveText("#Late night #noodles");
+
+  await page.getByTestId("tag-filter").getByRole("button", { name: "#noodles" }).click();
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText("Alpha Ramen");
+  await page.getByTestId("tag-filter").getByRole("button", { name: "All tags" }).click();
+  await expect(cards).toHaveCount(2);
+
+  await page.getByPlaceholder("Search saved restaurants").fill("#late");
+  await expect(cards).toHaveCount(1);
+  await page.getByPlaceholder("Search saved restaurants").fill("#tacos");
+  await expect(cards).toHaveCount(0);
+  await page.getByPlaceholder("Search saved restaurants").fill("tacos");
+  await expect(cards).toHaveCount(1);
+});

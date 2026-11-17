@@ -8,9 +8,10 @@ import { parseTime } from "../route/dates";
 import { HoursBadge } from "../route/HoursBadge";
 import { useNow } from "../route/hooks";
 import type { RestaurantSummary } from "./api";
+import { allTags, TagChips } from "../../boardgame/parts";
 import { RatingBadge } from "./Stars";
 
-/** The group's saved restaurants: search by name or address, filter by category. */
+/** The group's saved restaurants: newest first (or by name); search by name, address or tag; filter by tag, category, been. */
 export function RestaurantList({ groupId, restaurants }: { groupId: string; restaurants: RestaurantSummary[] }) {
   const { t, i18n } = useTranslation();
   const c = useColors();
@@ -18,17 +19,28 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [been, setBeen] = useState<"all" | "been" | "notYet">("all");
+  const [tag, setTag] = useState<string | null>(null);
+  const [order, setOrder] = useState<"newest" | "name">("newest");
+  const tagList = useMemo(() => allTags(restaurants), [restaurants]);
+  const activeTag = tag && tagList.some((x) => x.toLowerCase() === tag.toLowerCase()) ? tag : null;
 
   const present = useMemo(() => [...new Set(restaurants.map((r) => r.category).filter((x): x is string => !!x))], [restaurants]);
   // The filter only applies while its chips are on screen (a deleted last match must not leave a hidden filter).
   const active = present.length > 1 && category && present.includes(category) ? category : null;
-  const shown = restaurants.filter((r) => {
-    const s = q.trim().toLowerCase();
-    if (s && !r.name.toLowerCase().includes(s) && !r.address.toLowerCase().includes(s)) return false;
-    if (been === "been" && !r.visitCount) return false;
-    if (been === "notYet" && r.visitCount) return false;
-    return !active || r.category === active;
-  });
+  const shown = restaurants
+    .filter((r) => {
+      // "#ramen" searches tags only; plain text matches the name, the address or a tag.
+      const raw = q.trim().toLowerCase();
+      const tagOnly = raw.startsWith("#");
+      const s = raw.replace(/^#+/, "");
+      const inTags = r.tags.some((x) => x.toLowerCase().includes(s));
+      if (s && !(tagOnly ? inTags : r.name.toLowerCase().includes(s) || r.address.toLowerCase().includes(s) || inTags)) return false;
+      if (activeTag && !r.tags.some((x) => x.toLowerCase() === activeTag.toLowerCase())) return false;
+      if (been === "been" && !r.visitCount) return false;
+      if (been === "notYet" && r.visitCount) return false;
+      return !active || r.category === active;
+    })
+    .sort((a, b) => (order === "name" ? a.name.localeCompare(b.name, i18n.language) : b.createdAt.localeCompare(a.createdAt)));
   const beenCount = restaurants.filter((r) => r.visitCount).length;
 
   return (
@@ -39,6 +51,17 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
           <Chip label={t("food:been.all", { count: restaurants.length })} selected={been === "all"} onPress={() => setBeen("all")} />
           <Chip label={t("food:been.beenCount", { count: beenCount })} selected={been === "been"} onPress={() => setBeen("been")} />
           <Chip label={t("food:been.notYetCount", { count: restaurants.length - beenCount })} selected={been === "notYet"} onPress={() => setBeen("notYet")} />
+        </View>
+      )}
+      {tagList.length > 0 && (
+        <View testID="tag-filter">
+          <TagChips tags={tagList} active={activeTag} onPick={setTag} allLabel={t("food:restaurant.allTags")} />
+        </View>
+      )}
+      {restaurants.length > 1 && (
+        <View style={{ flexDirection: "row", gap: 6 }} testID="restaurant-order">
+          <Chip label={t("food:restaurant.newest")} selected={order === "newest"} onPress={() => setOrder("newest")} />
+          <Chip label={t("food:restaurant.byName")} selected={order === "name"} onPress={() => setOrder("name")} />
         </View>
       )}
       {present.length > 1 && (
@@ -77,6 +100,11 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
                     </Text>
                   ) : null
                 ) : null}
+                {r.tags.length > 0 && (
+                  <Text testID="restaurant-tags" style={{ color: c.accent, fontSize: 13 }} numberOfLines={1}>
+                    {r.tags.map((x) => `#${x}`).join(" ")}
+                  </Text>
+                )}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
                   <Text testID="been-badge" style={{ color: r.visitCount ? c.ok : c.muted, fontSize: 13, fontWeight: "700" }}>
                     {r.visitCount ? (r.visitedByMe ? t("food:been.badgeMe") : t("food:been.badgeGroup")) : t("food:been.badgeNotYet")}

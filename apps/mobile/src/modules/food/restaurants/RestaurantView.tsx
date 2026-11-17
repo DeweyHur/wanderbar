@@ -1,6 +1,6 @@
 import { formatPrice, Links, parsePrice } from "@wanderbar/route";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Linking, Pressable, View } from "react-native";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
@@ -10,6 +10,8 @@ import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { useSession } from "@/core/session";
 import { takeSession, useGoogleAvailable } from "../route/google";
+import { allTags } from "../../boardgame/parts";
+import { splitTags } from "../../boardgame/format";
 import { HoursBadge } from "../route/HoursBadge";
 import { useNow } from "../route/hooks";
 import { PlaceSearch } from "../route/PlaceSearch";
@@ -105,6 +107,11 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
         </View>
         <HoursBadge hoursRaw={r.hoursRaw} now={now} />
         {r.address ? <Body>{r.address}</Body> : null}
+        {r.tags.length > 0 && (
+          <Text testID="restaurant-tags" style={{ color: c.accent, fontSize: 14 }}>
+            {r.tags.map((x) => `#${x}`).join(" ")}
+          </Text>
+        )}
         {r.memo ? <Body muted>{r.memo}</Body> : null}
         <View style={{ flexDirection: "row", gap: 16 }}>
           <Link label="Google Maps" onPress={() => Linking.openURL(Links.googlePlace(r.name, r.address, r.googlePlaceId, r.mapsUrl))} />
@@ -251,7 +258,21 @@ function EditRestaurant({
   const now = useNow();
   const [form, setForm] = useState({ name: r.name, address: r.address, hoursRaw: r.hoursRaw, yelpUrl: r.yelpUrl, mapsUrl: r.mapsUrl, memo: r.memo });
   const [category, setCategory] = useState(r.category);
+  const [tags, setTags] = useState(r.tags.join(", "));
+  const [knownTags, setKnownTags] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  // Tags already used on the group's other restaurants, as one-tap chips.
+  useEffect(() => {
+    restaurantApi
+      .list(r.groupId)
+      .then((list) => setKnownTags(allTags(list)))
+      .catch(() => {});
+  }, [r.groupId]);
+  const current = splitTags(tags).map((x) => x.replace(/^#+/, "")).filter(Boolean);
+  const toggleTag = (tag: string) => {
+    const has = current.some((x) => x.toLowerCase() === tag.toLowerCase());
+    setTags((has ? current.filter((x) => x.toLowerCase() !== tag.toLowerCase()) : [...current, tag]).join(", "));
+  };
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
   return (
     <Card>
@@ -275,8 +296,22 @@ function EditRestaurant({
       <HoursBadge hoursRaw={form.hoursRaw} now={now} />
       <Field label={t("food:restaurant.yelpUrl")} value={form.yelpUrl} onChangeText={set("yelpUrl")} />
       <Field label={t("food:stop.mapsUrl")} value={form.mapsUrl} onChangeText={set("mapsUrl")} />
+      <Field
+        label={t("food:restaurant.tags")}
+        value={tags}
+        onChangeText={setTags}
+        placeholder={t("food:restaurant.tagsPlaceholder")}
+        hint={knownTags.length ? t("food:restaurant.tagsHint") : undefined}
+      />
+      {knownTags.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {knownTags.map((tag) => (
+            <Chip key={tag} label={`#${tag}`} selected={current.some((x) => x.toLowerCase() === tag.toLowerCase())} onPress={() => toggleTag(tag)} />
+          ))}
+        </View>
+      )}
       <Field label={t("food:stop.memo")} value={form.memo} onChangeText={set("memo")} multiline />
-      <Button label={t("food:stop.save")} disabled={!form.name.trim()} onPress={() => onSave({ ...form, category })} />
+      <Button label={t("food:stop.save")} disabled={!form.name.trim()} onPress={() => onSave({ ...form, category, tags: current })} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {googleAvailable && !r.googlePlaceId && <Chip label={t("food:restaurant.findOnGoogle")} onPress={onFindGoogle} />}
         <Chip label={t("food:restaurant.delete")} onPress={onDelete} />

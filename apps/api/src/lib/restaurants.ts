@@ -1,5 +1,6 @@
 import { categoryFromGoogleType, coordsFromMapsUrl, isFoodCategory, placeQuery, yelpAlias } from "@wanderbar/route";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { cleanTags, setTags, tagsByItem } from "./tags";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { externalLinks, groups, items, menuDetails, planStops, ratings, restaurantDetails, users, visits } from "../db/schema";
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
@@ -33,6 +34,7 @@ export type NewRestaurant = {
   visitedOn?: string;
   category?: string | null;
   memo?: string;
+  tags?: string[];
 };
 
 export type RestaurantEdit = {
@@ -43,6 +45,7 @@ export type RestaurantEdit = {
   mapsUrl?: string;
   category?: string | null;
   memo?: string;
+  tags?: string[];
 };
 
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };
@@ -129,7 +132,14 @@ async function lookupGoogle(input: { placeId?: string; sessionToken?: string; na
  */
 export async function createRestaurant(db: Db, groupId: string, userId: string, input: NewRestaurant) {
   if (input.visitedOn !== undefined && !isDay(input.visitedOn)) throw badRequest("visit.date_invalid");
+  const tagNames = input.tags === undefined ? undefined : cleanTags(input.tags, "restaurant.too_many_tags");
   const r = await saveRestaurant(db, groupId, userId, input);
+  // A new one gets the tags; an existing one keeps its own and gains these.
+  if (tagNames?.length) {
+    const had = r.created ? [] : r.restaurant.tags;
+    await setTags(db, groupId, r.restaurant.id, cleanTags([...had, ...tagNames], "restaurant.too_many_tags"));
+    r.restaurant = await getRestaurant(db, r.restaurant.id, userId);
+  }
   if (r.created) notifyGroup(db, groupId, userId, { type: "restaurant", who: await displayName(db, userId), name: r.restaurant.name, itemId: r.restaurant.id });
   if (input.visitedOn) {
     await visitOnDay(db, groupId, r.restaurant.id, userId, input.visitedOn);
@@ -243,7 +253,8 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .from(items)
     .innerJoin(restaurantDetails, eq(restaurantDetails.itemId, items.id))
     .where(and(eq(items.groupId, groupId), eq(items.type, "restaurant")))
-    .orderBy(asc(sql`lower(${items.name})`));
+    // Newest first: what was just added is what you're looking for.
+    .orderBy(desc(items.createdAt));
   if (!rows.length) return [];
   const ids = rows.map((r) => r.item.id);
   const counts = await db
@@ -269,10 +280,13 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .where(inArray(visits.itemId, ids))
     .groupBy(visits.itemId);
   const covers = await coverPhotos(db, ids);
+  const tagged = await tagsByItem(db, ids);
   return rows.map(({ item, detail }) => ({
     id: item.id,
     name: item.name,
     category: item.category,
+    tags: tagged.get(item.id) ?? [],
+    createdAt: item.createdAt,
     hasPhoto: !!detail.photoName,
     /** The group's newest photo of it (or its menus); shown before Google's. */
     coverPhotoId: covers.get(item.id) ?? null,
@@ -322,11 +336,13 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     .where(eq(visits.itemId, id))
     .orderBy(sql`${visits.visitedAt} desc`)
     .limit(30);
+  const tagged = await tagsByItem(db, [item.id]);
   return {
     id: item.id,
     groupId: item.groupId,
     name: item.name,
     category: item.category,
+    tags: tagged.get(item.id) ?? [],
     memo: item.memo,
     createdBy: item.createdBy,
     address: detail.address,
@@ -419,6 +435,7 @@ export async function unrateMenu(db: Db, menuId: string, userId: string) {
 export async function updateRestaurant(db: Db, id: string, userId: string, edit: RestaurantEdit) {
   const { item } = await memberRestaurant(db, id, userId);
   const category = cleanCategory(edit.category);
+  if (edit.tags !== undefined) await setTags(db, item.groupId, id, cleanTags(edit.tags, "restaurant.too_many_tags"));
   if (edit.name !== undefined && !edit.name.trim()) throw badRequest("restaurant.name_required");
   const itemSet: Partial<typeof items.$inferInsert> = { updatedAt: new Date() };
   if (edit.name !== undefined) itemSet.name = edit.name.trim();

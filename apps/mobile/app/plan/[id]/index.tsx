@@ -3,7 +3,7 @@ import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, View } from "react-native";
-import { Body, Button, Card, Chip, ErrorText, Loading, useColors, Text } from "@/components/ui";
+import { Body, Button, Card, Chip, ErrorText, Field, Loading, useColors, Text } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
 import { HoursBadge } from "@/modules/food/route/HoursBadge";
@@ -34,11 +34,19 @@ export default function PlanScreen() {
   const [notice, setNotice] = useState("");
   const [quick, setQuick] = useState("");
   const [adding, setAdding] = useState(false);
+  /** The route's name as typed; saved when you leave the field or press done. */
+  const [title, setTitle] = useState<string | null>(null);
   const route = useRoute(plan?.stops ?? []);
 
   useFocusEffect(
     useCallback(() => {
-      routeApi.get(id).then(setPlan).catch((e) => setError(errorText(t, e)));
+      routeApi
+        .get(id)
+        .then((p) => {
+          setPlan(p);
+          setTitle(p.title);
+        })
+        .catch((e) => setError(errorText(t, e)));
     }, [id, t]),
   );
 
@@ -58,6 +66,11 @@ export default function PlanScreen() {
   const openStop = (s: Stop) => router.push({ pathname: "/plan/[id]/stop/[stopId]", params: { id: plan.id, stopId: s.id } });
 
   const current = plan.stops.find((s) => s.status === "current");
+  const saveTitle = () => {
+    const next = (title ?? "").trim();
+    if (next === plan.title) return;
+    routeApi.update(plan.id, { title: next }).then((p) => setPlan((old) => (old ? { ...old, title: p.title } : old)), (e) => setError(errorText(t, e)));
+  };
 
   const done = async (s: Stop) => {
     await flow({ action: "complete", stopId: s.id });
@@ -102,6 +115,14 @@ export default function PlanScreen() {
         }}
       />
 
+      <Field
+        label={t("food:route.name")}
+        value={title ?? ""}
+        onChangeText={setTitle}
+        placeholder={t("food:route.namePlaceholder")}
+        onSubmitEditing={saveTitle}
+        onBlur={saveTitle}
+      />
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 }} testID="plan-day">
         <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{plan.date ? dayLabel(t, i18n.language, plan.date) : ""}</Text>
         <Chip label={t("food:date.change")} onPress={() => setPickingDay(true)} />

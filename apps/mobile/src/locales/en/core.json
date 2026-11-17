@@ -273,5 +273,10 @@
     "openPlay": "Update on Google Play",
     "openTestFlight": "Update in TestFlight",
     "checkAgain": "I updated, check again"
+  },
+  "bar": {
+    "home": "Home",
+    "chat": "Chat",
+    "more": "More"
   }
 }

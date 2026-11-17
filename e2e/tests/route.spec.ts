@@ -90,3 +90,36 @@ test("routes list and delete", async ({ page }) => {
   await page.getByRole("button", { name: "Delete route" }).click();
   await expect(page.getByText("No routes yet", { exact: false })).toBeVisible();
 });
+
+test("a route can be named; the name shows in the header and the routes list", async ({ page }) => {
+  await signIn(page, "Namer");
+  await openHome(page);
+  await newRoute(page);
+  const name = page.getByRole("textbox", { name: "Name", exact: true }).filter({ visible: true });
+  await name.fill("Saturday in Little Tokyo");
+  await name.press("Enter");
+  await quickAdd(page, "Mochi shop");
+  await page.goBack();
+  await page.reload();
+  await expect(page.getByTestId("route-card")).toContainText("Saturday in Little Tokyo");
+  await page.getByTestId("route-card").click();
+  await expect(name).toHaveValue("Saturday in Little Tokyo");
+});
+
+test("bottom bar: switch sections, More holds members, look, links and settings", async ({ page }) => {
+  await signIn(page, "Barry");
+  await openHome(page);
+  const bar = page.getByTestId("bottom-bar").filter({ visible: true });
+  await bar.getByRole("button", { name: "Restaurants", exact: true }).click();
+  await expect(page.getByText("No restaurants yet.", { exact: false })).toBeVisible();
+  await bar.getByRole("button", { name: "More", exact: true }).click();
+  const menu = page.getByTestId("group-menu").filter({ visible: true });
+  await expect(menu.getByRole("button", { name: "Members & invite" })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Add from a link" })).toBeVisible();
+  await menu.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByText("Language", { exact: true })).toBeVisible();
+  await page.goBack();
+  // The last real section is remembered, not More.
+  await page.reload();
+  await expect(page.getByText("No restaurants yet.", { exact: false })).toBeVisible();
+});

@@ -271,5 +271,10 @@
     "openPlay": "Google Play에서 업데이트",
     "openTestFlight": "TestFlight에서 업데이트",
     "checkAgain": "업데이트했어요, 다시 확인"
+  },
+  "bar": {
+    "home": "홈",
+    "chat": "채팅",
+    "more": "더보기"
   }
 }

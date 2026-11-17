@@ -133,7 +133,9 @@
     "nearZip": "📍 Nearest to {{place}} first",
     "nearMe": "📍 Nearest to you first",
     "beenThere_one": "been {{date}}",
-    "beenThere_other": "been {{count}} times · last {{date}}"
+    "beenThere_other": "been {{count}} times · last {{date}}",
+    "name": "Name",
+    "namePlaceholder": "e.g. Saturday in Little Tokyo (optional)"
   },
   "hours": {
     "open": "Open · until {{time}}",
@@ -273,5 +275,11 @@
     "bought_other": "Bought ({{count}})",
     "clear": "Clear bought",
     "remove": "Remove {{name}}"
+  },
+  "tabs": {
+    "restaurants": "Restaurants",
+    "home": "Cooking",
+    "routes": "Routes",
+    "shopping": "Shopping"
   }
 }

@@ -133,7 +133,9 @@
     "nearZip": "📍 {{place}}에서 가까운 순",
     "nearMe": "📍 내 위치에서 가까운 순",
     "beenThere_other": "{{count}}번 다녀옴 · 최근 {{date}}",
-    "beenThere_one": "{{date}} 다녀옴"
+    "beenThere_one": "{{date}} 다녀옴",
+    "name": "제목",
+    "namePlaceholder": "예: 토요일 리틀도쿄 (선택)"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",
@@ -273,5 +275,11 @@
     "bought_other": "산 것 ({{count}})",
     "clear": "산 것 지우기",
     "remove": "{{name}} 지우기"
+  },
+  "tabs": {
+    "restaurants": "가게",
+    "home": "집밥",
+    "routes": "동선",
+    "shopping": "장보기"
   }
 }

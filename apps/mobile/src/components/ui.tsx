@@ -206,18 +206,26 @@ export function Button({
   busy,
   kind = "primary",
   disabled,
+  icon,
+  testID,
 }: {
   label: string;
   onPress: () => void;
   busy?: boolean;
   kind?: "primary" | "plain";
   disabled?: boolean;
+  /** Drawn before the label, given the label's color. */
+  icon?: (color: string) => ReactNode;
+  testID?: string;
 }) {
   const c = useColors();
   const primary = kind === "primary";
+  const fg = primary ? c.onPink : c.text;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       disabled={busy || disabled}
       style={({ pressed }) => [
@@ -228,8 +236,13 @@ export function Button({
     >
       {busy ? (
         <ActivityIndicator color={primary ? c.onPink : c.text} />
+      ) : icon ? (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {icon(fg)}
+          <Text style={[styles.buttonText, { color: fg }]}>{label}</Text>
+        </View>
       ) : (
-        <Text style={[styles.buttonText, { color: primary ? c.onPink : c.text }]}>{label}</Text>
+        <Text style={[styles.buttonText, { color: fg }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -260,6 +273,7 @@ export function Field({
   hint,
   multiline,
   onSubmitEditing,
+  onBlur,
 }: {
   label?: string;
   value: string;
@@ -268,6 +282,7 @@ export function Field({
   hint?: string;
   multiline?: boolean;
   onSubmitEditing?: () => void;
+  onBlur?: () => void;
 }) {
   const c = useColors();
   return (
@@ -281,6 +296,7 @@ export function Field({
         placeholderTextColor={c.muted}
         multiline={multiline}
         onSubmitEditing={onSubmitEditing}
+        onBlur={onBlur}
         returnKeyType={onSubmitEditing ? "done" : undefined}
         style={{
           color: c.text,

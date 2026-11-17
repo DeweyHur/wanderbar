@@ -29,7 +29,7 @@ test("invite a friend by link; routes stay personal", async ({ page, browser }) 
 
   // Day routes are personal: the friend doesn't see the owner's route.
   await friend.goto(`/group/${groupId}`);
-  await expect(friend.getByText("Day routes")).toBeVisible();
+  await expect(friend.getByRole("button", { name: "Day routes", exact: true })).toBeVisible();
   await expect(friend.getByText("Owner's secret spot")).toHaveCount(0);
   const plans = await (await friend.request.get(`/api/groups/${groupId}/plans`)).json();
   expect(plans.plans).toEqual([]);

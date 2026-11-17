@@ -70,10 +70,10 @@ test("pasting a whole Google Maps share into the link field fills name and addre
   await newRoute(page);
   await quickAdd(page, "Somewhere");
   await current(page).getByText("Somewhere").click();
-  await page.getByLabel("Name").fill("");
+  await page.getByLabel("Name", { exact: true }).fill("");
   await page.getByLabel("Google Maps link").fill("Blue Bottle Coffee\n315 Linden St, San Francisco, CA 94102\nhttps://maps.app.goo.gl/abc123");
   await expect(page.getByLabel("Google Maps link")).toHaveValue("https://maps.app.goo.gl/abc123");
-  await expect(page.getByLabel("Name")).toHaveValue("Blue Bottle Coffee");
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Blue Bottle Coffee");
 });
 
 test("routes list and delete", async ({ page }) => {
@@ -95,7 +95,7 @@ test("a route can be named; the name shows in the header and the routes list", a
   await signIn(page, "Namer");
   await openHome(page);
   await newRoute(page);
-  const name = page.getByRole("textbox", { name: "Name", exact: true }).filter({ visible: true });
+  const name = page.getByRole("textbox", { name: "Route name", exact: true }).filter({ visible: true });
   await name.fill("Saturday in Little Tokyo");
   await name.press("Enter");
   await quickAdd(page, "Mochi shop");

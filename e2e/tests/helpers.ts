@@ -49,3 +49,12 @@ export const row = (page: Page, i: number) => page.getByTestId(`stop-row-${i}`);
 
 /** The route's add field ("Search a place, or type cafe, park, jazz bar" when place search is on). */
 export const addInput = (page: Page) => page.getByPlaceholder(/cafe, park, jazz bar/i);
+
+/** The group home's bottom bar (the web stack keeps hidden screens, so the visible one). */
+export const bottomBar = (page: Page) => page.getByTestId("bottom-bar").filter({ visible: true });
+
+/** Opens More on the group home: members, theme & font, add from a link, settings. */
+export async function openMore(page: Page) {
+  await bottomBar(page).getByRole("button", { name: "More", exact: true }).click();
+  await expect(page.getByTestId("group-menu").filter({ visible: true })).toBeVisible();
+}

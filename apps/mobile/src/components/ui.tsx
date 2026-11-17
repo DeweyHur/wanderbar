@@ -225,7 +225,6 @@ export function Button({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label}
       onPress={onPress}
       disabled={busy || disabled}
       style={({ pressed }) => [

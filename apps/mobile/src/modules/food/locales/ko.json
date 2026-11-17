@@ -134,7 +134,7 @@
     "nearMe": "📍 내 위치에서 가까운 순",
     "beenThere_other": "{{count}}번 다녀옴 · 최근 {{date}}",
     "beenThere_one": "{{date}} 다녀옴",
-    "name": "제목",
+    "name": "동선 이름",
     "namePlaceholder": "예: 토요일 리틀도쿄 (선택)"
   },
   "hours": {

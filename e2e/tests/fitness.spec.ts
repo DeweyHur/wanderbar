@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { me, openHome, signIn, WEB } from "./helpers";
+import { me, openHome, signIn, WEB, openMore, bottomBar } from "./helpers";
 
 const visible = (page: Page, testId: string) => page.getByTestId(testId).filter({ visible: true });
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true }).filter({ visible: true });
@@ -136,11 +136,13 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
 
   // The owner dresses the group: theme and font, for everyone in it.
   await page.goto(`/group/${groupId}`);
+  await openMore(page);
   await button(page, "🎨 Theme & font").click();
   await visible(page, "theme-night").click();
   await visible(page, "font-clean").click();
   await expect.poll(async () => (await me(page.request)).groups.find((g) => g.id === groupId)).toMatchObject({ theme: "night", font: "clean" });
   await page.goBack();
+  await bottomBar(page).getByRole("button", { name: "Home", exact: true }).click();
   const title = page.getByText("Next: Chest · shoulders · triceps").filter({ visible: true });
   await expect(title).toBeVisible();
   expect(await title.evaluate((el) => getComputedStyle(el).fontFamily)).not.toContain("Jua");

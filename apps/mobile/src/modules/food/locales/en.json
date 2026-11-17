@@ -134,7 +134,7 @@
     "nearMe": "📍 Nearest to you first",
     "beenThere_one": "been {{date}}",
     "beenThere_other": "been {{count}} times · last {{date}}",
-    "name": "Name",
+    "name": "Route name",
     "namePlaceholder": "e.g. Saturday in Little Tokyo (optional)"
   },
   "hours": {

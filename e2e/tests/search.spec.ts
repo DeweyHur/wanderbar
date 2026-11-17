@@ -35,7 +35,7 @@ test("place screen: Search Google fills the place", async ({ page }) => {
   await current(page).getByText("Jazz").click();
   await page.getByLabel("Search Google").fill("sfjazz");
   await page.getByText("SFJAZZ Center").click();
-  await expect(page.getByLabel("Name")).toHaveValue("SFJAZZ Center");
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("SFJAZZ Center");
   await expect(page.getByLabel("Address")).toHaveValue("201 Franklin St, San Francisco, CA 94102");
   await expect(page.getByLabel("Opening hours")).toHaveValue("Mon-Sun 17:00-23:00");
   await page.getByRole("button", { name: "Save" }).click();

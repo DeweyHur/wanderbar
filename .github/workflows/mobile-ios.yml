@@ -1,7 +1,8 @@
 name: Mobile iOS (TestFlight)
 
-# Builds on Expo's Macs (EAS Build) and submits to TestFlight. Run by hand: the free Expo plan has a monthly
-# iOS build allowance. Secrets: EXPO_TOKEN (expo.dev access token), the App Store Connect API key as either
+# Builds the iOS app on a GitHub macOS runner (eas build --local: free for this public repo, and it doesn't use
+# the Expo free plan's monthly iOS build allowance) and uploads it to TestFlight. Run by hand. "expo_servers"
+# builds on Expo's Macs instead (counts against that allowance). Secrets: EXPO_TOKEN (expo.dev access token), the App Store Connect API key as either
 # ASC_API_KEY_P8 (the .p8 file's text) or ASC_KEY_P8_BASE64 (the file in base64), ASC_KEY_ID, ASC_ISSUER_ID,
 # APPLE_TEAM_ID.
 on:
@@ -19,13 +20,68 @@ on:
         description: "Don't build: upload the latest finished EAS build to TestFlight"
         type: boolean
         default: false
+      expo_servers:
+        description: "Build on Expo's servers (EAS Build) instead of a GitHub Mac; uses the Expo plan's iOS builds"
+        type: boolean
+        default: false
 
 concurrency:
   group: mobile-ios
   cancel-in-progress: false
 
 jobs:
+  # The usual path: build on a GitHub Mac, then upload to TestFlight.
+  mac:
+    if: ${{ !inputs.status_only && !inputs.submit_only && !inputs.setup_credentials && !inputs.expo_servers }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_NO_TELEMETRY: "1"
+      ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      EXPO_APPLE_TEAM_TYPE: INDIVIDUAL
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/check-native-peers.mjs
+
+      # App Store uploads must be built with a current Xcode: use the newest one on the runner.
+      - name: Pick Xcode
+        run: |
+          x=$(ls -d /Applications/Xcode_*.app | grep -v beta | sort -V | tail -1)
+          sudo xcode-select -s "$x"
+          xcodebuild -version
+          command -v fastlane >/dev/null || brew install fastlane
+          pod --version
+
+      - name: Signing key and project ids
+        working-directory: apps/mobile
+        run: |
+          node scripts/asc-setup.mjs "$RUNNER_TEMP/asc.p8"
+          echo "EXPO_ASC_API_KEY_PATH=$RUNNER_TEMP/asc.p8" >> "$GITHUB_ENV"
+          EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8" node scripts/ios-ids.mjs
+
+      # Signing certificate and profile come from EAS (made once with setup_credentials); the build number
+      # is bumped there too (appVersionSource: remote).
+      - name: Build
+        working-directory: apps/mobile
+        run: npx --yes eas-cli@27 build --platform ios --profile production --local --non-interactive --output "$RUNNER_TEMP/wanderbar.ipa"
+
+      - name: Upload to TestFlight
+        working-directory: apps/mobile
+        run: npx --yes eas-cli@27 submit --platform ios --profile production --path "$RUNNER_TEMP/wanderbar.ipa" --non-interactive --wait
+
+  # Status, a resubmit, first-time signing setup, or a build on Expo's servers.
   build:
+    if: ${{ inputs.status_only || inputs.submit_only || inputs.setup_credentials || inputs.expo_servers }}
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -70,28 +126,10 @@ jobs:
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EXPO_APPLE_TEAM_TYPE: INDIVIDUAL
         run: |
-          # The key as the .p8 text, or base64 of it (standard or URL-safe, with or without line breaks).
-          node -e '
-            const raw = (process.env.ASC_API_KEY_P8 || process.env.ASC_KEY_P8_BASE64 || "").trim();
-            let pem = raw.includes("BEGIN PRIVATE KEY") ? raw : Buffer.from(raw.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-            if (!pem.includes("BEGIN PRIVATE KEY")) {
-              const der = Buffer.from(raw.replace(/\s+/g, ""), "base64");
-              // base64 of the binary (DER) key rather than of the .p8 text
-              if (der[0] === 0x30) pem = "-----BEGIN PRIVATE KEY-----\n" + der.toString("base64").match(/.{1,64}/g).join("\n") + "\n-----END PRIVATE KEY-----";
-              else pem = Buffer.from(pem.replace(/\s+/g, ""), "base64").toString("utf8");
-            }
-            if (!pem.includes("BEGIN PRIVATE KEY")) { console.error("::error::The App Store Connect key is not a .p8 private key (or base64 of one)"); process.exit(1); }
-            require("fs").writeFileSync(process.argv[1], pem.trim() + "\n");
-          ' "$RUNNER_TEMP/asc.p8"
+          node scripts/asc-setup.mjs "$RUNNER_TEMP/asc.p8"
           export EXPO_ASC_API_KEY_PATH="$RUNNER_TEMP/asc.p8"
           # Expo project (created on first run) and the App Store Connect app id, filled in for this build.
           node scripts/ios-ids.mjs
-          # The TestFlight upload uses the same key (EAS won't store one for submit non-interactively).
-          node -e '
-            const f = "eas.json", j = JSON.parse(require("fs").readFileSync(f, "utf8"));
-            Object.assign(j.submit.production.ios, { ascApiKeyPath: process.env.EXPO_ASC_API_KEY_PATH, ascApiKeyIssuerId: process.env.EXPO_ASC_ISSUER_ID, ascApiKeyId: process.env.EXPO_ASC_KEY_ID });
-            require("fs").writeFileSync(f, JSON.stringify(j, null, 2));
-          '
           if [ "${{ inputs.status_only }}" = "true" ]; then
             node scripts/eas-status.mjs
           elif [ "${{ inputs.submit_only }}" = "true" ]; then

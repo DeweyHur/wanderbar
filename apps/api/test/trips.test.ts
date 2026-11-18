@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Db } from "@/db/client";
 import { signIn } from "@/lib/auth";
 import { acceptInvite, createGroup, createInvite } from "@/lib/groups";
-import { addStops, getPlan, listPlans, updatePlan } from "@/lib/plans";
+import { addStops, applyFlow, getPlan, knownPlaces, listPlans, updatePlan } from "@/lib/plans";
+import { createRestaurant } from "@/lib/restaurants";
 import { addHotel, createTrip, deleteHotel, deleteTrip, getTrip, listTrips, updateHotel, updateTrip } from "@/lib/trips";
 import { profile, testDb } from "./db";
 
@@ -95,5 +96,26 @@ describe("trips", () => {
     expect(await status(getTrip(db, trip.id, friend))).toBe(404);
     expect(await listTrips(db, groupId, friend)).toEqual([]);
     expect(await status(addHotel(db, trip.id, friend, hotel("X", "2026-12-01", "2026-12-02")))).toBe(404);
+  });
+
+  it("known places: route stops (been there or planned) and saved restaurants, one each", async () => {
+    const trip = await createTrip(db, groupId, me, { startDate: "2026-12-01", endDate: "2026-12-02" });
+    const stops = await addStops(db, trip.days[0].planId, me, [
+      { name: "Temple", lat: 35.02, lng: 135.79, googlePlaceId: "g-temple" },
+      { name: "Market", lat: 35.005, lng: 135.765 },
+      { name: "No location" },
+    ]);
+    await applyFlow(db, trip.days[0].planId, me, { action: "complete", stopId: stops[0].id });
+    await addStops(db, trip.days[1].planId, me, [{ name: "Temple", lat: 35.02, lng: 135.79, googlePlaceId: "g-temple" }]);
+    await createRestaurant(db, groupId, me, {
+      name: "Ramen",
+      googlePlaceId: "g-ramen",
+      prefetched: { googlePlaceId: "g-ramen", name: "Ramen", address: "1 Noodle St", lat: 35.01, lng: 135.77, mapsUrl: "", hoursRaw: "", primaryType: "ramen_restaurant", photoName: "" },
+    });
+    const known = await knownPlaces(db, groupId, me);
+    const view = known.map((k) => [k.name, k.source]).sort((a, b) => a[0].localeCompare(b[0]));
+    expect(view).toEqual([["Market", "planned"], ["Ramen", "saved"], ["Temple", "been"]]);
+    // Not someone else's routes.
+    expect((await knownPlaces(db, groupId, friend)).map((k) => k.name)).toEqual(["Ramen"]);
   });
 });

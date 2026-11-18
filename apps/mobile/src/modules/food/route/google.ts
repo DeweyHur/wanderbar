@@ -59,6 +59,9 @@ export type VisitedPlace = {
   last: string;
   times: number;
 };
+/** Everything the group already has (your route stops, saved restaurants): offered first on a trip. */
+export type KnownPlace = VisitedPlace & { source: "been" | "planned" | "saved" };
+export const knownPlaces = (groupId: string) => api<{ places: KnownPlace[] }>(`/api/groups/${encodeURIComponent(groupId)}/known-places`).then((r) => r.places);
 /** Places you've finished on your routes in this group. */
 export const visitedPlaces = (groupId: string) => api<{ places: VisitedPlace[] }>(`/api/groups/${encodeURIComponent(groupId)}/visited-places`).then((r) => r.places);
 

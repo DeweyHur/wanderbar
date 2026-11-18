@@ -1,4 +1,4 @@
-import { formatPlaceDistance, matchVisited, sortFound, usZip } from "@wanderbar/route";
+import { formatPlaceDistance, matchVisited, nearestKnown, sortFound, usZip } from "@wanderbar/route";
 import { getLocales } from "expo-localization";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,7 +6,7 @@ import { Pressable, View } from "react-native";
 import { Field, Text, TextInput, useColors } from "@/components/ui";
 import { myLocation, type Here } from "@/core/location";
 import { prefs } from "@/core/platform/prefs";
-import { placeDetails, suggestPlaces, useGoogleAvailable, visitedPlaces, zipCenter, type PlaceDetails, type Suggestion, type VisitedPlace } from "./google";
+import { knownPlaces, placeDetails, suggestPlaces, useGoogleAvailable, visitedPlaces, zipCenter, type KnownPlace, type PlaceDetails, type Suggestion, type VisitedPlace } from "./google";
 
 type Zip = { zip: string; lat: number; lng: number; label: string };
 const ZIP_PREF = "placeSearchZip";
@@ -32,6 +32,7 @@ export function PlaceSearch({
   hint,
   around,
   center,
+  skip,
   visitedGroupId,
 }: {
   value: string;
@@ -48,13 +49,15 @@ export function PlaceSearch({
   around?: boolean;
   /** Search around this place (a trip's hotel) instead of a ZIP or where you are. */
   center?: { lat: number; lng: number; label: string } | null;
+  /** Places already on this route (Google place ids or name|address keys), left out of the suggestions. */
+  skip?: string[];
   visitedGroupId?: string;
 }) {
   const { t } = useTranslation();
   const c = useColors();
   const googleAvailable = useGoogleAvailable();
   const [items, setItems] = useState<Suggestion[]>([]);
-  const [visited, setVisited] = useState<VisitedPlace[]>([]);
+  const [visited, setVisited] = useState<(VisitedPlace & { source?: KnownPlace["source"] })[]>([]);
   const [here, setHere] = useState<Here | null>(null);
   const [zip, setZip] = useState<Zip | null>(null);
   const [zipText, setZipText] = useState("");
@@ -78,9 +81,11 @@ export function PlaceSearch({
     myLocation().then(setHere);
   }, [around]);
 
+  // On a trip (a hotel to search around), every place the group already has, not just where you've been.
+  const trip = !!center;
   useEffect(() => {
-    if (visitedGroupId && onPick) visitedPlaces(visitedGroupId).then(setVisited, () => {});
-  }, [visitedGroupId, onPick]);
+    if (visitedGroupId && onPick) (trip ? knownPlaces(visitedGroupId) : visitedPlaces(visitedGroupId)).then(setVisited, () => {});
+  }, [visitedGroupId, onPick, trip]);
 
   const changeZip = (s: string) => {
     const clean = s.replace(/[^\d-]/g, "").slice(0, 10);
@@ -113,7 +118,18 @@ export function PlaceSearch({
     return () => clearTimeout(h);
   }, [value, near?.lat, near?.lng, origin?.lat, origin?.lng, googleAvailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const been = onPick && value.trim().length >= 1 && !value.includes(",") ? matchVisited(visited, value, origin) : [];
+  const skipSet = new Set(skip ?? []);
+  const typed = value.trim().length >= 1;
+  const been = !onPick
+    ? []
+    : typed
+      ? value.includes(",")
+        ? []
+        : matchVisited(visited, value, origin, center ? 5 : 3)
+      : // Nothing typed yet on a trip: the group's places, nearest to the hotel first.
+        center
+        ? nearestKnown(visited, center, skipSet)
+        : [];
   const shown = (around ? sortFound(items, new Set(been.map((b) => b.googlePlaceId).filter(Boolean))) : items).slice(0, 5);
   const inMiles = miles();
 
@@ -138,7 +154,7 @@ export function PlaceSearch({
       hint={hint}
       onSubmitEditing={
         onSubmit
-          ? () => (been[0] && !value.includes(",") ? pickVisited(been[0]) : shown[0] && !value.includes(",") ? pick(shown[0]) : onSubmit(null))
+          ? () => (typed && been[0] && !value.includes(",") ? pickVisited(been[0]) : shown[0] && !value.includes(",") ? pick(shown[0]) : onSubmit(null))
           : undefined
       }
     />
@@ -193,10 +209,19 @@ export function PlaceSearch({
         >
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.text, fontSize: 15, fontWeight: "600" }} numberOfLines={1}>
-              🕘 {v.name}
+              {v.source === "saved" ? "⭐" : v.source === "planned" ? "📍" : "🕘"} {v.name}
             </Text>
             <Text style={{ color: c.muted, fontSize: 13 }} numberOfLines={1}>
-              {[v.address, t("food:route.beenThere", { date: v.last.slice(5).replace("-", "/"), count: v.times })].filter(Boolean).join(" · ")}
+              {[
+                v.address,
+                v.source === "saved"
+                  ? t("food:trip.savedPlace")
+                  : v.source === "planned"
+                    ? t("food:trip.onRoutes")
+                    : t("food:route.beenThere", { date: v.last.slice(5).replace("-", "/"), count: v.times }),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </Text>
           </View>
           {distance(v.meters)}

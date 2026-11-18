@@ -321,6 +321,8 @@
     "tonight": "오늘 밤 호텔 · 마지막 목적지",
     "nearHotel": "🏨 {{name}}에서 가까운 순",
     "delete": "여행 삭제",
-    "confirmDelete": "이 여행과 날짜별 동선을 모두 삭제할까요?"
+    "confirmDelete": "이 여행과 날짜별 동선을 모두 삭제할까요?",
+    "savedPlace": "저장한 가게",
+    "onRoutes": "동선에 넣은 곳"
   }
 }

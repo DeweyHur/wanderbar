@@ -321,6 +321,8 @@
     "tonight": "Tonight's hotel · last stop",
     "nearHotel": "Nearest to 🏨 {{name}} first",
     "delete": "Delete trip",
-    "confirmDelete": "Delete this trip and all its day routes?"
+    "confirmDelete": "Delete this trip and all its day routes?",
+    "savedPlace": "saved restaurant",
+    "onRoutes": "on your routes"
   }
 }

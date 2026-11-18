@@ -45,6 +45,15 @@ test("trip: flight with a rental car, a hotel stay, each day's route ends at the
   await page.getByTestId("trip-screen").filter({ visible: true }).getByTestId("trip-day").nth(1).click();
   await expect(page.getByTestId("start-hotel").filter({ visible: true })).toContainText("Starting from 🏨 Blue Bottle Coffee");
   await expect(page.getByTestId("end-hotel").filter({ visible: true })).toHaveCount(0);
+  // Before typing anything: places already added (day 1's park), nearest the hotel first.
+  const known = page.getByTestId("visited-suggestion").filter({ visible: true });
+  await expect(known).toHaveCount(1);
+  await expect(known).toContainText("Golden Gate Park");
+  await expect(known).toContainText("on your routes");
+  await known.click();
+  await expect(page.getByTestId("current-card").filter({ visible: true })).toContainText("Golden Gate Park");
+  // Already on this day's route: not offered again.
+  await expect(page.getByTestId("visited-suggestion").filter({ visible: true })).toHaveCount(0);
   await page.goBack();
   await page.goBack();
 

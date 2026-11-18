@@ -291,6 +291,7 @@ export default function PlanScreen() {
         near={near ?? center}
         around
         center={center}
+        skip={plan.stops.map((s) => s.googlePlaceId || `${s.name.trim().toLowerCase()}|${s.address.trim().toLowerCase()}`)}
         visitedGroupId={plan.groupId}
         placeholder={googleAvailable ? t("food:route.searchPlaceholder") : t("food:route.addPlaceholder")}
       />

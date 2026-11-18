@@ -43,6 +43,19 @@ export function matchVisited<T extends Visited>(visited: T[], query: string, ori
     .slice(0, limit);
 }
 
+/**
+ * Before anything is typed: the places you already have, nearest to `origin` first, within `maxMeters`
+ * (a trip's hotel: what's around it, not what's back home), minus the ones whose key is in `skip`.
+ */
+export function nearestKnown<T extends Visited>(known: T[], origin: Point, skip: Set<string>, limit = 8, maxMeters = 100_000): (T & { meters: number })[] {
+  return known
+    .filter((v) => !skip.has(v.key) && !(v.googlePlaceId && skip.has(v.googlePlaceId)) && Number.isFinite(v.lat) && Number.isFinite(v.lng))
+    .map((v) => ({ ...v, meters: metersBetween(origin, v) }))
+    .filter((v) => v.meters <= maxMeters)
+    .sort((a, b) => a.meters - b.meters)
+    .slice(0, limit);
+}
+
 /** Google's suggestions nearest first (unknown distances keep Google's order, after the known ones), minus places already shown as visited. */
 export function sortFound<T extends Found>(found: T[], skipPlaceIds: Set<string>): T[] {
   return found

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPlaceDistance, matchVisited, metersBetween, sortFound, usZip } from "../src/placeSearch";
+import { formatPlaceDistance, matchVisited, metersBetween, nearestKnown, sortFound, usZip } from "../src/placeSearch";
 
 const culver = { lat: 34.0211, lng: -118.3965 };
 const santaMonica = { lat: 34.0195, lng: -118.4912 };
@@ -45,5 +45,16 @@ describe("place search", () => {
       { placeId: "w", distanceMeters: null },
     ];
     expect(sortFound(found, new Set(["p2"])).map((f) => f.placeId)).toEqual(["z", "x", "y", "w"]);
+  });
+});
+
+describe("nearestKnown", () => {
+  const hotel = { lat: 35.0116, lng: 135.7681 }; // Kyoto
+  const at = (key: string, lat: number, lng: number, googlePlaceId = "") => ({ key, name: key, address: "", lat, lng, googlePlaceId });
+  const known = [at("far-home", 34.05, -118.24), at("temple", 35.0270, 135.7982), at("cafe", 35.0120, 135.7690, "g-cafe"), at("osaka", 34.6937, 135.5023)];
+  it("lists places around the origin nearest first, leaving out far ones and ones already on the route", () => {
+    expect(nearestKnown(known, hotel, new Set()).map((v) => v.key)).toEqual(["cafe", "temple", "osaka"]);
+    expect(nearestKnown(known, hotel, new Set(["g-cafe"])).map((v) => v.key)).toEqual(["temple", "osaka"]);
+    expect(nearestKnown(known, hotel, new Set(), 1).map((v) => v.key)).toEqual(["cafe"]);
   });
 });

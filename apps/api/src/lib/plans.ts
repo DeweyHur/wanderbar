@@ -1,7 +1,7 @@
 import { PlanFlow, type StopStatus } from "@wanderbar/route";
 import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { groups, planStops, plans, teslaFormats } from "../db/schema";
+import { groups, items, planStops, plans, restaurantDetails, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
 import { requireMember } from "./groups";
 import { fileStopAsRestaurant, recordStopVisit, restaurantsInGroup } from "./restaurants";
@@ -262,3 +262,54 @@ const visitedView = (key: string, s: typeof planStops.$inferSelect, last: string
   last,
   times: 1,
 });
+
+/**
+ * Every place the group already has, for place search on a trip: your route stops with a location (been
+ * there, or planned) and the group's saved restaurants. One per place; been-there wins over planned/saved.
+ */
+export async function knownPlaces(db: Db, groupId: string, userId: string) {
+  await requireMember(db, groupId, userId);
+  const rows = await db
+    .select({ s: planStops, at: plans.createdAt, date: plans.date })
+    .from(planStops)
+    .innerJoin(plans, eq(plans.id, planStops.planId))
+    .where(and(eq(plans.groupId, groupId), eq(plans.userId, userId), isNotNull(planStops.lat), isNotNull(planStops.lng)))
+    .orderBy(desc(plans.createdAt))
+    .limit(1000);
+  type Known = ReturnType<typeof visitedView> & { source: "been" | "planned" | "saved" };
+  const seen = new Map<string, Known>();
+  for (const r of rows) {
+    const key = r.s.googlePlaceId || `${r.s.name.trim().toLowerCase()}|${r.s.address.trim().toLowerCase()}`;
+    const been = r.s.status === "done";
+    const prev = seen.get(key);
+    if (!prev) seen.set(key, { ...visitedView(key, r.s, r.date ?? r.at.toISOString().slice(0, 10)), times: been ? 1 : 0, source: been ? "been" : "planned" });
+    else if (been) {
+      prev.times += 1;
+      if (prev.source !== "been") Object.assign(prev, { source: "been", last: r.date ?? prev.last });
+    }
+  }
+  const saved = await db
+    .select({ id: items.id, name: items.name, d: restaurantDetails })
+    .from(items)
+    .innerJoin(restaurantDetails, eq(restaurantDetails.itemId, items.id))
+    .where(and(eq(items.groupId, groupId), eq(items.type, "restaurant"), isNotNull(restaurantDetails.lat), isNotNull(restaurantDetails.lng)));
+  for (const r of saved) {
+    const key = r.d.googlePlaceKey || `${r.name.trim().toLowerCase()}|${r.d.address.trim().toLowerCase()}`;
+    if ([...seen.values()].some((k) => k.key === key || k.itemId === r.id)) continue;
+    seen.set(key, {
+      key,
+      name: r.name,
+      address: r.d.address,
+      lat: r.d.lat!,
+      lng: r.d.lng!,
+      googlePlaceId: r.d.googlePlaceKey ?? "",
+      mapsUrl: "",
+      hoursRaw: r.d.hoursRaw,
+      itemId: r.id,
+      last: "",
+      times: 0,
+      source: "saved",
+    });
+  }
+  return [...seen.values()];
+}

@@ -69,7 +69,9 @@ jobs:
           releaseName: "${{ github.run_number }} (${{ github.sha }})"
           track: internal
           status: completed
+      # A spare copy only: the Play upload above is what matters, so this never fails the run.
       - name: Private draft release with the bundle
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

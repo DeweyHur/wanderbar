@@ -3,7 +3,7 @@
  * build is on Play internal testing and TestFlight, never before: older apps are sent to the store to
  * update, and they can't if the new build isn't there yet.
  */
-export const MIN_APP_VERSION = "0.8.0";
+export const MIN_APP_VERSION = "0.9.0";
 
 export const minAppVersion = () => process.env.MIN_APP_VERSION?.trim() || MIN_APP_VERSION;
 

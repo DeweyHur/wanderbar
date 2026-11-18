@@ -31,6 +31,7 @@ export function PlaceSearch({
   placeholder,
   hint,
   around,
+  center,
   visitedGroupId,
 }: {
   value: string;
@@ -45,6 +46,8 @@ export function PlaceSearch({
   placeholder?: string;
   hint?: string;
   around?: boolean;
+  /** Search around this place (a trip's hotel) instead of a ZIP or where you are. */
+  center?: { lat: number; lng: number; label: string } | null;
   visitedGroupId?: string;
 }) {
   const { t } = useTranslation();
@@ -59,7 +62,7 @@ export function PlaceSearch({
   const seq = useRef(0);
 
   // Where distances are measured from: the ZIP typed beside the field, else where you are.
-  const origin: Here | null = around ? (zip ?? here) : null;
+  const origin: Here | null = around ? (center ? { lat: center.lat, lng: center.lng } : (zip ?? here)) : null;
 
   useEffect(() => {
     if (!around) return;
@@ -143,7 +146,7 @@ export function PlaceSearch({
 
   return (
     <View style={{ gap: 6 }}>
-      {around ? (
+      {around && !center ? (
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
           <View style={{ flex: 1 }}>{field}</View>
           <TextInput
@@ -172,7 +175,11 @@ export function PlaceSearch({
       ) : (
         field
       )}
-      {around && (zip || here || zipError) ? (
+      {around && center ? (
+        <Text testID="place-origin" style={{ color: c.muted, fontSize: 13 }}>
+          {t("food:trip.nearHotel", { name: center.label })}
+        </Text>
+      ) : around && (zip || here || zipError) ? (
         <Text testID="place-origin" style={{ color: zipError ? c.danger : c.muted, fontSize: 13 }}>
           {zipError ? t("food:route.zipNotFound") : zip ? t("food:route.nearZip", { place: zip.label }) : t("food:route.nearMe")}
         </Text>

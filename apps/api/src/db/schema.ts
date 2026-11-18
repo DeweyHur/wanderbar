@@ -277,9 +277,58 @@ export const plans = pgTable(
     date: date("date", { mode: "string" }),
     /** A day at home: lunch and dinner are planned (meals) instead of, or as well as, stops. */
     atHome: boolean("at_home").notNull().default(false),
+    /** Set for a day of a trip: the day's route ends at that night's hotel. */
+    tripId: text("trip_id").references(() => trips.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
   },
-  (t) => [index("plans_group_user_idx").on(t.groupId, t.userId)],
+  (t) => [index("plans_group_user_idx").on(t.groupId, t.userId), index("plans_trip_idx").on(t.tripId)],
+);
+
+/** How a trip gets there: driving your own car, or flying / train / bus (maybe with a rental car). */
+export const tripTransport = pgEnum("trip_transport", ["car", "flight", "train", "bus", "other"]);
+
+/** A trip: several days away, each day a route (plans.tripId), with hotels for the nights. Personal, like routes. */
+export const trips = pgTable(
+  "trips",
+  {
+    id: id(),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** First and last day (YYYY-MM-DD), inclusive. */
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    transport: tripTransport("transport").notNull().default("car"),
+    /** A rental car there (only asked when not driving your own car). */
+    rentalCar: boolean("rental_car").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index("trips_group_user_idx").on(t.groupId, t.userId)],
+);
+
+/** Where you sleep: a hotel for the nights from checkIn up to (not including) checkOut. */
+export const tripHotels = pgTable(
+  "trip_hotels",
+  {
+    id: id(),
+    tripId: text("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    address: text("address").notNull().default(""),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    googlePlaceId: text("google_place_id").notNull().default(""),
+    mapsUrl: text("maps_url").notNull().default(""),
+    checkIn: date("check_in", { mode: "string" }).notNull(),
+    checkOut: date("check_out", { mode: "string" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("trip_hotels_trip_idx").on(t.tripId)],
 );
 
 export const planStops = pgTable(

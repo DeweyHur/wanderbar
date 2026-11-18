@@ -335,11 +335,27 @@ export function Card({ children, highlight, testID }: { children: ReactNode; hig
 }
 
 /** Small secondary action in a row of actions. */
-export function Chip({ label, onPress, disabled, selected, icon }: { label: string; onPress: () => void; disabled?: boolean; selected?: boolean; icon?: string }) {
+export function Chip({
+  label,
+  onPress,
+  disabled,
+  selected,
+  icon,
+  accessibilityLabel,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  selected?: boolean;
+  icon?: string;
+  /** When the visible text isn't the name (a day chip under a "Check-in" heading). */
+  accessibilityLabel?: string;
+}) {
   const c = useColors();
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       disabled={disabled}

@@ -1,5 +1,6 @@
 import type { StopStatus, TeslaFormat } from "@wanderbar/route";
 import { api } from "@/core/api";
+import type { DayHotel, Transport } from "../trips/api";
 
 export type Stop = {
   id: string;
@@ -19,8 +20,31 @@ export type Stop = {
   status: StopStatus;
 };
 /** A day route. date is the day it's for (YYYY-MM-DD); an empty title means "call it by its date". */
-export type Plan = { id: string; groupId: string; title: string; date: string | null; atHome: boolean; createdAt: string; stops: Stop[] };
-export type PlanSummary = { id: string; title: string; date: string | null; atHome: boolean; createdAt: string; total: number; finished: number; currentName: string | null };
+export type Plan = {
+  id: string;
+  groupId: string;
+  title: string;
+  date: string | null;
+  atHome: boolean;
+  createdAt: string;
+  stops: Stop[];
+  /** Set for a day of a trip: the trip, where you wake up, and the hotel the day ends at. */
+  tripId?: string | null;
+  trip?: { id: string; title: string; startDate: string; endDate: string; transport: Transport; rentalCar: boolean } | null;
+  startHotel?: DayHotel | null;
+  endHotel?: DayHotel | null;
+};
+export type PlanSummary = {
+  id: string;
+  title: string;
+  date: string | null;
+  atHome: boolean;
+  createdAt: string;
+  total: number;
+  finished: number;
+  currentName: string | null;
+  tripId?: string | null;
+};
 export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">>;
 export type FlowAction =
   | { action: "complete" | "postpone" | "drop" | "setCurrent" | "restore"; stopId: string }

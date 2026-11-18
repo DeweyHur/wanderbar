@@ -113,6 +113,8 @@ function AppStack() {
             name="plan/[id]/index"
             options={{ title: t("food:route.title") }}
           />
+          <Stack.Screen name="trip/new" options={{ title: t("food:trip.new") }} />
+          <Stack.Screen name="trip/[id]" options={{ title: t("food:trip.title") }} />
           <Stack.Screen
             name="plan/[id]/map"
             options={{ title: t("food:route.map") }}

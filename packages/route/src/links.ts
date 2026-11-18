@@ -10,8 +10,9 @@ export const placeQuery = (name: string, address?: string | null) =>
 
 export const Links = {
   /** Google Maps driving directions from the current location (to the exact place when its id is known). */
-  googleDirections: (name: string, address?: string | null, placeId?: string | null) =>
-    `https://www.google.com/maps/dir/?api=1&destination=${enc(placeQuery(name, address))}&travelmode=driving` +
+  /** Directions to a place; "transit" when you're there without a car (flew in, no rental). */
+  googleDirections: (name: string, address?: string | null, placeId?: string | null, mode: "driving" | "transit" = "driving") =>
+    `https://www.google.com/maps/dir/?api=1&destination=${enc(placeQuery(name, address))}&travelmode=${mode}` +
     (placeId ? `&destination_place_id=${enc(placeId)}` : ""),
 
   /** The place's own page in Google Maps: by place id when known, else the saved Maps link, else a search. */

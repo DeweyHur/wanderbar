@@ -5,6 +5,7 @@ import { groups, planStops, plans, teslaFormats } from "../db/schema";
 import { badRequest, notFound } from "./errors";
 import { requireMember } from "./groups";
 import { fileStopAsRestaurant, recordStopVisit, restaurantsInGroup } from "./restaurants";
+import { tripDay } from "./trips";
 
 export type Stop = typeof planStops.$inferSelect;
 export type StopFields = Partial<
@@ -59,6 +60,7 @@ export async function listPlans(db: Db, groupId: string, userId: string) {
       title: p.title,
       date: p.date,
       atHome: p.atHome,
+      tripId: p.tripId,
       createdAt: p.createdAt,
       total: mine.length,
       finished: mine.filter((s) => s.status === "done" || s.status === "skipped").length,
@@ -105,17 +107,21 @@ async function fileRestaurants(db: Db, groupId: string, userId: string, stops: S
   return changed;
 }
 
+/** The route and its stops; a trip day also gets its trip, where you wake up, and the hotel it ends at. */
 export async function getPlan(db: Db, planId: string, userId: string) {
   const plan = await ownPlan(db, planId, userId);
-  const stops = await stopsOf(db, planId);
-  if (await fileRestaurants(db, plan.groupId, userId, stops)) return { ...plan, stops: await stopsOf(db, planId) };
-  return { ...plan, stops };
+  let stops = await stopsOf(db, planId);
+  if (await fileRestaurants(db, plan.groupId, userId, stops)) stops = await stopsOf(db, planId);
+  const trip = plan.tripId ? await tripDay(db, plan.tripId, plan.date) : null;
+  return { ...plan, stops, trip: trip?.trip ?? null, startHotel: trip?.startHotel ?? null, endHotel: trip?.endHotel ?? null };
 }
 
 /** Rename (empty = call it by its date), move the route to another day, or mark it a day at home. */
 export async function updatePlan(db: Db, planId: string, userId: string, edit: { title?: string; date?: string; atHome?: boolean }) {
-  await ownPlan(db, planId, userId);
+  const before = await ownPlan(db, planId, userId);
   if (edit.date !== undefined && !isDay(edit.date)) throw badRequest("plan.date_invalid");
+  // A trip's day stays on its day; change the trip's dates instead.
+  if (edit.date !== undefined && before.tripId && edit.date !== before.date) throw badRequest("plan.trip_day_date");
   const set: Partial<typeof plans.$inferInsert> = {};
   if (edit.title !== undefined) set.title = edit.title.trim();
   if (edit.date !== undefined) set.date = edit.date;

@@ -143,7 +143,8 @@
       "stop_not_found": "Place not found",
       "title_required": "Enter a route name",
       "stop_name_required": "Enter a place name",
-      "date_invalid": "Pick a valid day"
+      "date_invalid": "Pick a valid day",
+      "trip_day_date": "A trip day stays on its day; change the trip's dates instead"
     },
     "rating": {
       "stars_invalid": "Pick between half a star and five stars",
@@ -231,6 +232,17 @@
       "not_found": "Visit not found",
       "not_yours": "You can only change your own visit",
       "future": "That date is in the future"
+    },
+    "trip": {
+      "not_found": "Trip not found",
+      "date_invalid": "That date isn't valid",
+      "end_before_start": "The last day is before the first day",
+      "too_long": "Trips can be up to 60 days",
+      "hotel_no_nights": "Check-out has to be after check-in",
+      "hotel_outside_trip": "The stay has to be within the trip's dates",
+      "hotel_overlap": "That overlaps another hotel stay",
+      "hotel_name_required": "Enter the hotel's name",
+      "hotel_not_found": "Hotel not found"
     }
   },
   "photo": {

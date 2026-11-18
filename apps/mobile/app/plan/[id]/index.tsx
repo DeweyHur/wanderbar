@@ -18,6 +18,7 @@ import { dayLabel, planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
 import { MealPlanner } from "@/modules/food/shopping/MealPlanner";
 import { FormScroll } from "@/components/FormScroll";
+import { carless, TRANSPORT_ICON } from "@/modules/food/trips/api";
 
 /** One day route: the "now" card on top, then every stop in order (same flow as the old wanderbar app). */
 export default function PlanScreen() {
@@ -97,6 +98,10 @@ export default function PlanScreen() {
   };
   const lastLocated = [...plan.stops].reverse().find((s) => s.lat != null && s.lng != null);
   const near = lastLocated ? { lat: lastLocated.lat!, lng: lastLocated.lng! } : null;
+  // A trip day: searches start around where you're staying, and the day ends at tonight's hotel.
+  const stay = [plan.endHotel, plan.startHotel].find((h) => h?.lat != null && h?.lng != null) ?? null;
+  const center = stay ? { lat: stay.lat!, lng: stay.lng!, label: stay.name } : null;
+  const mode = plan.trip && carless(plan.trip) ? "transit" : "driving";
 
   // Another day than today: hours are shown for that day, and "closed now" warnings don't apply.
   const otherDay = plan.date && plan.date !== today() ? plan.date : null;
@@ -125,14 +130,30 @@ export default function PlanScreen() {
       />
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 }} testID="plan-day">
         <Text style={{ color: c.text, fontSize: 16, fontWeight: "600" }}>{plan.date ? dayLabel(t, i18n.language, plan.date) : ""}</Text>
-        <Chip label={t("food:date.change")} onPress={() => setPickingDay(true)} />
-        <Chip
-          label={t("food:meal.atHome")}
-          icon="🏠"
-          selected={plan.atHome}
-          onPress={() => routeApi.update(plan.id, { atHome: !plan.atHome }).then((p) => setPlan((old) => (old ? { ...old, atHome: p.atHome } : old)), (e) => setError(errorText(t, e)))}
-        />
+        {plan.trip ? (
+          // A trip's day stays on its day: the trip screen changes the dates.
+          <Chip
+            icon={TRANSPORT_ICON[plan.trip.transport]}
+            label={plan.trip.title || t("food:trip.untitled")}
+            onPress={() => router.push({ pathname: "/trip/[id]", params: { id: plan.trip!.id } })}
+          />
+        ) : (
+          <>
+            <Chip label={t("food:date.change")} onPress={() => setPickingDay(true)} />
+            <Chip
+              label={t("food:meal.atHome")}
+              icon="🏠"
+              selected={plan.atHome}
+              onPress={() => routeApi.update(plan.id, { atHome: !plan.atHome }).then((p) => setPlan((old) => (old ? { ...old, atHome: p.atHome } : old)), (e) => setError(errorText(t, e)))}
+            />
+          </>
+        )}
       </View>
+      {plan.startHotel && (
+        <View testID="start-hotel">
+          <Body muted>{t("food:trip.startsAt", { name: plan.startHotel.name })}</Body>
+        </View>
+      )}
       {plan.atHome && <MealPlanner planId={plan.id} groupId={plan.groupId} />}
       <DayPicker
         visible={pickingDay}
@@ -159,7 +180,7 @@ export default function PlanScreen() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <Chip label={t("food:route.done")} onPress={() => done(current)} />
             <Chip label={t("food:route.skip")} onPress={() => flow({ action: "postpone", stopId: current.id })} />
-            <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(current.name, current.address))} />
+            <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(current.name, current.address, null, mode))} />
           </View>
         </Card>
       ) : plan.stops.length > 0 ? (
@@ -245,13 +266,31 @@ export default function PlanScreen() {
         );
       })}
 
+      {plan.endHotel && (
+        // Tonight's hotel: always the last stop of the day.
+        <Card testID="end-hotel">
+          <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{t("food:trip.tonight")}</Text>
+          <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>🏨 {plan.endHotel.name}</Text>
+          {plan.endHotel.address ? <Body muted>{plan.endHotel.address}</Body> : null}
+          {!current && plan.stops.length > 0 ? <ShareMenu place={plan.endHotel} onNotice={setNotice} /> : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+            {current || plan.stops.length === 0 ? <ShareMenu kind="plain" place={plan.endHotel} onNotice={setNotice} /> : null}
+            <Chip
+              label={t("food:route.directions")}
+              onPress={() => Linking.openURL(Links.googleDirections(plan.endHotel!.name, plan.endHotel!.address, plan.endHotel!.googlePlaceId || null, mode))}
+            />
+          </View>
+        </Card>
+      )}
+
       <PlaceSearch
         value={quick}
         onChangeText={setQuick}
         onPick={(d) => addPicked(d).catch((e) => setError(errorText(t, e)))}
         onSubmit={() => add()}
-        near={near}
+        near={near ?? center}
         around
+        center={center}
         visitedGroupId={plan.groupId}
         placeholder={googleAvailable ? t("food:route.searchPlaceholder") : t("food:route.addPlaceholder")}
       />

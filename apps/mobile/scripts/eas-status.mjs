@@ -28,3 +28,22 @@ const tail = async (urls, n) => {
 const app = d?.app?.byId;
 if (app?.builds?.[0]?.status === "ERRORED") await tail(app.builds[0].logFiles, 60);
 if (app?.submissions?.[0]?.status === "ERRORED") await tail(app.submissions[0].logFiles, 40);
+
+// Apple's side: the newest TestFlight builds and whether Apple has finished processing them (VALID = installable).
+if (process.env.EXPO_ASC_API_KEY_PATH && process.env.EXPO_ASC_KEY_ID && process.env.EXPO_ASC_ISSUER_ID) {
+  const { createPrivateKey, sign } = await import("node:crypto");
+  const { readFileSync } = await import("node:fs");
+  const b64url = (b) => Buffer.from(b).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64url(JSON.stringify({ alg: "ES256", kid: process.env.EXPO_ASC_KEY_ID, typ: "JWT" }));
+  const body = b64url(JSON.stringify({ iss: process.env.EXPO_ASC_ISSUER_ID, iat: now, exp: now + 600, aud: "appstoreconnect-v1" }));
+  const sig = sign("sha256", Buffer.from(`${head}.${body}`), { key: createPrivateKey(readFileSync(process.env.EXPO_ASC_API_KEY_PATH)), dsaEncoding: "ieee-p1363" });
+  const r = await fetch("https://api.appstoreconnect.apple.com/v1/builds?filter[app]=6831952410&sort=-uploadedDate&limit=3&fields[builds]=version,processingState,uploadedDate,expired&include=preReleaseVersion&fields[preReleaseVersions]=version", {
+    headers: { authorization: `Bearer ${head}.${body}.${b64url(sig)}` },
+  });
+  const j = await r.json();
+  const versions = Object.fromEntries((j.included ?? []).map((v) => [v.id, v.attributes.version]));
+  for (const b of j.data ?? [])
+    console.log(`TestFlight build ${versions[b.relationships?.preReleaseVersion?.data?.id] ?? "?"} (${b.attributes.version}): ${b.attributes.processingState} · uploaded ${b.attributes.uploadedDate}`);
+  if (!r.ok) console.log("App Store Connect:", r.status, JSON.stringify(j).slice(0, 300));
+}

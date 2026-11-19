@@ -15,7 +15,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: mobile-android
+  # A newer test APK replaces an older one, but never cancels a Play Store build (or the other way round).
+  group: mobile-android-${{ inputs.play && 'play' || 'apk' }}
   cancel-in-progress: true
 
 jobs:

@@ -11,7 +11,7 @@ import {
 } from "@/core/platform/shareIntent";
 import { SessionProvider, useSession } from "@/core/session";
 import { handleTaps, refreshNotifications, startReminderSync, syncReminders } from "@/core/notifications";
-import { AppState, Pressable, ScrollView, Text as RNText } from "react-native";
+import { AppState, Platform, Pressable, ScrollView, Text as RNText } from "react-native";
 import { installCrashHandler, reportCrash } from "@/core/crash";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
@@ -51,14 +51,34 @@ function Notifications() {
 installCrashHandler();
 
 /** Instead of closing, a screen that fails shows what went wrong (and the server log gets it). */
+/**
+ * Web, after a new deploy: a page opened on the old version asks for code that's no longer there. Loading the
+ * page again gets the new version. Once per minute at most, so a real bug can't reload forever.
+ */
+const STALE_CODE = /Requiring unknown module|Loading chunk|ChunkLoadError|Failed to fetch dynamically imported module|Importing a module script failed/i;
+function reloadForNewVersion(error: Error) {
+  if (Platform.OS !== "web" || typeof window === "undefined" || !STALE_CODE.test(error.message)) return false;
+  try {
+    const last = Number(window.sessionStorage.getItem("wb-stale-reload") ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    window.sessionStorage.setItem("wb-stale-reload", String(Date.now()));
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
-  useEffect(() => reportCrash(error, "screen"), [error]);
+  useEffect(() => {
+    if (!reloadForNewVersion(error)) reportCrash(error, "screen");
+  }, [error]);
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#FFF3F6" }} contentContainerStyle={{ padding: 24, paddingTop: 72, gap: 12 }}>
       <RNText style={{ fontSize: 22, fontWeight: "700", color: "#4B3340" }}>앱 오류 · Something went wrong</RNText>
       <RNText selectable style={{ fontSize: 15, color: "#D9506C" }}>{error.message}</RNText>
       <RNText selectable style={{ fontSize: 11, color: "#A08591" }}>{(error.stack ?? "").split("\n").slice(0, 12).join("\n")}</RNText>
-      <Pressable onPress={() => retry()} style={{ backgroundColor: "#D4618B", borderRadius: 999, padding: 14, alignItems: "center" }}>
+      <Pressable onPress={() => (Platform.OS === "web" && STALE_CODE.test(error.message) ? window.location.reload() : retry())} style={{ backgroundColor: "#D4618B", borderRadius: 999, padding: 14, alignItems: "center" }}>
         <RNText style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>다시 시도 · Try again</RNText>
       </Pressable>
     </ScrollView>

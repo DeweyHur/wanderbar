@@ -11,3 +11,4 @@ export * from "./fitness";
 export * from "./realestate";
 export * from "./appVersion";
 export * from "./placeSearch";
+export * from "./tripPrompt";

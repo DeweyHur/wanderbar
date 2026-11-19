@@ -206,7 +206,8 @@
     "kakao": "카카오톡",
     "tesla": "테슬라",
     "more": "더보기…",
-    "kakaoNoApp": "카카오톡이 없어서 공유 메뉴를 열었어요"
+    "kakaoNoApp": "카카오톡이 없어서 공유 메뉴를 열었어요",
+    "findingAddress": "주소 찾는 중…"
   },
   "visit": {
     "title": "방문 기록",
@@ -332,6 +333,16 @@
     "delete": "여행 삭제",
     "confirmDelete": "이 여행과 날짜별 동선을 모두 삭제할까요?",
     "savedPlace": "저장한 가게",
-    "onRoutes": "동선에 넣은 곳"
+    "onRoutes": "동선에 넣은 곳",
+    "prompt": {
+      "title": "AI에게 동선 물어보기",
+      "hint": "이 여행과 숙소 근처에 북마크해 둔 곳으로 프롬프트를 만들어요. Claude나 ChatGPT에 붙여넣으면 돼요.",
+      "make": "프롬프트 만들기",
+      "copy": "복사",
+      "copied": "복사했어요. Claude나 ChatGPT에 붙여넣으세요.",
+      "openClaude": "Claude에서 열기",
+      "openChatGPT": "ChatGPT에서 열기",
+      "again": "다시 만들기"
+    }
   }
 }

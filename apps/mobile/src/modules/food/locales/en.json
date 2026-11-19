@@ -206,7 +206,8 @@
     "kakao": "KakaoTalk",
     "tesla": "Tesla",
     "more": "More…",
-    "kakaoNoApp": "KakaoTalk isn't installed, so the share menu opened instead"
+    "kakaoNoApp": "KakaoTalk isn't installed, so the share menu opened instead",
+    "findingAddress": "Finding the address…"
   },
   "visit": {
     "title": "Visits",
@@ -332,6 +333,16 @@
     "delete": "Delete trip",
     "confirmDelete": "Delete this trip and all its day routes?",
     "savedPlace": "saved restaurant",
-    "onRoutes": "on your routes"
+    "onRoutes": "on your routes",
+    "prompt": {
+      "title": "Ask an AI to plan it",
+      "hint": "Makes a prompt from this trip and the places we've bookmarked near each hotel. Paste it into Claude or ChatGPT.",
+      "make": "Make the prompt",
+      "copy": "Copy",
+      "copied": "Copied. Paste it into Claude or ChatGPT.",
+      "openClaude": "Open in Claude",
+      "openChatGPT": "Open in ChatGPT",
+      "again": "Make it again"
+    }
   }
 }

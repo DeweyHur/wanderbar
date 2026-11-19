@@ -11,6 +11,7 @@ import type { PlaceDetails } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { nights, tripApi, TRANSPORT_ICON, type Hotel, type Trip, type TripEdit } from "@/modules/food/trips/api";
 import { DayField, rangeLabel, TransportPicker } from "@/modules/food/trips/parts";
+import { TripPrompt } from "@/modules/food/trips/TripPrompt";
 
 /** A trip: its dates and how you get there, the hotels you stay at (by nights), and a route for each day. */
 export default function TripScreen() {
@@ -85,6 +86,8 @@ export default function TripScreen() {
           </Card>
         </Pressable>
       ))}
+
+      <TripPrompt trip={trip} />
 
       <View style={{ flexDirection: "row", marginTop: 8 }}>
         <Chip

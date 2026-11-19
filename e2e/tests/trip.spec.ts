@@ -75,3 +75,38 @@ test("trip API: overlapping hotel stays are refused", async ({ page }) => {
   const r = await page.request.post(`/api/trips/${trip.id}/hotels`, { headers: h, data: { name: "B", checkIn: "2026-12-02", checkOut: "2026-12-04" } });
   expect([r.status(), (await r.json()).error]).toEqual([400, "trip.hotel_overlap"]);
 });
+
+// The trip as a prompt for an AI: hotels by night, what each day has, and our bookmarks near each hotel.
+test("trip: make an AI planning prompt from the hotels and our bookmarked places", async ({ page }) => {
+  await signIn(page, "Planner");
+  await openHome(page);
+  const groupId = (await me(page.request)).groups[0].id;
+  const post = (url: string, data: unknown) => page.request.post(url, { headers: WEB, data }).then((r) => r.json());
+  const trip = await post(`/api/groups/${groupId}/trips`, { title: "Sedona", startDate: "2026-12-05", endDate: "2026-12-07", transport: "flight", rentalCar: true });
+  await post(`/api/trips/${trip.id}/hotels`, { name: "Pinon Pointe", address: "1 AZ-89A, Sedona, AZ", lat: 34.8697, lng: -111.7609, checkIn: "2026-12-05", checkOut: "2026-12-07" });
+  // Day 2 already has a place; another route bookmarked a cafe nearby.
+  await post(`/api/plans/${trip.days[1].planId}/stops`, { stops: [{ name: "Wildflower", address: "101 AZ-89A, Sedona", lat: 34.8702, lng: -111.7615 }] });
+  const other = await post(`/api/groups/${groupId}/plans`, { date: "2026-11-01" });
+  await post(`/api/plans/${other.id}/stops`, { stops: [{ name: "Cafe Uno", address: "12 Main St, Sedona", lat: 34.8705, lng: -111.7612 }] });
+
+  await page.goto(`/trip/${trip.id}`);
+  const card = page.getByTestId("trip-prompt-card").filter({ visible: true });
+  await card.getByRole("button", { name: "Make the prompt" }).click();
+  const prompt = card.getByTestId("trip-prompt");
+  await expect(prompt).toContainText("Please plan this trip day by day.");
+  await expect(prompt).toContainText("Getting around: flying in, with a rental car there");
+  await expect(prompt).toContainText("2 nights: Pinon Pointe (1 AZ-89A, Sedona, AZ)");
+  await expect(prompt).toContainText("Already planned: Wildflower");
+  await expect(prompt).toContainText("Near 🏨 Pinon Pointe");
+  await expect(prompt).toContainText("Cafe Uno — 12 Main St, Sedona");
+  await expect(prompt).toContainText("heading home");
+
+  // Opens Claude with the prompt filled in (answered locally: outside sites aren't reachable here).
+  await page.context().route("https://claude.ai/**", (r) => r.fulfill({ body: "claude" }));
+  const popup = page.waitForEvent("popup");
+  await card.getByRole("button", { name: "Open in Claude" }).click();
+  const claude = await popup;
+  await claude.waitForLoadState();
+  expect(decodeURIComponent(new URL(claude.url()).searchParams.get("q") ?? "")).toContain("Cafe Uno");
+  await claude.close();
+});

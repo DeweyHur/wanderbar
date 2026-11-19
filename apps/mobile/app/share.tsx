@@ -14,6 +14,8 @@ import { routeApi, type PlanSummary } from "@/modules/food/route/api";
 import { planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
 import { parseSharedPlace, type ParsedPlace } from "@wanderbar/route";
+import { api } from "@/core/api";
+import type { PlaceDetails } from "@/modules/food/route/google";
 import { FormScroll } from "@/components/FormScroll";
 
 /**
@@ -34,6 +36,9 @@ export default function ShareScreen() {
   const [routes, setRoutes] = useState(false);
   const [pickingDay, setPickingDay] = useState(false);
   const [visitedOn, setVisitedOn] = useState<string | null>(null);
+  /** What the shared Google Maps link points at: fills the address and gives routes the exact spot. */
+  const [found, setFound] = useState<PlaceDetails | null>(null);
+  const [looking, setLooking] = useState(false);
 
   useEffect(() => {
     if (incoming.share) {
@@ -41,6 +46,28 @@ export default function ShareScreen() {
       setPlace(parseSharedPlace(incoming.share.text, incoming.share.title));
     }
   }, [incoming.share?.text, incoming.share?.title]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A Google Maps share is just a name and a short link: look the place up so the address fills in.
+  const gmapsUrl = place?.source === "gmaps" ? place.mapsUrl : "";
+  const signedIn = state.status === "signedIn";
+  useEffect(() => {
+    setFound(null);
+    // Only when the share came without an address (a typed or pasted one is kept as is).
+    if (!gmapsUrl || !signedIn || place?.address.trim()) return;
+    let live = true;
+    setLooking(true);
+    api<{ place: PlaceDetails | null }>("/api/places/from-link", { body: { url: gmapsUrl, name: place?.name ?? "" } })
+      .then(({ place: d }) => {
+        if (!live || !d) return;
+        setFound(d);
+        setPlace((p) => (p ? { ...p, name: p.name.trim() || d.name, address: p.address.trim() || d.address } : p));
+      })
+      .catch(() => {})
+      .finally(() => live && setLooking(false));
+    return () => {
+      live = false;
+    };
+  }, [gmapsUrl, signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = state.status === "signedIn" ? state.groups : null;
   useEffect(() => {
@@ -70,7 +97,8 @@ export default function ShareScreen() {
         (
           await routeApi.create(groupId, { date: date ?? today() })
         ).id;
-      await routeApi.addStops(id, [{ name: place.name.trim(), address: place.address, mapsUrl: place.mapsUrl, yelpUrl: place.yelpUrl }]);
+      const exact = found && place.address === found.address ? { lat: found.lat, lng: found.lng, googlePlaceId: found.googlePlaceId, hoursRaw: found.hoursRaw } : {};
+      await routeApi.addStops(id, [{ name: place.name.trim(), address: place.address, mapsUrl: place.mapsUrl, yelpUrl: place.yelpUrl, ...exact }]);
       incoming.clear();
       router.replace({ pathname: "/plan/[id]", params: { id } });
     } catch (e) {
@@ -89,6 +117,8 @@ export default function ShareScreen() {
         address: place.address,
         mapsUrl: place.mapsUrl,
         yelpUrl: place.yelpUrl,
+        // Already found from the link: saved as that exact place, no second search.
+        ...(found && place.address === found.address ? { googlePlaceId: found.googlePlaceId } : {}),
         ...(visitedOn ? { visitedOn } : {}),
       });
       incoming.clear();
@@ -109,7 +139,12 @@ export default function ShareScreen() {
         <Card>
           <Body muted>{t(`food:share.from.${place.source}`)}</Body>
           <Field label={t("food:stop.name")} value={place.name} onChangeText={(name) => setPlace({ ...place, name })} />
-          <Field label={t("food:stop.address")} value={place.address} onChangeText={(address) => setPlace({ ...place, address })} />
+          <Field
+            label={t("food:stop.address")}
+            value={place.address}
+            onChangeText={(address) => setPlace({ ...place, address })}
+            placeholder={looking ? t("food:share.findingAddress") : undefined}
+          />
           <Text style={{ color: c.muted, fontSize: 13 }} numberOfLines={1}>
             {place.yelpUrl || place.mapsUrl}
           </Text>

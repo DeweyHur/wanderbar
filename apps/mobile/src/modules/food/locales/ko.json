@@ -135,7 +135,16 @@
     "beenThere_other": "{{count}}번 다녀옴 · 최근 {{date}}",
     "beenThere_one": "{{date}} 다녀옴",
     "name": "동선 이름",
-    "namePlaceholder": "예: 토요일 리틀도쿄 (선택)"
+    "namePlaceholder": "예: 토요일 리틀도쿄 (선택)",
+    "removeStop": "{{name}} 빼기",
+    "confirmRemoveStop": "{{name}}을(를) 이 동선에서 뺄까요?",
+    "removeFromRoute": "동선에서 빼기",
+    "addToRoute": "동선에 넣기",
+    "stopNumber": "동선 {{n}}번째",
+    "mapHotel": "숙소",
+    "mapPlaces": "근처 우리 장소 ({{count}})",
+    "mapHint": "핀을 누르면 구글맵·옐프로 열거나 동선에 넣을 수 있어요.",
+    "mapFromHotel": "{{place}}에서 {{distance}}"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",

@@ -55,6 +55,8 @@ export type VisitedPlace = {
   lng: number;
   googlePlaceId: string;
   mapsUrl: string;
+  yelpUrl?: string;
+  itemId?: string | null;
   hoursRaw: string;
   last: string;
   times: number;

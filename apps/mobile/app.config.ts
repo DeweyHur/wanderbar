@@ -24,7 +24,7 @@ const config: ExpoConfig = {
   slug: "wanderbar",
   ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
-  version: "0.10.0",
+  version: "0.11.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
   // Light or dark follows the choice in Settings (or the phone).

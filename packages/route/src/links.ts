@@ -25,6 +25,9 @@ export const Links = {
   googleSearch: (name: string, address?: string | null) =>
     `https://www.google.com/maps/search/?api=1&query=${enc(placeQuery(name, address))}`,
 
+  /** The place on Yelp: its saved Yelp page when there is one, else a Yelp search for it. */
+  yelpPlace: (name: string, address?: string | null, yelpUrl?: string | null) => (yelpUrl ?? "").trim() || Links.yelpSearch(name, address),
+
   /** Yelp search. The address, when present, narrows the location. */
   yelpSearch: (name: string, address?: string | null) => {
     const base = `https://www.yelp.com/search?find_desc=${enc(name.trim())}`;

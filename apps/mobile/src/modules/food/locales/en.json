@@ -135,7 +135,16 @@
     "beenThere_one": "been {{date}}",
     "beenThere_other": "been {{count}} times · last {{date}}",
     "name": "Route name",
-    "namePlaceholder": "e.g. Saturday in Little Tokyo (optional)"
+    "namePlaceholder": "e.g. Saturday in Little Tokyo (optional)",
+    "removeStop": "Remove {{name}}",
+    "confirmRemoveStop": "Take {{name}} off this route?",
+    "removeFromRoute": "Take off the route",
+    "addToRoute": "Add to route",
+    "stopNumber": "Stop {{n}} on this route",
+    "mapHotel": "Hotel",
+    "mapPlaces": "Our places nearby ({{count}})",
+    "mapHint": "Tap a pin to open it in Google Maps or Yelp, or to add it to the route.",
+    "mapFromHotel": "{{distance}} from {{place}}"
   },
   "hours": {
     "open": "Open · until {{time}}",

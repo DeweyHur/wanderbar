@@ -1,37 +1,45 @@
 import { Platform, View } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
-import type { Stop } from "./api";
 import type { RouteResult } from "./google";
-
-const COLORS = { current: "#2F6FED", pending: "#E8590C", done: "#1F8A5B", skipped: "#999999" } as const;
+import { MARK_COLORS, markColor, markRegion, type MapMark } from "./mapMarks";
 
 /**
- * Numbered markers in route order (blue = now, orange = upcoming, green = done) with the driving path,
- * or straight lines when there's no route yet. Android: Google Maps; iOS: Apple Maps.
+ * The route's pins (numbered stops, hotels, and the group's places that could be added) with the driving
+ * path, or straight lines when there's no route yet. Tapping a pin selects it. Android: Google Maps; iOS: Apple Maps.
  */
-export function RouteMap({ stops, route }: { stops: Stop[]; route: RouteResult | null }) {
-  const located = stops.filter((s) => s.lat != null && s.lng != null);
-  if (!located.length) return null;
-  const lats = located.map((s) => s.lat!);
-  const lngs = located.map((s) => s.lng!);
+export function RouteMap({
+  marks,
+  route,
+  selected,
+  onSelect,
+}: {
+  marks: MapMark[];
+  route: RouteResult | null;
+  selected?: string | null;
+  onSelect?: (key: string) => void;
+}) {
+  const box = markRegion(marks);
+  if (!box) return null;
   const pad = 0.02;
   const region = {
-    latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
-    longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
-    latitudeDelta: Math.max(...lats) - Math.min(...lats) + pad,
-    longitudeDelta: Math.max(...lngs) - Math.min(...lngs) + pad,
+    latitude: (box.south + box.north) / 2,
+    longitude: (box.west + box.east) / 2,
+    latitudeDelta: box.north - box.south + pad,
+    longitudeDelta: box.east - box.west + pad,
   };
-  const routed = located.filter((s) => s.status !== "skipped");
+  const routed = marks.filter((m) => m.kind === "stop" && m.status !== "skipped");
   return (
-    <View style={{ height: 380, borderRadius: 16, overflow: "hidden" }}>
+    <View testID="route-map" style={{ height: 420, borderRadius: 16, overflow: "hidden" }}>
       <MapView style={{ flex: 1 }} provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined} initialRegion={region}>
-        {located.map((s) => (
+        {marks.map((m) => (
           <Marker
-            key={s.id}
-            coordinate={{ latitude: s.lat!, longitude: s.lng! }}
-            title={`${stops.indexOf(s) + 1}. ${s.name}`}
-            description={s.address}
-            pinColor={COLORS[s.status]}
+            key={`${m.key}-${m.key === selected ? "on" : "off"}`}
+            coordinate={{ latitude: m.lat, longitude: m.lng }}
+            title={m.n ? `${m.n}. ${m.title}` : m.kind === "hotel" ? `🏨 ${m.title}` : m.title}
+            pinColor={markColor(m)}
+            opacity={m.kind === "place" && m.key !== selected ? 0.75 : 1}
+            zIndex={m.key === selected ? 10 : m.kind === "place" ? 1 : 5}
+            onPress={() => onSelect?.(m.key)}
           />
         ))}
         {route
@@ -41,11 +49,11 @@ export function RouteMap({ stops, route }: { stops: Stop[]; route: RouteResult |
                 coordinates={leg.path.map(([latitude, longitude]) => ({ latitude, longitude }))}
                 strokeWidth={5}
                 // Legs already driven (into a done stop) are greyed.
-                strokeColor={routed[i + 1]?.status === "done" ? "#9A9BA1" : COLORS.current}
+                strokeColor={routed[i + 1]?.status === "done" ? "#9A9BA1" : MARK_COLORS.current}
               />
             ))
           : routed.length > 1 && (
-              <Polyline coordinates={routed.map((s) => ({ latitude: s.lat!, longitude: s.lng! }))} strokeWidth={3} strokeColor={COLORS.pending} />
+              <Polyline coordinates={routed.map((m) => ({ latitude: m.lat, longitude: m.lng }))} strokeWidth={3} strokeColor={MARK_COLORS.pending} />
             )}
       </MapView>
     </View>

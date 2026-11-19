@@ -260,6 +260,17 @@ export default function PlanScreen() {
                 >
                   <Text style={{ color: i === plan.stops.length - 1 ? c.border : c.muted, fontSize: 20, paddingHorizontal: 6 }}>▼</Text>
                 </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("food:route.removeStop", { name: s.name })}
+                  hitSlop={6}
+                  onPress={async () => {
+                    if (!(await confirm(t("food:route.confirmRemoveStop", { name: s.name }), t("food:route.removeFromRoute"), t("common.cancel")))) return;
+                    run(() => routeApi.deleteStop(s.id));
+                  }}
+                >
+                  <Text style={{ color: c.muted, fontSize: 18, paddingHorizontal: 6, marginLeft: 4 }}>✕</Text>
+                </Pressable>
               </View>
             </View>
           </Pressable>

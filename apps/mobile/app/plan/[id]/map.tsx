@@ -119,6 +119,9 @@ export default function PlanMap() {
       setSelected(added ? `stop:${added.id}` : null);
       return stops;
     });
+  // The hotel can go on the route as often as needed (check in, then out again, back at night).
+  const addHotel = (h: Hotel) =>
+    act(() => routeApi.addStops(plan.id, [{ name: h.name, address: h.address ?? "", lat: h.lat, lng: h.lng, googlePlaceId: h.googlePlaceId ?? "", mapsUrl: h.mapsUrl ?? "" }]));
   const removeStop = (s: Stop) => act(() => routeApi.deleteStop(s.id)).then(() => setSelected(null));
 
   const mode = plan.trip && carless(plan.trip) ? "transit" : "driving";
@@ -164,6 +167,7 @@ export default function PlanMap() {
           {away != null && stay && <Body muted>{t("food:route.mapFromHotel", { distance: formatPlaceDistance(away, inMiles), place: stay.name })}</Body>}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {picked.kind === "place" && <Button label={t("food:route.addToRoute")} busy={busy} onPress={() => addPlace(picked.place)} />}
+            {picked.kind === "hotel" && <Button label={t("food:trip.stopBy", { name: picked.hotel.name })} busy={busy} onPress={() => addHotel(picked.hotel)} />}
             <Chip label="Google Maps" onPress={() => Linking.openURL(Links.googlePlace(place.name, place.address, place.googlePlaceId || null, "mapsUrl" in place ? place.mapsUrl : null))} />
             {picked.kind !== "hotel" && (
               <Chip label="Yelp" onPress={() => Linking.openURL(Links.yelpPlace(place.name, place.address, "yelpUrl" in place ? place.yelpUrl : null))} />

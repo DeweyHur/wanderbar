@@ -343,6 +343,7 @@
       "openClaude": "Claude에서 열기",
       "openChatGPT": "ChatGPT에서 열기",
       "again": "다시 만들기"
-    }
+    },
+    "stopBy": "{{name}} 들르기"
   }
 }

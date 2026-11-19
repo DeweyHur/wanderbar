@@ -102,6 +102,13 @@ export default function PlanScreen() {
   const stay = [plan.endHotel, plan.startHotel].find((h) => h?.lat != null && h?.lng != null) ?? null;
   const center = stay ? { lat: stay.lat!, lng: stay.lng!, label: stay.name } : null;
   const mode = plan.trip && carless(plan.trip) ? "transit" : "driving";
+  // This day's hotels (where you woke up, where you sleep): you may stop by more than once (check in, drop
+  // bags, come back later), so they're never hidden from search and each has a one-tap "stop by" button.
+  const dayHotels = [plan.startHotel, plan.endHotel].filter((h, i, all): h is NonNullable<typeof h> => !!h && all.findIndex((x) => x?.id === h.id) === i);
+  const hotelKeys = new Set(dayHotels.flatMap((h) => [h.googlePlaceId, `${h.name.trim().toLowerCase()}|${(h.address ?? "").trim().toLowerCase()}`].filter(Boolean)));
+  const isHotelStop = (s: Stop) => dayHotels.some((h) => (h.googlePlaceId && s.googlePlaceId === h.googlePlaceId) || (s.name.trim() === h.name.trim() && s.address.trim() === (h.address ?? "").trim()));
+  const stopByHotel = (h: (typeof dayHotels)[number]) =>
+    run(() => routeApi.addStops(plan.id, [{ name: h.name, address: h.address ?? "", lat: h.lat, lng: h.lng, googlePlaceId: h.googlePlaceId ?? "", mapsUrl: h.mapsUrl ?? "" }]));
 
   // Another day than today: hours are shown for that day, and "closed now" warnings don't apply.
   const otherDay = plan.date && plan.date !== today() ? plan.date : null;
@@ -235,7 +242,7 @@ export default function PlanScreen() {
                   style={{ color: c.text, fontSize: 16, fontWeight: s.status === "current" ? "700" : "500", textDecorationLine: s.status === "skipped" ? "line-through" : "none" }}
                   numberOfLines={1}
                 >
-                  {s.name}
+                  {isHotelStop(s) ? `🏨 ${s.name}` : s.name}
                 </Text>
                 {dim ? (
                   <Text style={{ color: c.muted, fontSize: 13 }}>{t(`food:route.status.${s.status}`)}</Text>
@@ -302,11 +309,18 @@ export default function PlanScreen() {
         near={near ?? center}
         around
         center={center}
-        skip={plan.stops.map((s) => s.googlePlaceId || `${s.name.trim().toLowerCase()}|${s.address.trim().toLowerCase()}`)}
+        skip={plan.stops.map((s) => s.googlePlaceId || `${s.name.trim().toLowerCase()}|${s.address.trim().toLowerCase()}`).filter((k) => !hotelKeys.has(k))}
         visitedGroupId={plan.groupId}
         placeholder={googleAvailable ? t("food:route.searchPlaceholder") : t("food:route.addPlaceholder")}
       />
       <Button kind="plain" label={t("food:route.add")} busy={adding} disabled={!quick.trim()} onPress={add} />
+      {dayHotels.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} testID="stop-by-hotel">
+          {dayHotels.map((h) => (
+            <Chip key={h.id} icon="🏨" label={t("food:trip.stopBy", { name: h.name })} onPress={() => stopByHotel(h)} />
+          ))}
+        </View>
+      )}
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
         {plan.stops.length > 0 && <Chip label={t("food:route.restart")} onPress={() => flow({ action: "restart" })} />}

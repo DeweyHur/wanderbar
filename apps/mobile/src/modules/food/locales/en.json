@@ -343,6 +343,7 @@
       "openClaude": "Open in Claude",
       "openChatGPT": "Open in ChatGPT",
       "again": "Make it again"
-    }
+    },
+    "stopBy": "Stop by {{name}}"
   }
 }

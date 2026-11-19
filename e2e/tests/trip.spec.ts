@@ -110,3 +110,41 @@ test("trip: make an AI planning prompt from the hotels and our bookmarked places
   expect(decodeURIComponent(new URL(claude.url()).searchParams.get("q") ?? "")).toContain("Cafe Uno");
   await claude.close();
 });
+
+// A hotel can be stopped by more than once in a day: check in, go out, come back.
+test("trip day: the hotel goes on the route as many times as needed", async ({ page }) => {
+  await signIn(page, "Checkin");
+  await openHome(page);
+  const groupId = (await me(page.request)).groups[0].id;
+  const post = (url: string, data: unknown) => page.request.post(url, { headers: WEB, data }).then((r) => r.json());
+  const trip = await post(`/api/groups/${groupId}/trips`, { title: "SF", startDate: "2026-12-10", endDate: "2026-12-11" });
+  await post(`/api/trips/${trip.id}/hotels`, {
+    name: "Blue Bottle Coffee",
+    address: "315 Linden St, San Francisco, CA 94102",
+    lat: 37.7764,
+    lng: -122.4231,
+    googlePlaceId: "fake-blue-bottle",
+    checkIn: "2026-12-10",
+    checkOut: "2026-12-11",
+  });
+  await page.goto(`/plan/${trip.days[0].planId}`);
+  const rows = page.locator('[data-testid^="stop-row-"]').filter({ visible: true });
+
+  // Check in first…
+  await page.getByTestId("stop-by-hotel").filter({ visible: true }).getByRole("button", { name: "Stop by Blue Bottle Coffee" }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.nth(0)).toContainText("🏨 Blue Bottle Coffee");
+  // …go out…
+  await addInput(page).fill("golden");
+  await page.getByText("Golden Gate Park").first().click();
+  await expect(rows).toHaveCount(2);
+  // …and back: search still offers the hotel even though it's already on the route.
+  await addInput(page).fill("blue");
+  await page.getByTestId("visited-suggestion").filter({ visible: true }).filter({ hasText: "Blue Bottle Coffee" }).click();
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(2)).toContainText("🏨 Blue Bottle Coffee");
+  // The button works again too.
+  await page.getByTestId("stop-by-hotel").filter({ visible: true }).getByRole("button", { name: "Stop by Blue Bottle Coffee" }).click();
+  await expect(rows).toHaveCount(4);
+  await expect(page.getByTestId("end-hotel").filter({ visible: true })).toContainText("Blue Bottle Coffee");
+});

@@ -47,10 +47,10 @@ export function RouteMap({
     const el = host.current;
     if (!el) return;
     const m = L.map(el, { zoomControl: true, attributionControl: true });
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    // OpenStreetMap's own tiles: no key, fine for a small private app (credit shown, as its policy asks).
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      subdomains: "abcd",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(m);
     m.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     map.current = m;

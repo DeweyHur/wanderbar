@@ -148,3 +148,10 @@ test("fitness: a 3-day split, sets with a rest timer, check-in, the next day of 
   expect(await title.evaluate((el) => getComputedStyle(el).fontFamily)).not.toContain("Jua");
   expect(await visible(page, "group-home").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(29, 27, 38)");
 });
+
+test("the privacy policy is open to everyone and covers Health Connect", async ({ page }) => {
+  await page.goto("/privacy");
+  const body = page.getByTestId("privacy").filter({ visible: true });
+  await expect(body).toContainText("Health Connect");
+  await expect(body).toContainText("never sent to our server");
+});

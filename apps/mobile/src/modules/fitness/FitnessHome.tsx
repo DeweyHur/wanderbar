@@ -9,6 +9,7 @@ import { useSession } from "@/core/session";
 import { SectionTitle } from "@/modules/boardgame/parts";
 import { fitApi, newWorkoutId, type FitnessHome as Home } from "./api";
 import { weekdayNames, whenText } from "./format";
+import { connectHealth, healthState, healthSupported, openHealthSettings, type HealthState } from "./health";
 import { askExact, exactAllowed, restAlarmSupported } from "./restAlarm";
 import { workoutStore } from "./store";
 
@@ -22,6 +23,7 @@ export function FitnessHome({ groupId }: { groupId: string }) {
   const [local, setLocal] = useState<Workout | null>(null);
   const [dayId, setDayId] = useState<string | null>(null);
   const [exact, setExact] = useState(true);
+  const [health, setHealth] = useState<HealthState>("unavailable");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,6 +57,7 @@ export function FitnessHome({ groupId }: { groupId: string }) {
         (e) => setError(errorText(t, e)),
       );
       if (restAlarmSupported) exactAllowed().then(setExact);
+      if (healthSupported) healthState().then(setHealth);
     }, [groupId, t]),
   );
 
@@ -127,6 +130,23 @@ export function FitnessHome({ groupId }: { groupId: string }) {
       {home.routine ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Chip label={t("fitness:home.editRoutine")} onPress={() => router.push({ pathname: "/fitness/routine", params: { group: groupId } })} />
+        </View>
+      ) : null}
+
+      {health === "off" || health === "needsInstall" ? (
+        <Card testID="health-connect">
+          <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("fitness:home.health.title")}</Text>
+          <Body>{t("fitness:home.health.body")}</Body>
+          {health === "off" ? (
+            <Chip label={t("fitness:home.health.connect")} onPress={() => connectHealth().then(() => healthState().then(setHealth))} />
+          ) : (
+            <Chip label={t("fitness:home.health.install")} onPress={openHealthSettings} />
+          )}
+        </Card>
+      ) : health === "on" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <Body muted>{t("fitness:home.health.on")}</Body>
+          <Chip label={t("fitness:home.health.settings")} onPress={openHealthSettings} />
         </View>
       ) : null}
 

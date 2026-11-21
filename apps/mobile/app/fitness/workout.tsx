@@ -17,6 +17,7 @@ import {
   startTimed,
   tick,
   workoutSummary,
+  healthSession,
   type DoneSet,
   type Workout,
 } from "@wanderbar/route";
@@ -31,6 +32,7 @@ import { confirm } from "@/core/platform/confirm";
 import { fitApi, type FitnessHome } from "@/modules/fitness/api";
 import { BigButton } from "@/modules/fitness/FitnessHome";
 import { setsText, targetText, volumeText } from "@/modules/fitness/format";
+import { healthState, readWorkoutBody, saveSession } from "@/modules/fitness/health";
 import { buzz, cancelRest, prepareRestAlarm, scheduleRest } from "@/modules/fitness/restAlarm";
 import { workoutStore } from "@/modules/fitness/store";
 
@@ -48,6 +50,28 @@ export default function WorkoutScreen() {
   const [home, setHome] = useState<FitnessHome | null>(null);
   const [now, setNow] = useState(() => new Date());
   const latest = useRef<Workout | null>(null);
+  // Health Connect, once the workout is done: saved there, then the watch's heart rate and calories.
+  const [health, setHealth] = useState<{ saved: boolean | null; heart: { avg: number; max: number } | null; kcal: number | null; checked: boolean }>({ saved: null, heart: null, kcal: null, checked: false });
+  const readBody = useCallback(async (from: string, to: string) => {
+    const body = await readWorkoutBody(from, to);
+    setHealth((h) => ({ ...h, ...body, checked: true }));
+  }, []);
+  const endedAt = w?.endedAt ?? null;
+  useEffect(() => {
+    const done = latest.current;
+    if (!done?.endedAt) return;
+    let live = true;
+    (async () => {
+      if ((await healthState()) !== "on") return;
+      const session = healthSession(done);
+      const saved = session ? await saveSession(session) : null;
+      if (live) setHealth((h) => ({ ...h, saved }));
+      if (live) await readBody(done.startedAt, done.endedAt!);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [endedAt, readBody]);
   useGroupLook(groupId);
 
   useEffect(() => {
@@ -143,6 +167,18 @@ export default function WorkoutScreen() {
           <Stat label={t("fitness:workout.sets")} value={String(sum.sets)} />
           <Stat label={t("fitness:workout.volume")} value={volumeText(sum.volume)} />
         </View>
+        {health.heart || health.kcal ? (
+          <View testID="workout-body" style={{ flexDirection: "row", gap: 10 }}>
+            {health.heart ? <Stat label={t("fitness:workout.health.heart")} value={t("fitness:workout.health.heartValue", health.heart)} /> : null}
+            {health.kcal ? <Stat label={t("fitness:workout.health.kcal")} value={t("fitness:workout.health.kcalValue", { n: health.kcal })} /> : null}
+          </View>
+        ) : health.checked ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+            <Body muted>{t("fitness:workout.health.noHeart")}</Body>
+            <Chip label={t("fitness:workout.health.reload")} onPress={() => readBody(w.startedAt, w.endedAt!)} />
+          </View>
+        ) : null}
+        {health.saved != null ? <Body muted>{t(health.saved ? "fitness:workout.health.saved" : "fitness:workout.health.failed")}</Body> : null}
         {next ? (
           <Card highlight testID="next-cycle">
             <Body muted>{t("fitness:workout.nextCycle")}</Body>

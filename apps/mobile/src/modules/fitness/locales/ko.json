@@ -21,7 +21,15 @@
     "feedEmpty": "아직 운동 기록이 없어요.",
     "working": "운동 중",
     "minutes": "{{n}}분",
-    "sets_other": "{{count}}세트"
+    "sets_other": "{{count}}세트",
+    "health": {
+      "title": "삼성헬스",
+      "body": "마친 운동을 삼성헬스에 남기고(Health Connect를 거쳐요), 워치로 잰 심박을 운동 요약에서 볼 수 있어요.",
+      "connect": "연결하기",
+      "install": "Health Connect 설치",
+      "on": "운동 기록을 삼성헬스(Health Connect)에 남기고 있어요.",
+      "settings": "Health Connect 설정"
+    }
   },
   "routine": {
     "title": "내 루틴",
@@ -106,6 +114,16 @@
     "channel": "운동 휴식 타이머",
     "today": "오늘: {{sets}}",
     "weight": "무게 ({{unit}})",
-    "justDidOf": "방금 한 세트: {{name}} {{n}}세트"
+    "justDidOf": "방금 한 세트: {{name}} {{n}}세트",
+    "health": {
+      "saved": "삼성헬스(Health Connect)에 저장했어요.",
+      "failed": "Health Connect에 저장하지 못했어요.",
+      "heart": "심박",
+      "heartValue": "평균 {{avg}} · 최고 {{max}}",
+      "kcal": "칼로리",
+      "kcalValue": "{{n}}kcal",
+      "noHeart": "아직 워치 심박이 없어요. 동기화에 몇 분 걸릴 수 있어요.",
+      "reload": "다시 불러오기"
+    }
   }
 }

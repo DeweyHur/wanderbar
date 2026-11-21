@@ -22,7 +22,15 @@
     "working": "working out now",
     "minutes": "{{n}} min",
     "sets_one": "{{count}} set",
-    "sets_other": "{{count}} sets"
+    "sets_other": "{{count}} sets",
+    "health": {
+      "title": "Samsung Health",
+      "body": "Save finished workouts to Samsung Health (through Health Connect), and see your watch's heart rate in the workout summary.",
+      "connect": "Connect",
+      "install": "Get Health Connect",
+      "on": "Workouts are saved to Samsung Health (Health Connect).",
+      "settings": "Health Connect settings"
+    }
   },
   "routine": {
     "title": "My routine",
@@ -107,6 +115,16 @@
     "channel": "Workout rest timer",
     "today": "Today: {{sets}}",
     "weight": "Weight ({{unit}})",
-    "justDidOf": "Just did: {{name}}, set {{n}}"
+    "justDidOf": "Just did: {{name}}, set {{n}}",
+    "health": {
+      "saved": "Saved to Samsung Health (Health Connect).",
+      "failed": "Couldn't save to Health Connect.",
+      "heart": "Heart rate",
+      "heartValue": "avg {{avg}} · max {{max}}",
+      "kcal": "Calories",
+      "kcalValue": "{{n}} kcal",
+      "noHeart": "No heart rate from a watch yet. It can take a few minutes to sync.",
+      "reload": "Check again"
+    }
   }
 }

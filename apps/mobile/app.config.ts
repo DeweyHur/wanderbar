@@ -24,7 +24,7 @@ const config: ExpoConfig = {
   slug: "wanderbar",
   ...(easOwner.startsWith("REPLACE") ? {} : { owner: easOwner }),
   scheme: "wanderbar",
-  version: "0.11.0",
+  version: "0.12.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
   // Light or dark follows the choice in Settings (or the phone).
@@ -43,7 +43,13 @@ const config: ExpoConfig = {
     package: "app.wanderbar.mobile",
     versionCode: buildNumber,
     // The workout rest timer's notification rings on the exact second (the user allows it in "Alarms & reminders").
-    permissions: ["android.permission.SCHEDULE_EXACT_ALARM"],
+    permissions: [
+      "android.permission.SCHEDULE_EXACT_ALARM",
+      // Health Connect (Samsung Health): save finished workouts; read the watch's heart rate and calories for them.
+      "android.permission.health.WRITE_EXERCISE",
+      "android.permission.health.READ_HEART_RATE",
+      "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+    ],
     adaptiveIcon: {
       // Pin-chan on baby pink (assets are drawn by scripts/icon.cjs).
       backgroundColor: "#FBD3E0",
@@ -88,7 +94,9 @@ const config: ExpoConfig = {
     // R8 in release builds strips classes that are created by name at startup (WorkManager's Room database,
     // pulled in by react-native-maps), which crashed the app on launch. This is a small private app, so
     // release builds are not minified. The emulator smoke test in CI guards against this coming back.
-    ["expo-build-properties", { android: { enableMinifyInReleaseBuilds: false, enableShrinkResourcesInReleaseBuilds: false } }],
+    ["expo-build-properties", { android: { enableMinifyInReleaseBuilds: false, enableShrinkResourcesInReleaseBuilds: false, minSdkVersion: 26 } }],
+    // Health Connect: the permission screen and its privacy-policy link (Android only).
+    "react-native-health-connect",
     // iOS uses Apple Maps (no key); Android uses Google Maps.
     ["react-native-maps", { androidGoogleMapsApiKey: androidMapsKey }],
   ],

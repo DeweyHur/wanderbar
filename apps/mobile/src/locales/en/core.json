@@ -290,5 +290,16 @@
     "home": "Home",
     "chat": "Chat",
     "more": "More"
+  },
+  "privacy": {
+    "title": "Privacy",
+    "body": [
+      "wanderbar is a private app for small groups. Only members of a group can see that group's records.",
+      "What we keep: your Google or Apple account's name and email (to sign you in), and what you add to your groups: places, ratings, photos, game nights, workouts and check-ins. Photos have their location removed before upload.",
+      "Workouts: your group sees that you worked out, which day of your routine, and for how long. Your weights, reps and sets are only yours.",
+      "Health Connect (Android): if you connect it, the app writes your finished workouts as exercise sessions so Samsung Health and other apps can show them, and reads the heart rate and active calories recorded during a workout to show them in that workout's summary. This health data stays on your phone: it is never sent to our server or shared with anyone. You can turn it off anytime in Health Connect's settings.",
+      "We don't sell data, show ads, or share anything with third parties beyond the services that run the app (hosting, database, photo storage, sign-in).",
+      "To delete your account and data, ask your group's owner or contact us through the app's store listing."
+    ]
   }
 }

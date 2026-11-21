@@ -208,6 +208,10 @@ function AppStack() {
             options={{ title: t("realestate:tour.title") }}
           />
           <Stack.Screen
+            name="privacy"
+            options={{ title: t("privacy.title") }}
+          />
+          <Stack.Screen
             name="invite/[token]"
             options={{ title: t("invite.title") }}
           />

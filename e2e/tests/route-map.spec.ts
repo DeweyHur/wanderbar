@@ -70,3 +70,41 @@ test("a past route shows where you went, without current-stop actions", async ({
   await expect(page.getByText("On a past route").filter({ visible: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Go here now" })).toHaveCount(0);
 });
+
+// Today's route follows the phone: at another stop it offers to switch; after leaving the current one, to finish it.
+test("today's route asks to update itself from where you are", async ({ page, context }) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 34.8702, longitude: -111.7615 }); // at Wildflower
+  await signIn(page, "Walker");
+  const groupId = await openHome(page);
+  const post = (url: string, data: unknown) => page.request.post(url, { headers: WEB, data }).then((r) => r.json());
+  const d = new Date();
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const plan = await post(`/api/groups/${groupId}/plans`, { date: iso });
+  await post(`/api/plans/${plan.id}/stops`, {
+    stops: [
+      { name: "Wildflower", lat: 34.8702, lng: -111.7615 },
+      { name: "Bell Rock Trail", lat: 34.7988, lng: -111.7646 },
+      { name: "Midgley Bridge", lat: 34.9013, lng: -111.7322 },
+    ],
+  });
+  await page.goto(`/plan/${plan.id}`);
+  const current = page.getByTestId("current-card").filter({ visible: true });
+  await expect(current).toContainText("Wildflower");
+  const prompt = page.getByTestId("arrival-prompt").filter({ visible: true });
+  await expect(prompt).toHaveCount(0); // at the current stop: nothing to ask
+
+  // Drove to Bell Rock (skipping nothing yet): finish Wildflower and switch?
+  await context.setGeolocation({ latitude: 34.7988, longitude: -111.7646 });
+  await expect(prompt).toContainText("You're at Bell Rock Trail. Mark Wildflower done and switch here?");
+  await prompt.getByRole("button", { name: "Yes" }).click();
+  await expect(current).toContainText("Bell Rock Trail");
+  await expect(page.getByTestId("stop-row-0").filter({ visible: true })).toContainText("Wildflower");
+
+  // Left Bell Rock for somewhere else: mark it done? "Not now" keeps it as is and doesn't ask again.
+  await context.setGeolocation({ latitude: 34.84, longitude: -111.78 });
+  await expect(prompt).toContainText("You've left Bell Rock Trail. Mark it done?");
+  await prompt.getByRole("button", { name: "Not now" }).click();
+  await expect(prompt).toHaveCount(0);
+  await expect(current).toContainText("Bell Rock Trail");
+});

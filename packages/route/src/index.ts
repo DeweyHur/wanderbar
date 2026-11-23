@@ -13,3 +13,4 @@ export * from "./appVersion";
 export * from "./placeSearch";
 export * from "./tripPrompt";
 export * from "./fitnessHealth";
+export * from "./arrival";

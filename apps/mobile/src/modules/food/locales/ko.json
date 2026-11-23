@@ -146,7 +146,14 @@
     "mapHint": "핀을 누르면 구글맵·옐프로 열거나 동선에 넣을 수 있어요.",
     "mapFromHotel": "{{place}}에서 {{distance}}",
     "pastDay": "지난 동선이에요 · {{count}}곳 중 {{done}}곳 다녀왔어요.",
-    "pastStop": "지난 동선의 장소"
+    "pastStop": "지난 동선의 장소",
+    "arrival": {
+      "here": "📍 {{name}} 근처예요. 지금 여기로 바꿀까요?",
+      "hereFinish": "📍 {{name}}에 왔네요. {{prev}}은(는) 다녀온 걸로 하고 여기로 바꿀까요?",
+      "left": "👋 {{name}}에서 나왔네요. 다녀온 걸로 할까요?",
+      "yes": "네",
+      "notNow": "아니요"
+    }
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",

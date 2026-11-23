@@ -16,6 +16,7 @@ import { useNow } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { dayLabel, planLabel, today } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
+import { ArrivalPrompt } from "@/modules/food/route/ArrivalPrompt";
 import { MealPlanner } from "@/modules/food/shopping/MealPlanner";
 import { FormScroll } from "@/components/FormScroll";
 import { carless, TRANSPORT_ICON } from "@/modules/food/trips/api";
@@ -171,6 +172,7 @@ export default function PlanScreen() {
         onClose={() => setPickingDay(false)}
       />
 
+      {!past && plan.date === today() && plan.stops.length > 0 && <ArrivalPrompt plan={plan} onStops={(stops) => setPlan((p) => (p ? { ...p, stops } : p))} />}
       {past ? (
         plan.stops.length > 0 && (
           <Card testID="past-route">

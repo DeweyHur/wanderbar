@@ -28,3 +28,30 @@ export function myLocation(): Promise<Here | null> {
   });
   return asking;
 }
+
+/**
+ * Follows the phone while a screen is open (only if location is already allowed or allowed now): calls
+ * `onMove` on start and then about every 30 m. Returns a stop function.
+ */
+export function watchLocation(onMove: (here: Here) => void): () => void {
+  let stopped = false;
+  let sub: { remove: () => void } | null = null;
+  (async () => {
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted" || stopped) return;
+      sub = await Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, distanceInterval: 30, timeInterval: 20_000 }, (p) => {
+        const here = { lat: p.coords.latitude, lng: p.coords.longitude };
+        cached = { at: Date.now(), here };
+        onMove(here);
+      });
+      if (stopped) sub.remove();
+    } catch {
+      // No location: nothing to follow.
+    }
+  })();
+  return () => {
+    stopped = true;
+    sub?.remove();
+  };
+}

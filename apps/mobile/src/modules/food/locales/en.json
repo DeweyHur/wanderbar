@@ -146,7 +146,14 @@
     "mapHint": "Tap a pin to open it in Google Maps or Yelp, or to add it to the route.",
     "mapFromHotel": "{{distance}} from {{place}}",
     "pastDay": "This day is over: went to {{done}} of {{count}} places.",
-    "pastStop": "On a past route"
+    "pastStop": "On a past route",
+    "arrival": {
+      "here": "📍 You're at {{name}}. Make it the current stop?",
+      "hereFinish": "📍 You're at {{name}}. Mark {{prev}} done and switch here?",
+      "left": "👋 You've left {{name}}. Mark it done?",
+      "yes": "Yes",
+      "notNow": "Not now"
+    }
   },
   "hours": {
     "open": "Open · until {{time}}",

@@ -1,3 +1,4 @@
+import { PLACE_TYPES } from "@wanderbar/route";
 import { z } from "zod";
 import { authed, json } from "@/lib/http";
 import { createRestaurant, listRestaurants } from "@/lib/restaurants";
@@ -14,6 +15,7 @@ const Body = z.object({
   googlePlaceId: z.string().max(300).optional(),
   sessionToken: z.string().min(8).max(100).optional(),
   category: z.string().max(40).nullable().optional(),
+  placeType: z.enum(PLACE_TYPES).optional(),
   memo: z.string().max(2000).optional(),
   tags: z.array(z.string().max(60)).max(30).optional(),
   visitedOn: z.string().max(10).optional(),

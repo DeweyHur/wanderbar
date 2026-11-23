@@ -23,7 +23,13 @@ import {
   unrateMenu,
   updateMenu,
   updateRestaurant,
+  addEvent,
+  deleteEvent,
+  rateEvent,
+  ratePlace,
+  unratePlace,
 } from "@/lib/restaurants";
+import { restaurantDetails } from "@/db/schema";
 import { resolveShortLink } from "@/lib/shortLinks";
 import { profile, testDb } from "./db";
 
@@ -308,7 +314,7 @@ describe("short links", () => {
 describe("route stops become restaurants; visits", () => {
   beforeEach(() => fakeGoogle(true));
 
-  it("a Google-picked restaurant or a Yelp share in a route is filed under restaurants; a park or typed name isn't", async () => {
+  it("every route stop that says where it is becomes a place, typed by Google; a bare typed name doesn't", async () => {
     const plan = await createPlan(db, groupId, me, "p");
     const stops = await addStops(db, plan.id, me, [
       { name: "Blue Bottle Coffee", googlePlaceId: "fake-blue-bottle", address: "315 Linden St" },
@@ -317,16 +323,20 @@ describe("route stops become restaurants; visits", () => {
       { name: "Mensho Tokyo", yelpUrl: "https://yelp.to/mensho" },
     ]);
     const list = await listRestaurants(db, groupId, me);
-    expect(list.map((r) => r.name).sort()).toEqual(["Blue Bottle Coffee", "Mensho Tokyo"]);
+    expect(list.map((r) => [r.name, r.placeType]).sort()).toEqual([
+      ["Blue Bottle Coffee", "food"],
+      ["Golden Gate Park", "sight"],
+      ["Mensho Tokyo", "food"],
+    ]);
     const byName = Object.fromEntries(stops.map((x) => [x.name, x]));
     expect(byName["Blue Bottle Coffee"].itemId).toBe(list.find((r) => r.name === "Blue Bottle Coffee")!.id);
-    expect(byName["Golden Gate Park"]).toMatchObject({ itemId: null, placeKind: "other" });
-    expect(byName["카페"]).toMatchObject({ itemId: null, placeKind: "other" });
+    expect(byName["Golden Gate Park"]).toMatchObject({ itemId: list.find((r) => r.name === "Golden Gate Park")!.id, placeKind: "sight" });
+    expect(byName["카페"]).toMatchObject({ itemId: null, placeKind: "none" });
     // Adding the same place again (another route) points at the same restaurant.
     const plan2 = await createPlan(db, groupId, me, "p2");
     const [again] = await addStops(db, plan2.id, me, [{ name: "Blue Bottle", googlePlaceId: "fake-blue-bottle" }]);
     expect(again.itemId).toBe(byName["Blue Bottle Coffee"].itemId);
-    expect(await listRestaurants(db, groupId, me)).toHaveLength(2);
+    expect(await listRestaurants(db, groupId, me)).toHaveLength(3);
   });
 
   it("older stops are filed when the route is opened", async () => {
@@ -406,5 +416,60 @@ describe("dates the phones can parse", () => {
     const { restaurant } = await createRestaurant(db, groupId, me, { name: "Visited", visitedOn: "2026-11-01" });
     const r = (await listRestaurants(db, groupId, me)).find((x) => x.id === restaurant.id)!;
     expect(r.lastVisitedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("places: types, their own ratings, events at venues", () => {
+  beforeEach(() => fakeGoogle(true));
+
+  it("the type comes from Google, can be changed, and is checked once for places saved before types", async () => {
+    const park = (await createRestaurant(db, groupId, me, { googlePlaceId: "fake-ggp" })).restaurant;
+    const jazz = (await createRestaurant(db, groupId, me, { googlePlaceId: "fake-sfjazz" })).restaurant;
+    const ramen = (await createRestaurant(db, groupId, me, { googlePlaceId: "fake-mensho" })).restaurant;
+    const typed = (await createRestaurant(db, groupId, me, { name: "Corner Diner" })).restaurant;
+    expect([park.placeType, jazz.placeType, ramen.placeType, typed.placeType]).toEqual(["sight", "venue", "food", "food"]);
+    expect(park.category).toBeNull(); // no cuisine for a park
+    expect((await updateRestaurant(db, typed.id, me, { placeType: "stay" })).placeType).toBe("stay");
+    await expect(status(updateRestaurant(db, typed.id, me, { placeType: "spaceship" as never }))).resolves.toBe(400);
+
+    // Saved before places had types: Google's type is looked up once (a place with menus stays food).
+    await db.update(restaurantDetails).set({ placeType: null });
+    await addMenu(db, jazz.id, me, { name: "Late show" });
+    const list = await listRestaurants(db, groupId, me);
+    expect(Object.fromEntries(list.map((r) => [r.name, r.placeType]))).toEqual({
+      "Golden Gate Park": "sight",
+      "SFJAZZ Center": "food",
+      "Mensho Tokyo": "food",
+      "Corner Diner": "food",
+    });
+  });
+
+  it("a sight is rated itself, and that's its rating", async () => {
+    const park = (await createRestaurant(db, groupId, me, { googlePlaceId: "fake-ggp" })).restaurant;
+    await ratePlace(db, park.id, me, { stars: 5, review: "Sunset!" });
+    const r = await ratePlace(db, park.id, friend, { stars: 4 });
+    expect(r.rating).toEqual({ avg: 4.5, count: 2 });
+    expect(r.reviews.map((x) => [x.name, x.stars, x.review])).toEqual([["friend", 4, ""], ["me", 5, "Sunset!"]]);
+    expect((await listRestaurants(db, groupId, me))[0].rating).toEqual({ avg: 4.5, count: 2 });
+    expect((await unratePlace(db, park.id, me)).rating).toEqual({ avg: 4, count: 1 });
+    await expect(status(ratePlace(db, park.id, outsider, { stars: 3 }))).resolves.toBe(404);
+    await expect(status(ratePlace(db, park.id, me, { stars: 7 }))).resolves.toBe(400);
+  });
+
+  it("a venue keeps the events you saw there, newest day first, each rated", async () => {
+    const jazz = (await createRestaurant(db, groupId, me, { googlePlaceId: "fake-sfjazz" })).restaurant;
+    await addEvent(db, jazz.id, me, { name: "Brad Mehldau Trio", onDate: "2026-11-01" });
+    let r = await addEvent(db, jazz.id, friend, { name: "Holiday Big Band", onDate: "2026-12-12" });
+    expect(r.events.map((e) => [e.name, e.onDate])).toEqual([["Holiday Big Band", "2026-12-12"], ["Brad Mehldau Trio", "2026-11-01"]]);
+    const trio = r.events[1].id;
+    r = await rateEvent(db, trio, me, { stars: 5, review: "Unreal" });
+    expect(r.events[1].rating).toEqual({ avg: 5, count: 1 });
+    expect(r.events[1].reviews[0]).toMatchObject({ name: "me", stars: 5, review: "Unreal" });
+    expect(r.rating).toEqual({ avg: 5, count: 1 }); // the venue's rating includes its events
+    await expect(status(addEvent(db, jazz.id, me, { name: " " }))).resolves.toBe(400);
+    await expect(status(addEvent(db, jazz.id, me, { name: "x", onDate: "12/12" }))).resolves.toBe(400);
+    // Only whoever added it (or the owner) deletes it.
+    await expect(status(deleteEvent(db, trio, friend))).resolves.toBe(403);
+    expect((await deleteEvent(db, trio, me)).events.map((e) => e.name)).toEqual(["Holiday Big Band"]);
   });
 });

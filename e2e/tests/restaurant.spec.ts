@@ -3,7 +3,7 @@ import { current, openHome, signIn, WEB, pickDay } from "./helpers";
 
 // Milestone 3: the group's restaurants and menus (Google answers are canned by the test server).
 
-const restaurantsTab = (page: Page) => page.getByRole("button", { name: "Restaurants", exact: true });
+const restaurantsTab = (page: Page) => page.getByRole("button", { name: "Places", exact: true });
 // The web stack keeps earlier screens in the page (hidden), so look at the visible one.
 const info = (page: Page) => page.getByTestId("restaurant-info").filter({ visible: true });
 
@@ -123,7 +123,7 @@ test("a Yelp share saved twice is one restaurant; it carries Yelp and Google lin
     await page.goto("/share");
     await page.getByLabel("Paste a Google Maps or Yelp share").fill("Check out Mensho Tokyo on Yelp! https://yelp.to/mensho");
     await expect(page.getByLabel("Name")).toHaveValue("Mensho Tokyo");
-    await page.getByRole("button", { name: "Save as a restaurant" }).click();
+    await page.getByRole("button", { name: "Save as a place" }).click();
     await expect(info(page)).toContainText("Mensho Tokyo");
     if (attempt === 2) await expect(page.getByText("Already saved in this group", { exact: false })).toBeVisible();
   }
@@ -281,7 +281,7 @@ test("the photo is served through our API only to members", async ({ page, brows
 test("save as been-there or want-to-go; the list badges and filters them", async ({ page }) => {
   await signIn(page, "Been");
   const groupId = await openHome(page);
-  await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+  await page.getByRole("button", { name: "Places", exact: true }).click();
   await page.getByRole("button", { name: "Add restaurant" }).click();
   await page.getByRole("button", { name: "Been there", exact: true }).click();
   await expect(page.getByTestId("been-choice").filter({ visible: true })).toContainText("On Today");

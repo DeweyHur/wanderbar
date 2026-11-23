@@ -21,7 +21,7 @@
     "other": "기타"
   },
   "restaurant": {
-    "title": "가게",
+    "title": "장소",
     "empty": "아직 저장한 가게가 없어요. 여기서 추가하거나, 옐프·구글맵에서 공유로 보내 보세요.",
     "add": "가게 추가",
     "searchSaved": "저장한 가게 검색",
@@ -40,7 +40,7 @@
     "linked": "구글과 연결했어요. 영업시간과 지도 위치를 갱신했어요.",
     "relinkHint": "맞는 장소를 고르면 영업시간과 지도 위치가 바뀌어요. 이름과 주소는 쓴 그대로 둬요.",
     "yelpUrl": "옐프 링크",
-    "saveRestaurant": "가게로 저장",
+    "saveRestaurant": "장소로 저장",
     "saveRestaurantHint": "그룹 가게 목록에 메뉴·가격과 함께 남겨 둬요.",
     "openRestaurant": "가게 페이지",
     "tags": "태그",
@@ -296,7 +296,7 @@
     "remove": "{{name}} 지우기"
   },
   "tabs": {
-    "restaurants": "가게",
+    "restaurants": "장소",
     "home": "집밥",
     "routes": "동선",
     "shopping": "장보기"
@@ -341,7 +341,7 @@
     "nearHotel": "🏨 {{name}}에서 가까운 순",
     "delete": "여행 삭제",
     "confirmDelete": "이 여행과 날짜별 동선을 모두 삭제할까요?",
-    "savedPlace": "저장한 가게",
+    "savedPlace": "저장한 곳",
     "onRoutes": "동선에 넣은 곳",
     "prompt": {
       "title": "AI에게 동선 물어보기",
@@ -354,5 +354,30 @@
       "again": "다시 만들기"
     },
     "stopBy": "{{name}} 들르기"
+  },
+  "place": {
+    "type": {
+      "food": "맛집",
+      "sight": "명소",
+      "venue": "이벤트 장소",
+      "stay": "숙소",
+      "other": "기타"
+    },
+    "typeLabel": "어떤 곳인가요",
+    "allTypes": "전체 {{count}}",
+    "reviewsTitle": {
+      "sight": "어땠어요?",
+      "venue": "장소 평가",
+      "stay": "묵어 보니 어땠어요?",
+      "other": "평가",
+      "food": "평가"
+    },
+    "events": "여기서 본 이벤트",
+    "noEvents": "아직 없어요. 여기서 본 공연·경기를 남겨 보세요.",
+    "eventPlaceholder": "무엇을 봤나요 (공연, 경기…)",
+    "eventDay": "날짜",
+    "addEvent": "이벤트 추가",
+    "deleteEvent": "이 이벤트 지우기",
+    "confirmDeleteEvent": "{{name}}을(를) 지울까요?"
   }
 }

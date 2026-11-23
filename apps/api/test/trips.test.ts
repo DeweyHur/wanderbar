@@ -115,7 +115,7 @@ describe("trips", () => {
     const known = await knownPlaces(db, groupId, me);
     const view = known.map((k) => [k.name, k.source]).sort((a, b) => a[0].localeCompare(b[0]));
     expect(view).toEqual([["Market", "planned"], ["Ramen", "saved"], ["Temple", "been"]]);
-    // Not someone else's routes.
-    expect((await knownPlaces(db, groupId, friend)).map((k) => k.name)).toEqual(["Ramen"]);
+    // Not someone else's routes, but the places they became (a stop with a location is filed as a place).
+    expect((await knownPlaces(db, groupId, friend)).map((k) => k.name).sort()).toEqual(["Market", "Ramen"]);
   });
 });

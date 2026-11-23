@@ -1,3 +1,4 @@
+import { PLACE_TYPE_ICON, type PlaceType } from "@wanderbar/route";
 import { importPKCS8, SignJWT } from "jose";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "../db/client";
@@ -12,13 +13,13 @@ import { groups, memberships, pushTokens, users } from "../db/schema";
 type ItemKind = "restaurant" | "menu" | "dish" | "game";
 
 export type PushEvent =
-  | { type: "restaurant"; who: string; name: string; itemId: string }
+  | { type: "restaurant"; who: string; name: string; itemId: string; placeType?: PlaceType }
   | { type: "dish"; who: string; name: string; itemId: string }
   | { type: "menu"; who: string; name: string; restaurant: string; itemId: string }
   | { type: "game"; who: string; name: string; itemId: string }
   | { type: "edit"; who: string; name: string; itemId: string; kind: ItemKind }
   | { type: "visit"; who: string; name: string; itemId: string; kind: "restaurant" | "dish" }
-  | { type: "rating"; who: string; name: string; stars: number; review?: string; again?: boolean; itemId: string; kind: "menu" | "dish" }
+  | { type: "rating"; who: string; name: string; stars: number; review?: string; again?: boolean; itemId: string; kind: "menu" | "dish" | "restaurant" }
   | { type: "game_rating"; who: string; name: string; score: number; review?: string; again?: boolean; itemId: string }
   | { type: "photo"; who: string; name: string; itemId: string; kind: "restaurant" | "menu" | "dish" | "property" }
   | { type: "property"; who: string; name: string; itemId: string }
@@ -66,7 +67,7 @@ export function pushText(locale: string, e: PushEvent): string {
   const star = (n: number) => `${n % 1 ? n.toFixed(1) : n}`;
   switch (e.type) {
     case "restaurant":
-      return ko ? `🍜 ${e.who}님이 ${e.name}을(를) 저장했어요` : `🍜 ${e.who} saved ${e.name}`;
+      return ko ? `${PLACE_TYPE_ICON[e.placeType ?? "food"]} ${e.who}님이 ${e.name}을(를) 저장했어요` : `${PLACE_TYPE_ICON[e.placeType ?? "food"]} ${e.who} saved ${e.name}`;
     case "dish":
       return ko ? `🍳 ${e.who}님이 집밥 ${e.name}을(를) 올렸어요` : `🍳 ${e.who} added ${e.name} to home cooking`;
     case "menu":

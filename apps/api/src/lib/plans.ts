@@ -101,7 +101,8 @@ export async function createPlan(db: Db, groupId: string, userId: string, title 
 async function fileRestaurants(db: Db, groupId: string, userId: string, stops: Stop[]) {
   let changed = false;
   for (const s of stops) {
-    if (s.itemId || s.placeKind) continue;
+    // "other" from before every stop became a place: file it now.
+    if (s.itemId || (s.placeKind && s.placeKind !== "other")) continue;
     if ((await fileStopAsRestaurant(db, groupId, userId, s)) !== undefined) changed = true;
   }
   return changed;

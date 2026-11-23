@@ -53,11 +53,11 @@ describe("tripPlanPrompt", () => {
   it("lists bookmarks under the nearest hotel, nearest first; far-off ones under elsewhere; unrelated ones dropped", () => {
     const sedonaBlock = ko.slice(ko.indexOf("[🏨 Hyatt Piñon Pointe 근처]"), ko.indexOf("[🏨 Hyatt Place Phoenix-North 근처]"));
     expect(sedonaBlock.indexOf("Sedona Beer Company")).toBeLessThan(sedonaBlock.indexOf("The Hudson"));
-    expect(sedonaBlock).toContain("- The Hudson — 671 AZ-179, Sedona · 490 m · 저장한 맛집 · 영업 Mon-Sun 11:00-21:00");
+    expect(sedonaBlock).toContain("- The Hudson — 671 AZ-179, Sedona · 490 m · 저장한 곳 · 영업 Mon-Sun 11:00-21:00");
     expect(ko).toMatch(/\[🏨 Hyatt Place Phoenix-North 근처\]\n- Pizzeria Bianco — 623 E Adams St, Phoenix · 15 km · 가고 싶은 곳/);
     expect(ko).toContain("[그 밖 (가는 길 등)]\n- Grand Canyon South Rim — Grand Canyon Village, AZ · 가 본 곳");
     expect(ko).not.toContain("Seattle");
-    expect(en).toMatch(/Near 🏨 Hyatt Piñon Pointe\]\n- Sedona Beer Company — 465 Jordan Rd, Sedona · [\d.]+ (ft|mi) · saved restaurant/);
+    expect(en).toMatch(/Near 🏨 Hyatt Piñon Pointe\]\n- Sedona Beer Company — 465 Jordan Rd, Sedona · [\d.]+ (ft|mi) · saved place/);
   });
 
   it("ends with what to ask for", () => {

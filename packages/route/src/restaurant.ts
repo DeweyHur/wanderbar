@@ -111,3 +111,36 @@ export function coordsFromMapsUrl(url: string): { lat: number; lng: number } | n
   const lng = Number(m[2]);
   return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
 }
+
+/** What a saved place is: each kind has its own page (menus for food, events for venues…). */
+export const PLACE_TYPES = ["food", "sight", "venue", "stay", "other"] as const;
+export type PlaceType = (typeof PLACE_TYPES)[number];
+export const isPlaceType = (s: unknown): s is PlaceType => typeof s === "string" && (PLACE_TYPES as readonly string[]).includes(s);
+export const PLACE_TYPE_ICON: Record<PlaceType, string> = { food: "🍜", sight: "🏞️", venue: "🎟️", stay: "🏨", other: "📍" };
+
+const SIGHT =
+  /tourist_attraction|park|hiking|trail|national|state_park|museum|art_gallery|monument|historical|landmark|scenic|observation|viewpoint|beach|garden|zoo|aquarium|botanical|church|temple|shrine|mosque|synagogue|place_of_worship|castle|bridge|lake|river|mountain|natural_feature|campground|plaza|cultural|sculpture|vineyard|farm|wildlife|planetarium|marina/i;
+const VENUE =
+  /event_venue|concert_hall|performing_arts|theater|theatre|opera|stadium|arena|amphitheat|convention|exhibition|auditorium|banquet|wedding|night_club|comedy_club|live_music|philharmonic|cinema|movie_theater|bowling|amusement|water_park|casino|karaoke|dance_hall|sports_complex|golf/i;
+const STAY = /lodging|hotel|motel|resort|inn|hostel|bed_and_breakfast|guest_house|campground_lodging|cottage|private_guest_room|extended_stay/i;
+
+/**
+ * The place type for Google's main type (and its other types): food first (a hotel restaurant is food),
+ * then stay, venue, sight; anything else is "other". Null when Google gave nothing to go on.
+ */
+export function placeTypeFromGoogle(primaryType: string | null | undefined, types: string[] = []): PlaceType | null {
+  const all = [primaryType ?? "", ...types].filter(Boolean);
+  if (!all.length) return null;
+  const main = all[0];
+  const food = (t: string) => !!categoryFromGoogleType(t) || /restaurant|food|meal|diner|deli|bistro|brew|steak|sandwich|cafe|coffee|bakery|bar$|bar_and_grill|pub|tea|juice|winery|gastropub|ice_cream|dessert|donut|pizza/i.test(t);
+  if (food(main)) return "food";
+  if (STAY.test(main)) return "stay";
+  if (VENUE.test(main)) return "venue";
+  if (SIGHT.test(main)) return "sight";
+  // The main type said nothing useful (e.g. "point_of_interest"): try the others in the same order.
+  if (all.some(food)) return "food";
+  if (all.some((t) => STAY.test(t))) return "stay";
+  if (all.some((t) => VENUE.test(t))) return "venue";
+  if (all.some((t) => SIGHT.test(t))) return "sight";
+  return "other";
+}

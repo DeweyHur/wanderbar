@@ -106,7 +106,7 @@ export function tripPlanPrompt(trip: PromptTrip, lang: "ko" | "en", opts: { mile
     groups.set(key, list);
   }
   const kindLabel = (k: PromptPlace["kind"]) =>
-    ko ? { saved: "저장한 맛집", been: "가 본 곳", planned: "가고 싶은 곳" }[k] : { saved: "saved restaurant", been: "been before", planned: "want to go" }[k];
+    ko ? { saved: "저장한 곳", been: "가 본 곳", planned: "가고 싶은 곳" }[k] : { saved: "saved place", been: "been before", planned: "want to go" }[k];
   const line = (p: PromptPlace & { m: number | null }) =>
     `- ${p.name}${p.address ? ` — ${p.address}` : ""} · ${[p.m != null ? formatPlaceDistance(p.m, miles) : null, kindLabel(p.kind), shortHours(p.hoursRaw) ? `${ko ? "영업" : "hours"} ${shortHours(p.hoursRaw)}` : null, fixedNames.has(p.name.trim().toLowerCase()) ? (ko ? "이미 일정에 있음" : "already on a day") : null].filter(Boolean).join(" · ")}`;
 

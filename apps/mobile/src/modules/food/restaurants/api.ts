@@ -1,4 +1,6 @@
+import type { PlaceType } from "@wanderbar/route";
 import { api } from "@/core/api";
+import type { Review } from "./Reviews";
 
 /** Group average in stars (one decimal) and how many ratings it's from. */
 export type RatingSummary = { avg: number | null; count: number };
@@ -7,6 +9,7 @@ export type RestaurantSummary = {
   id: string;
   name: string;
   category: string | null;
+  placeType: PlaceType;
   tags: string[];
   createdAt: string;
   address: string;
@@ -35,11 +38,17 @@ export type MenuDetail = {
   mine: { stars: number; review: string } | null;
   ratings: { userId: string; name: string; stars: number; review: string; updatedAt: string }[];
 };
+/** Something seen at a venue (a show, a game…) on a day, rated by whoever went. */
+export type PlaceEvent = { id: string; name: string; memo: string; onDate: string | null; createdBy: string; rating: RatingSummary; reviews: Review[] };
 export type Restaurant = {
   id: string;
   groupId: string;
   name: string;
   category: string | null;
+  placeType: PlaceType;
+  /** The place's own ratings (sights, hotels, venues…). */
+  reviews: Review[];
+  events: PlaceEvent[];
   tags: string[];
   memo: string;
   createdBy: string;
@@ -69,8 +78,9 @@ export type NewRestaurant = {
   /** "Been there" on this day (YYYY-MM-DD); omit for "want to go". */
   visitedOn?: string;
   tags?: string[];
+  placeType?: PlaceType;
 };
-export type RestaurantEdit = Partial<Pick<Restaurant, "name" | "address" | "hoursRaw" | "yelpUrl" | "mapsUrl" | "category" | "memo" | "tags">>;
+export type RestaurantEdit = Partial<Pick<Restaurant, "name" | "address" | "hoursRaw" | "yelpUrl" | "mapsUrl" | "category" | "memo" | "tags" | "placeType">>;
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };
 
 export const restaurantApi = {
@@ -89,4 +99,11 @@ export const restaurantApi = {
   getMenu: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}`),
   rate: (menuId: string, stars: number, review: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "PUT", body: { stars, review } }),
   unrate: (menuId: string) => api<MenuDetail>(`/api/menus/${menuId}/rating`, { method: "DELETE" }),
+  /** The place's own rating (a sight, a hotel, a venue…). */
+  ratePlace: (id: string, stars: number, review: string) => api<Restaurant>(`/api/restaurants/${id}/rating`, { method: "PUT", body: { stars, review } }),
+  unratePlace: (id: string) => api<Restaurant>(`/api/restaurants/${id}/rating`, { method: "DELETE" }),
+  addEvent: (id: string, e: { name: string; onDate: string | null }) => api<Restaurant>(`/api/restaurants/${id}/events`, { body: e }),
+  deleteEvent: (eventId: string) => api<Restaurant>(`/api/events/${eventId}`, { method: "DELETE" }),
+  rateEvent: (eventId: string, stars: number, review: string) => api<Restaurant>(`/api/events/${eventId}/rating`, { method: "PUT", body: { stars, review } }),
+  unrateEvent: (eventId: string) => api<Restaurant>(`/api/events/${eventId}/rating`, { method: "DELETE" }),
 };

@@ -1,3 +1,4 @@
+import { PLACE_TYPES } from "@wanderbar/route";
 import { z } from "zod";
 import { authed, json } from "@/lib/http";
 import { deleteRestaurant, getRestaurant, updateRestaurant } from "@/lib/restaurants";
@@ -11,6 +12,7 @@ const Body = z.object({
   yelpUrl: z.string().max(2000).optional(),
   mapsUrl: z.string().max(2000).optional(),
   category: z.string().max(40).nullable().optional(),
+  placeType: z.enum(PLACE_TYPES).optional(),
   memo: z.string().max(2000).optional(),
   tags: z.array(z.string().max(60)).max(30).optional(),
 });

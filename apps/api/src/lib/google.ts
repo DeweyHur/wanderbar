@@ -19,6 +19,8 @@ export type PlaceDetails = {
   hoursRaw: string;
   /** Google's main type, e.g. "ramen_restaurant" (used to guess a category). */
   primaryType: string;
+  /** All of Google's types for it (the main type can be vague, e.g. "point_of_interest"). */
+  types?: string[];
   /** First photo's resource name (places/…/photos/…), or "". */
   photoName: string;
 };
@@ -111,10 +113,11 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     googleMapsUri?: string;
     regularOpeningHours?: { periods?: GooglePeriod[] };
     primaryType?: string;
+    types?: string[];
     photos?: { name: string }[];
   }>(f, `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${q}`, {
     method: "GET",
-    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType,photos",
+    fieldMask: "id,displayName,formattedAddress,location,googleMapsUri,regularOpeningHours,primaryType,types,photos",
   });
   return {
     googlePlaceId: placeId,
@@ -125,6 +128,7 @@ export async function placeDetails(placeId: string, sessionToken: string | null,
     mapsUrl: data.googleMapsUri ?? "",
     hoursRaw: googlePeriodsToHoursRaw(data.regularOpeningHours?.periods),
     primaryType: data.primaryType ?? "",
+    types: data.types ?? [],
     photoName: data.photos?.[0]?.name ?? "",
   };
 }

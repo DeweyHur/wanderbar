@@ -11,7 +11,20 @@ export type Review = { userId: string; name: string; stars: number; review: stri
  * Everyone's ratings as the same cards (mine first). Mine has an Edit button; rating or editing opens the
  * stars and review, and saving closes them again.
  */
-export function Reviews({ ratings, me, onSave, onRemove }: { ratings: Review[]; me: string | null; onSave: (stars: number, review: string) => Promise<unknown>; onRemove: () => Promise<unknown> }) {
+export function Reviews({
+  ratings,
+  me,
+  onSave,
+  onRemove,
+  title,
+}: {
+  ratings: Review[];
+  me: string | null;
+  onSave: (stars: number, review: string) => Promise<unknown>;
+  onRemove: () => Promise<unknown>;
+  /** Heading above the cards; null for none (e.g. inside an event row). Defaults to "Ratings". */
+  title?: string | null;
+}) {
   const { t, i18n } = useTranslation();
   const c = useColors();
   const mine = ratings.find((r) => r.userId === me) ?? null;
@@ -44,7 +57,7 @@ export function Reviews({ ratings, me, onSave, onRemove }: { ratings: Review[]; 
 
   return (
     <View style={{ gap: 10 }} testID="reviews">
-      <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{t("food:rating.group")}</Text>
+      {title !== null && <Text style={{ color: c.text, fontSize: 18, fontWeight: "700" }}>{title ?? t("food:rating.group")}</Text>}
       {editing ? (
         <Card testID="review-editor">
           <StarInput value={stars} onChange={setStars} />

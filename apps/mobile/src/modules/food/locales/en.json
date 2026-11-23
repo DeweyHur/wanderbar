@@ -21,7 +21,7 @@
     "other": "Other"
   },
   "restaurant": {
-    "title": "Restaurants",
+    "title": "Places",
     "empty": "No restaurants yet. Add one here, or share it from Yelp or Google Maps.",
     "add": "Add restaurant",
     "searchSaved": "Search saved restaurants",
@@ -40,7 +40,7 @@
     "linked": "Linked to Google: hours and map location updated.",
     "relinkHint": "Pick the right place to update the hours and the map location. Name and address stay as you wrote them.",
     "yelpUrl": "Yelp link",
-    "saveRestaurant": "Save as a restaurant",
+    "saveRestaurant": "Save as a place",
     "saveRestaurantHint": "Keeps it in the group's restaurant list, with menus and prices.",
     "openRestaurant": "Restaurant page",
     "tags": "Tags",
@@ -296,7 +296,7 @@
     "remove": "Remove {{name}}"
   },
   "tabs": {
-    "restaurants": "Restaurants",
+    "restaurants": "Places",
     "home": "Cooking",
     "routes": "Routes",
     "shopping": "Shopping"
@@ -341,7 +341,7 @@
     "nearHotel": "Nearest to 🏨 {{name}} first",
     "delete": "Delete trip",
     "confirmDelete": "Delete this trip and all its day routes?",
-    "savedPlace": "saved restaurant",
+    "savedPlace": "saved place",
     "onRoutes": "on your routes",
     "prompt": {
       "title": "Ask an AI to plan it",
@@ -354,5 +354,30 @@
       "again": "Make it again"
     },
     "stopBy": "Stop by {{name}}"
+  },
+  "place": {
+    "type": {
+      "food": "Restaurant",
+      "sight": "Sight",
+      "venue": "Event venue",
+      "stay": "Stay",
+      "other": "Other"
+    },
+    "typeLabel": "What kind of place",
+    "allTypes": "All {{count}}",
+    "reviewsTitle": {
+      "sight": "How was it?",
+      "venue": "The venue",
+      "stay": "How was the stay?",
+      "other": "Ratings",
+      "food": "Ratings"
+    },
+    "events": "Events here",
+    "noEvents": "No events yet. Add what you saw here.",
+    "eventPlaceholder": "What was on (a show, a game…)",
+    "eventDay": "Day",
+    "addEvent": "Add event",
+    "deleteEvent": "Delete this event",
+    "confirmDeleteEvent": "Delete {{name}}?"
   }
 }

@@ -20,6 +20,9 @@ import { AddToRoute } from "./AddToRoute";
 import { CategoryPicker } from "./CategoryPicker";
 import { restaurantApi, type Menu, type Restaurant } from "./api";
 import { RatingBadge } from "./Stars";
+import { EventList, PlaceTypePicker, placeTypeLabel } from "./PlaceParts";
+import { Reviews } from "./Reviews";
+import type { PlaceType } from "@wanderbar/route";
 import { FormScroll } from "@/components/FormScroll";
 
 /**
@@ -103,6 +106,9 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
         <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>{r.name}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <RatingBadge rating={r.rating} />
+          <Text testID="place-type" style={{ color: c.muted, fontSize: 15 }}>
+            {placeTypeLabel(t, r.placeType)}
+          </Text>
           {r.category ? <Body muted>{t(`food:category.${r.category}`)}</Body> : null}
         </View>
         <HoursBadge hoursRaw={r.hoursRaw} now={now} />
@@ -133,12 +139,37 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
       </View>
       {panel === "route" && <AddToRoute restaurant={r} />}
 
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:menu.title")}</Text>
-      {r.menus.length === 0 && <Body muted>{t("food:menu.empty")}</Body>}
-      {r.menus.map((m) => (
-        <MenuRow key={m.id} menu={m} locale={i18n.language} />
-      ))}
-      <NewMenu currency={r.currency} onAdd={(m) => run(restaurantApi.addMenu(r.id, m))} />
+      {r.placeType === "food" ? (
+        <>
+          <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:menu.title")}</Text>
+          {r.menus.length === 0 && <Body muted>{t("food:menu.empty")}</Body>}
+          {r.menus.map((m) => (
+            <MenuRow key={m.id} menu={m} locale={i18n.language} />
+          ))}
+          <NewMenu currency={r.currency} onAdd={(m) => run(restaurantApi.addMenu(r.id, m))} />
+        </>
+      ) : (
+        // Sights, hotels, venues and the rest are rated themselves.
+        <Reviews
+          title={t(`food:place.reviewsTitle.${r.placeType}`)}
+          ratings={r.reviews}
+          me={me}
+          onSave={(stars, review) => run(restaurantApi.ratePlace(r.id, stars, review))}
+          onRemove={() => run(restaurantApi.unratePlace(r.id))}
+        />
+      )}
+      {r.placeType === "venue" && (
+        <EventList
+          place={r}
+          me={me}
+          onAdd={(e) => run(restaurantApi.addEvent(r.id, e))}
+          onRate={(ev, stars, review) => run(restaurantApi.rateEvent(ev.id, stars, review))}
+          onUnrate={(ev) => run(restaurantApi.unrateEvent(ev.id))}
+          onDelete={async (ev) => {
+            if (await confirm(t("food:place.confirmDeleteEvent", { name: ev.name }), t("common.delete"), t("common.cancel"))) await run(restaurantApi.deleteEvent(ev.id));
+          }}
+        />
+      )}
 
       <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:visit.title")}</Text>
       {r.visits.length === 0 && <Body muted>{t("food:visit.none")}</Body>}
@@ -258,6 +289,7 @@ function EditRestaurant({
   const now = useNow();
   const [form, setForm] = useState({ name: r.name, address: r.address, hoursRaw: r.hoursRaw, yelpUrl: r.yelpUrl, mapsUrl: r.mapsUrl, memo: r.memo });
   const [category, setCategory] = useState(r.category);
+  const [placeType, setPlaceType] = useState<PlaceType>(r.placeType);
   const [tags, setTags] = useState(r.tags.join(", "));
   const [knownTags, setKnownTags] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -290,7 +322,8 @@ function EditRestaurant({
         />
       )}
       <Field label={t("food:stop.name")} value={form.name} onChangeText={set("name")} />
-      <CategoryPicker label={t("food:restaurant.category")} value={category} onChange={setCategory} />
+      <PlaceTypePicker value={placeType} onChange={setPlaceType} />
+      {placeType === "food" && <CategoryPicker label={t("food:restaurant.category")} value={category} onChange={setCategory} />}
       <Field label={t("food:stop.address")} value={form.address} onChangeText={set("address")} />
       <Field label={t("food:stop.hours")} value={form.hoursRaw} onChangeText={set("hoursRaw")} hint={t("food:stop.hoursHint")} multiline />
       <HoursBadge hoursRaw={form.hoursRaw} now={now} />
@@ -311,7 +344,7 @@ function EditRestaurant({
         </View>
       )}
       <Field label={t("food:stop.memo")} value={form.memo} onChangeText={set("memo")} multiline />
-      <Button label={t("food:stop.save")} disabled={!form.name.trim()} onPress={() => onSave({ ...form, category, tags: current })} />
+      <Button label={t("food:stop.save")} disabled={!form.name.trim()} onPress={() => onSave({ ...form, category: placeType === "food" ? category : null, placeType, tags: current })} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {googleAvailable && !r.googlePlaceId && <Chip label={t("food:restaurant.findOnGoogle")} onPress={onFindGoogle} />}
         <Chip label={t("food:restaurant.delete")} onPress={onDelete} />

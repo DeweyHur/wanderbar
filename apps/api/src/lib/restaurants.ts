@@ -1,8 +1,8 @@
-import { categoryFromGoogleType, coordsFromMapsUrl, isFoodCategory, placeQuery, yelpAlias } from "@wanderbar/route";
+import { categoryFromGoogleType, coordsFromMapsUrl, isFoodCategory, isPlaceType, placeQuery, placeTypeFromGoogle, yelpAlias, type PlaceType } from "@wanderbar/route";
 import { cleanTags, setTags, tagsByItem } from "./tags";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { externalLinks, groups, items, menuDetails, planStops, ratings, restaurantDetails, users, visits } from "../db/schema";
+import { eventDetails, externalLinks, groups, items, menuDetails, planStops, ratings, restaurantDetails, users, visits } from "../db/schema";
 import { badRequest, forbidden, HttpError, notFound } from "./errors";
 import { findPlaceId, googleAvailable, photoUrl, placeDetails, type PlaceDetails } from "./google";
 import { requireMember } from "./groups";
@@ -35,6 +35,13 @@ export type NewRestaurant = {
   category?: string | null;
   memo?: string;
   tags?: string[];
+  /** What kind of place; worked out from Google's type when not given (food when there's nothing to go on). */
+  placeType?: PlaceType;
+  /** Where it is, for a place saved without Google (e.g. a typed route stop). */
+  lat?: number | null;
+  lng?: number | null;
+  /** No "saved a place" notification (places filed from a day route). */
+  quiet?: boolean;
 };
 
 export type RestaurantEdit = {
@@ -46,6 +53,7 @@ export type RestaurantEdit = {
   category?: string | null;
   memo?: string;
   tags?: string[];
+  placeType?: PlaceType;
 };
 
 export type MenuInput = { name?: string; priceMinor?: number | null; memo?: string };
@@ -140,7 +148,8 @@ export async function createRestaurant(db: Db, groupId: string, userId: string, 
     await setTags(db, groupId, r.restaurant.id, cleanTags([...had, ...tagNames], "restaurant.too_many_tags"));
     r.restaurant = await getRestaurant(db, r.restaurant.id, userId);
   }
-  if (r.created) notifyGroup(db, groupId, userId, { type: "restaurant", who: await displayName(db, userId), name: r.restaurant.name, itemId: r.restaurant.id });
+  if (r.created && !input.quiet)
+    notifyGroup(db, groupId, userId, { type: "restaurant", who: await displayName(db, userId), name: r.restaurant.name, itemId: r.restaurant.id, placeType: r.restaurant.placeType });
   if (input.visitedOn) {
     await visitOnDay(db, groupId, r.restaurant.id, userId, input.visitedOn);
     return { ...r, restaurant: await getRestaurant(db, r.restaurant.id, userId) };
@@ -160,6 +169,7 @@ async function visitOnDay(db: Db, groupId: string, itemId: string, userId: strin
 async function saveRestaurant(db: Db, groupId: string, userId: string, input: NewRestaurant) {
   await requireMember(db, groupId, userId);
   const category = cleanCategory(input.category);
+  if (input.placeType !== undefined && !isPlaceType(input.placeType)) throw badRequest("restaurant.type_invalid");
   let name = (input.name ?? "").trim();
   let address = (input.address ?? "").trim();
   const yelpUrl = input.yelpUrl?.trim() ? tidyYelpUrl(await resolveShortLink(input.yelpUrl)) : "";
@@ -201,6 +211,7 @@ async function saveRestaurant(db: Db, groupId: string, userId: string, input: Ne
   if (!name) throw badRequest("restaurant.name_required");
   if (!address) address = g?.address ?? "";
   const linked = googlePlaceKey ? g : null;
+  const type: PlaceType = input.placeType ?? placeTypeFromGoogle(linked?.primaryType, linked?.types) ?? "food";
 
   const [item] = await db
     .insert(items)
@@ -209,7 +220,8 @@ async function saveRestaurant(db: Db, groupId: string, userId: string, input: Ne
       module: "food",
       type: "restaurant",
       name,
-      category: category ?? categoryFromGoogleType(linked?.primaryType),
+      // Cuisine only for somewhere to eat.
+      category: category ?? (type === "food" ? categoryFromGoogleType(linked?.primaryType) : null),
       memo: (input.memo ?? "").trim(),
       createdBy: userId,
     })
@@ -220,11 +232,12 @@ async function saveRestaurant(db: Db, groupId: string, userId: string, input: Ne
     yelpAlias: alias,
     googlePlaceKey,
     address,
-    lat: linked?.lat ?? null,
-    lng: linked?.lng ?? null,
+    lat: linked?.lat ?? input.lat ?? null,
+    lng: linked?.lng ?? input.lng ?? null,
     hoursRaw: linked?.hoursRaw ?? "",
     hoursFetchedAt: linked ? new Date() : null,
     photoName: linked?.photoName || null,
+    placeType: type,
   });
   if (yelpUrl) await setLink(db, item.id, "yelp", yelpUrl);
   else if (linked?.lat != null && linked.lng != null) await findOwnYelpPage(db, groupId, item.id, name, { lat: linked.lat, lng: linked.lng });
@@ -256,6 +269,7 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     // Newest first: what was just added is what you're looking for.
     .orderBy(desc(items.createdAt));
   if (!rows.length) return [];
+  await settlePlaceTypes(db, rows);
   const ids = rows.map((r) => r.item.id);
   const counts = await db
     .select({ parentId: items.parentId, n: sql<number>`count(*)::int` })
@@ -269,6 +283,17 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     .innerJoin(items, eq(items.id, ratings.itemId))
     .where(inArray(items.parentId, ids))
     .groupBy(items.parentId);
+  // Places are also rated themselves (a sight, a hotel…), not only through their menus or events.
+  const own = await db
+    .select({ itemId: ratings.itemId, sum: sql<number>`sum(${ratings.score})::int`, n: sql<number>`count(*)::int` })
+    .from(ratings)
+    .where(inArray(ratings.itemId, ids))
+    .groupBy(ratings.itemId);
+  const ratingOf = (id: string) => {
+    const a = stats.find((x) => x.parentId === id);
+    const b = own.find((x) => x.itemId === id);
+    return summary({ sum: (a?.sum ?? 0) + (b?.sum ?? 0), n: (a?.n ?? 0) + (b?.n ?? 0) });
+  };
   const last = await db
     .select({
       itemId: visits.itemId,
@@ -285,6 +310,7 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     id: item.id,
     name: item.name,
     category: item.category,
+    placeType: (detail.placeType ?? "food") as PlaceType,
     tags: tagged.get(item.id) ?? [],
     createdAt: item.createdAt,
     hasPhoto: !!detail.photoName,
@@ -301,8 +327,40 @@ export async function listRestaurants(db: Db, groupId: string, userId: string) {
     yelpUrl: links.find((l) => l.itemId === item.id && l.kind === "yelp")?.url ?? "",
     mapsUrl: links.find((l) => l.itemId === item.id && l.kind === "gmaps")?.url ?? "",
     menuCount: counts.find((c) => c.parentId === item.id)?.n ?? 0,
-    rating: summary(stats.find((x) => x.parentId === item.id)),
+    rating: ratingOf(item.id),
   }));
+}
+
+/**
+ * Places saved before they had a type: worked out once from Google (a place with menus is food; no Google
+ * place → food, as everything saved then was a restaurant). A few at a time, so a long list stays quick.
+ */
+async function settlePlaceTypes(db: Db, rows: { item: typeof items.$inferSelect; detail: typeof restaurantDetails.$inferSelect }[]) {
+  const todo = rows.filter((r) => r.detail.placeType == null).slice(0, 12);
+  if (!todo.length) return;
+  const withMenus = new Set(
+    (
+      await db
+        .select({ parentId: items.parentId })
+        .from(items)
+        .where(and(eq(items.type, "menu"), inArray(items.parentId, todo.map((r) => r.item.id))))
+    ).map((m) => m.parentId),
+  );
+  await Promise.all(
+    todo.map(async (r) => {
+      let type: PlaceType = "food";
+      if (!withMenus.has(r.item.id) && r.detail.googlePlaceKey && googleAvailable()) {
+        try {
+          const g = await placeDetails(r.detail.googlePlaceKey, null);
+          type = placeTypeFromGoogle(g.primaryType, g.types) ?? "food";
+        } catch {
+          return; // Google trouble: try again next time
+        }
+      }
+      r.detail.placeType = type;
+      await db.update(restaurantDetails).set({ placeType: type }).where(eq(restaurantDetails.itemId, r.item.id));
+    }),
+  );
 }
 
 /** Half-star sums → { avg in stars (one decimal), count }. */
@@ -337,11 +395,43 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     .orderBy(sql`${visits.visitedAt} desc`)
     .limit(30);
   const tagged = await tagsByItem(db, [item.id]);
+  if (detail.placeType == null) await settlePlaceTypes(db, [{ item, detail }]);
+  // The place's own ratings (sights, hotels, venues…) with who wrote them, newest first.
+  const ownRows = await db
+    .select({ rating: ratings, name: users.name, email: users.email })
+    .from(ratings)
+    .innerJoin(users, eq(users.id, ratings.userId))
+    .where(eq(ratings.itemId, id))
+    .orderBy(sql`${ratings.updatedAt} desc`);
+  const reviewOf = (r: { rating: typeof ratings.$inferSelect; name: string | null; email: string }) => ({
+    userId: r.rating.userId,
+    name: r.name || r.email.split("@")[0],
+    stars: stars(r.rating.score),
+    review: r.rating.review,
+    updatedAt: r.rating.updatedAt,
+  });
+  // Events seen at a venue, newest day first, each with everyone's ratings.
+  const evs = await db
+    .select({ item: items, detail: eventDetails })
+    .from(items)
+    .leftJoin(eventDetails, eq(eventDetails.itemId, items.id))
+    .where(and(eq(items.parentId, id), eq(items.type, "event")))
+    .orderBy(sql`${eventDetails.onDate} desc nulls last`, desc(items.createdAt));
+  const evRatings = evs.length
+    ? await db
+        .select({ rating: ratings, name: users.name, email: users.email })
+        .from(ratings)
+        .innerJoin(users, eq(users.id, ratings.userId))
+        .where(inArray(ratings.itemId, evs.map((e) => e.item.id)))
+        .orderBy(sql`${ratings.updatedAt} desc`)
+    : [];
+  const all = [...rs.map((r) => r.score), ...ownRows.map((r) => r.rating.score), ...evRatings.map((r) => r.rating.score)];
   return {
     id: item.id,
     groupId: item.groupId,
     name: item.name,
     category: item.category,
+    placeType: (detail.placeType ?? "food") as PlaceType,
     tags: tagged.get(item.id) ?? [],
     memo: item.memo,
     createdBy: item.createdBy,
@@ -364,7 +454,20 @@ export async function getRestaurant(db: Db, id: string, userId: string) {
     mapsUrl: links.find((l) => l.kind === "gmaps")?.url ?? "",
     links: links.map((l) => ({ id: l.id, kind: l.kind, url: l.url, label: l.label })),
     currency: group?.currency ?? "USD",
-    rating: summary({ sum: rs.reduce((a, r) => a + r.score, 0), n: rs.length }),
+    rating: summary({ sum: all.reduce((a, x) => a + x, 0), n: all.length }),
+    reviews: ownRows.map(reviewOf),
+    events: evs.map((e) => {
+      const of = evRatings.filter((r) => r.rating.itemId === e.item.id);
+      return {
+        id: e.item.id,
+        name: e.item.name,
+        memo: e.item.memo,
+        onDate: e.detail?.onDate ?? null,
+        createdBy: e.item.createdBy,
+        rating: summary({ sum: of.reduce((a, r) => a + r.rating.score, 0), n: of.length }),
+        reviews: of.map(reviewOf),
+      };
+    }),
     menus: menus.map((m) => {
       const mine = of(m.item.id).find((r) => r.userId === userId);
       return {
@@ -444,6 +547,10 @@ export async function updateRestaurant(db: Db, id: string, userId: string, edit:
   await db.update(items).set(itemSet).where(eq(items.id, id));
 
   const detailSet: Partial<typeof restaurantDetails.$inferInsert> = {};
+  if (edit.placeType !== undefined) {
+    if (!isPlaceType(edit.placeType)) throw badRequest("restaurant.type_invalid");
+    detailSet.placeType = edit.placeType;
+  }
   if (edit.address !== undefined) detailSet.address = edit.address.trim();
   if (edit.hoursRaw !== undefined) detailSet.hoursRaw = edit.hoursRaw.trim();
   if (edit.yelpUrl !== undefined) {
@@ -491,6 +598,85 @@ export async function linkGoogle(db: Db, id: string, userId: string, placeId?: s
   }
   if (g.mapsUrl) await addLinkIfMissing(db, id, "gmaps", g.mapsUrl);
   return getRestaurant(db, id, userId);
+}
+
+const halfStars = (s: number) => {
+  const score = s * 2;
+  if (!Number.isInteger(score) || score < 1 || score > 10) throw badRequest("rating.stars_invalid");
+  return score;
+};
+
+/** My rating of the place itself (a sight, a hotel, a venue…), 0.5..5 stars with an optional review. */
+export async function ratePlace(db: Db, id: string, userId: string, input: { stars: number; review?: string }) {
+  const { item } = await memberRestaurant(db, id, userId);
+  const score = halfStars(input.stars);
+  const review = (input.review ?? "").trim();
+  const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
+  if (ratingNews(before, score, review))
+    notifyGroup(db, item.groupId, userId, { type: "rating", who: await displayName(db, userId), name: item.name, stars: input.stars, review, again: !!before, itemId: id, kind: "restaurant" });
+  await db
+    .insert(ratings)
+    .values({ groupId: item.groupId, itemId: id, userId, score, review })
+    .onConflictDoUpdate({ target: [ratings.itemId, ratings.userId], set: { score, review, updatedAt: new Date() } });
+  return getRestaurant(db, id, userId);
+}
+
+export async function unratePlace(db: Db, id: string, userId: string) {
+  await memberRestaurant(db, id, userId);
+  await db.delete(ratings).where(and(eq(ratings.itemId, id), eq(ratings.userId, userId)));
+  return getRestaurant(db, id, userId);
+}
+
+async function memberEvent(db: Db, id: string, userId: string) {
+  const [ev] = await db.select().from(items).where(and(eq(items.id, id), eq(items.type, "event")));
+  if (!ev?.parentId) throw notFound("event.not_found");
+  const place = await memberRestaurant(db, ev.parentId, userId).catch(() => {
+    throw notFound("event.not_found");
+  });
+  return { ev, place };
+}
+
+/** Something seen at a venue: what it was and the day (YYYY-MM-DD, optional). */
+export async function addEvent(db: Db, placeId: string, userId: string, input: { name?: string; onDate?: string | null; memo?: string }) {
+  const { item } = await memberRestaurant(db, placeId, userId);
+  const name = (input.name ?? "").trim();
+  if (!name) throw badRequest("event.name_required");
+  if (input.onDate && !isDay(input.onDate)) throw badRequest("event.date_invalid");
+  const [ev] = await db
+    .insert(items)
+    .values({ groupId: item.groupId, module: "food", type: "event", parentId: placeId, name, memo: (input.memo ?? "").trim(), createdBy: userId })
+    .returning();
+  await db.insert(eventDetails).values({ itemId: ev.id, onDate: input.onDate || null });
+  return getRestaurant(db, placeId, userId);
+}
+
+/** Whoever added it, or the group's owner. */
+export async function deleteEvent(db: Db, eventId: string, userId: string) {
+  const { ev, place } = await memberEvent(db, eventId, userId);
+  if (ev.createdBy !== userId && place.role !== "owner") throw forbidden("event.delete_forbidden");
+  await deletePhotoFilesOf(db, [eventId]);
+  await db.delete(items).where(eq(items.id, eventId));
+  return getRestaurant(db, ev.parentId!, userId);
+}
+
+export async function rateEvent(db: Db, eventId: string, userId: string, input: { stars: number; review?: string }) {
+  const { ev } = await memberEvent(db, eventId, userId);
+  const score = halfStars(input.stars);
+  const review = (input.review ?? "").trim();
+  const [before] = await db.select().from(ratings).where(and(eq(ratings.itemId, eventId), eq(ratings.userId, userId)));
+  if (ratingNews(before, score, review))
+    notifyGroup(db, ev.groupId, userId, { type: "rating", who: await displayName(db, userId), name: ev.name, stars: input.stars, review, again: !!before, itemId: ev.parentId!, kind: "restaurant" });
+  await db
+    .insert(ratings)
+    .values({ groupId: ev.groupId, itemId: eventId, userId, score, review })
+    .onConflictDoUpdate({ target: [ratings.itemId, ratings.userId], set: { score, review, updatedAt: new Date() } });
+  return getRestaurant(db, ev.parentId!, userId);
+}
+
+export async function unrateEvent(db: Db, eventId: string, userId: string) {
+  const { ev } = await memberEvent(db, eventId, userId);
+  await db.delete(ratings).where(and(eq(ratings.itemId, eventId), eq(ratings.userId, userId)));
+  return getRestaurant(db, ev.parentId!, userId);
 }
 
 /** Whoever added it, or the group's owner. */
@@ -589,30 +775,32 @@ export async function recordStopVisit(db: Db, stop: { id: string; itemId: string
 }
 
 /**
- * Decides whether a route stop is somewhere to eat and, if so, files it under the group's restaurants
- * (an existing one when the Yelp page or Google place matches). Typed names like "cafe" stay plain stops.
- * Returns the restaurant id, null for a place that isn't a restaurant, or undefined when it can't tell yet.
+ * Files a route stop under the group's places (an existing one when the Yelp page or Google place matches),
+ * typed by Google: somewhere to eat, a sight, an event venue, a hotel, or other. A typed stop is filed only
+ * when it says where it is (an address or a location); a bare "lunch" stays a plain stop.
+ * Returns the place id, null when it stays a plain stop, or undefined when it can't tell yet.
  */
 export async function fileStopAsRestaurant(
   db: Db,
   groupId: string,
   userId: string,
-  stop: { id: string; name: string; address: string; mapsUrl: string; yelpUrl: string; googlePlaceId: string; itemId: string | null },
+  stop: { id: string; name: string; address: string; mapsUrl: string; yelpUrl: string; googlePlaceId: string; itemId: string | null; lat?: number | null; lng?: number | null },
 ): Promise<string | null | undefined> {
   if (stop.itemId) return stop.itemId;
-  let kind: "food" | "other" = "other";
+  let type: PlaceType | null = null;
   let details: PlaceDetails | null = null;
   if (stop.googlePlaceId && googleAvailable()) {
     try {
       details = await placeDetails(stop.googlePlaceId, null);
-      kind = isFoodPlace(details.primaryType) ? "food" : "other";
+      type = placeTypeFromGoogle(details.primaryType, details.types) ?? "other";
     } catch {
       return undefined; // Google trouble: decide next time
     }
-  } else if (yelpAlias(stop.yelpUrl) || /yelp\.to\//.test(stop.yelpUrl)) kind = "food";
+  } else if (yelpAlias(stop.yelpUrl) || /yelp\.to\//.test(stop.yelpUrl)) type = "food";
   else if (stop.googlePlaceId) return undefined; // Google off: decide later
+  else if (stop.address.trim() || stop.lat != null) type = "other";
   let itemId: string | null = null;
-  if (kind === "food") {
+  if (type) {
     const { restaurant } = await createRestaurant(db, groupId, userId, {
       name: stop.name,
       address: stop.address,
@@ -620,9 +808,14 @@ export async function fileStopAsRestaurant(
       mapsUrl: stop.mapsUrl,
       googlePlaceId: stop.googlePlaceId || undefined,
       prefetched: details,
+      placeType: type,
+      lat: stop.lat ?? null,
+      lng: stop.lng ?? null,
+      // Somewhere new to eat is news (as before); every other stop quietly becomes a place.
+      quiet: type !== "food",
     });
     itemId = restaurant.id;
   }
-  await db.update(planStops).set({ placeKind: kind, itemId }).where(eq(planStops.id, stop.id));
+  await db.update(planStops).set({ placeKind: type ?? "none", itemId }).where(eq(planStops.id, stop.id));
   return itemId;
 }

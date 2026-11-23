@@ -95,7 +95,9 @@ export const invites = pgTable(
 // ---- Core: items (what a group rates) and their links ----
 
 /** Food module: restaurant, its menus, and dishes made at home. Board game module: games. */
-export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish", "game", "property"]);
+export const itemType = pgEnum("item_type", ["restaurant", "menu", "dish", "game", "property", "event"]);
+/** What kind of place a saved place is (from Google's type when saved): each has its own page. */
+export const placeType = pgEnum("place_type", ["food", "sight", "venue", "stay", "other"]);
 export const linkKind = pgEnum("link_kind", ["yelp", "gmaps", "bgg", "bga", "rulebook", "video", "other", "tts", "zillow", "redfin", "realtor"]);
 
 export const items = pgTable(
@@ -159,12 +161,25 @@ export const restaurantDetails = pgTable(
     hoursFetchedAt: timestamp("hours_fetched_at", { withTimezone: true }),
     /** Google Places photo resource name (places/…/photos/…) for the cover photo; served through our API. */
     photoName: text("photo_name"),
+    /**
+     * Somewhere to eat (menus), a sight, an event venue (events), a place to stay, or anything else.
+     * Null: saved before places had types; treated as food until Google's type is looked up once.
+     */
+    placeType: placeType("place_type"),
   },
   (t) => [
     uniqueIndex("restaurant_details_group_yelp_uq").on(t.groupId, t.yelpAlias),
     uniqueIndex("restaurant_details_group_google_uq").on(t.groupId, t.googlePlaceKey),
   ],
 );
+
+/** Something seen at an event venue (a show, a game, a festival): its day. Rated like a menu. */
+export const eventDetails = pgTable("event_details", {
+  itemId: text("item_id")
+    .primaryKey()
+    .references(() => items.id, { onDelete: "cascade" }),
+  onDate: date("on_date"),
+});
 
 /**
  * A member's rating of a menu: one per person per menu, updated when they eat it again.

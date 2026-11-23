@@ -110,7 +110,7 @@ test("bottom bar: switch sections, More holds members, look, links and settings"
   await signIn(page, "Barry");
   await openHome(page);
   const bar = page.getByTestId("bottom-bar").filter({ visible: true });
-  await bar.getByRole("button", { name: "Restaurants", exact: true }).click();
+  await bar.getByRole("button", { name: "Places", exact: true }).click();
   await expect(page.getByText("No restaurants yet.", { exact: false })).toBeVisible();
   await bar.getByRole("button", { name: "More", exact: true }).click();
   const menu = page.getByTestId("group-menu").filter({ visible: true });

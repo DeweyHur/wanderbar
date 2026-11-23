@@ -10,6 +10,8 @@ import { useNow } from "../route/hooks";
 import type { RestaurantSummary } from "./api";
 import { allTags, TagChips } from "../../boardgame/parts";
 import { RatingBadge } from "./Stars";
+import { placeTypeLabel } from "./PlaceParts";
+import { PLACE_TYPE_ICON, PLACE_TYPES, type PlaceType } from "@wanderbar/route";
 
 /** The group's saved restaurants: newest first (or by name); search by name, address or tag; filter by tag, category, been. */
 export function RestaurantList({ groupId, restaurants }: { groupId: string; restaurants: RestaurantSummary[] }) {
@@ -18,12 +20,16 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
   const now = useNow();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [placeType, setPlaceType] = useState<PlaceType | null>(null);
   const [been, setBeen] = useState<"all" | "been" | "notYet">("all");
   const [tag, setTag] = useState<string | null>(null);
   const [order, setOrder] = useState<"newest" | "name">("newest");
   const tagList = useMemo(() => allTags(restaurants), [restaurants]);
   const activeTag = tag && tagList.some((x) => x.toLowerCase() === tag.toLowerCase()) ? tag : null;
 
+  // What kinds of places there are (only shown when there's more than one kind).
+  const types = PLACE_TYPES.map((k) => ({ k, n: restaurants.filter((r) => r.placeType === k).length })).filter((x) => x.n);
+  const activeType = types.length > 1 && placeType && types.some((x) => x.k === placeType) ? placeType : null;
   const present = useMemo(() => [...new Set(restaurants.map((r) => r.category).filter((x): x is string => !!x))], [restaurants]);
   // The filter only applies while its chips are on screen (a deleted last match must not leave a hidden filter).
   const active = present.length > 1 && category && present.includes(category) ? category : null;
@@ -38,6 +44,7 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
       if (activeTag && !r.tags.some((x) => x.toLowerCase() === activeTag.toLowerCase())) return false;
       if (been === "been" && !r.visitCount) return false;
       if (been === "notYet" && r.visitCount) return false;
+      if (activeType && r.placeType !== activeType) return false;
       return !active || r.category === active;
     })
     .sort((a, b) => (order === "name" ? a.name.localeCompare(b.name, i18n.language) : b.createdAt.localeCompare(a.createdAt)));
@@ -46,6 +53,14 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
   return (
     <View style={{ gap: 12 }}>
       {restaurants.length > 0 && <Field value={q} onChangeText={setQ} placeholder={t("food:restaurant.searchSaved")} />}
+      {types.length > 1 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }} testID="place-type-filter">
+          <Chip label={t("food:place.allTypes", { count: restaurants.length })} selected={!activeType} onPress={() => setPlaceType(null)} />
+          {types.map(({ k, n }) => (
+            <Chip key={k} label={`${placeTypeLabel(t, k)} ${n}`} selected={activeType === k} onPress={() => setPlaceType(activeType === k ? null : k)} />
+          ))}
+        </View>
+      )}
       {restaurants.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }} testID="been-filter">
           <Chip label={t("food:been.all", { count: restaurants.length })} selected={been === "all"} onPress={() => setBeen("all")} />
@@ -86,7 +101,7 @@ export function RestaurantList({ groupId, restaurants }: { groupId: string; rest
               )}
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }} numberOfLines={1}>
-                  {r.name}
+                  {r.placeType !== "food" ? `${PLACE_TYPE_ICON[r.placeType]} ${r.name}` : r.name}
                 </Text>
                 <Body muted>
                   {[r.category ? t(`food:category.${r.category}`) : null, r.menuCount ? t("food:restaurant.menuCount", { count: r.menuCount }) : null]

@@ -112,6 +112,8 @@ export default function PlanScreen() {
 
   // Another day than today: hours are shown for that day, and "closed now" warnings don't apply.
   const otherDay = plan.date && plan.date !== today() ? plan.date : null;
+  // A day that's over is a record of where you went: no "heading to", no "go here now".
+  const past = !!plan.date && plan.date < today();
   const closedNow = !otherDay && current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
 
   return (
@@ -169,7 +171,13 @@ export default function PlanScreen() {
         onClose={() => setPickingDay(false)}
       />
 
-      {current ? (
+      {past ? (
+        plan.stops.length > 0 && (
+          <Card testID="past-route">
+            <Body muted>{t("food:route.pastDay", { done: plan.stops.filter((s) => s.status === "done").length, count: plan.stops.length })}</Body>
+          </Card>
+        )
+      ) : current ? (
         <Card highlight testID="current-card">
           <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{t("food:route.current")}</Text>
           <Pressable onPress={() => openStop(current)}>

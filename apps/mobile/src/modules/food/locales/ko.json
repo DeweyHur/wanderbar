@@ -144,7 +144,9 @@
     "mapHotel": "숙소",
     "mapPlaces": "근처 우리 장소 ({{count}})",
     "mapHint": "핀을 누르면 구글맵·옐프로 열거나 동선에 넣을 수 있어요.",
-    "mapFromHotel": "{{place}}에서 {{distance}}"
+    "mapFromHotel": "{{place}}에서 {{distance}}",
+    "pastDay": "지난 동선이에요 · {{count}}곳 중 {{done}}곳 다녀왔어요.",
+    "pastStop": "지난 동선의 장소"
   },
   "hours": {
     "open": "영업 중 · {{time}}까지",

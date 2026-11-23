@@ -51,3 +51,22 @@ test("route map: pick a nearby place from the map, open it on Yelp, then remove 
   await expect(page.getByTestId("stop-row-1").filter({ visible: true })).toHaveCount(0);
   await expect(page.getByTestId("stop-row-0").filter({ visible: true })).toContainText("Bell Rock Trail");
 });
+
+// A route whose day is over is a record: no "heading to" card, no "go here now".
+test("a past route shows where you went, without current-stop actions", async ({ page }) => {
+  await signIn(page, "Lookback");
+  const groupId = await openHome(page);
+  const post = (url: string, data: unknown) => page.request.post(url, { headers: WEB, data }).then((r) => r.json());
+  const yesterday = new Date(Date.now() - 86_400_000);
+  const iso = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+  const plan = await post(`/api/groups/${groupId}/plans`, { date: iso });
+  const stops = await post(`/api/plans/${plan.id}/stops`, { stops: [{ name: "Bell Rock Trail" }, { name: "Midgley Bridge" }] });
+  await page.request.post(`/api/plans/${plan.id}/flow`, { headers: WEB, data: { action: "complete", stopId: stops.stops[0].id } });
+
+  await page.goto(`/plan/${plan.id}`);
+  await expect(page.getByTestId("past-route").filter({ visible: true })).toContainText("went to 1 of 2 places");
+  await expect(page.getByTestId("current-card")).toHaveCount(0);
+  await page.getByTestId("stop-row-1").filter({ visible: true }).getByText("Midgley Bridge").click();
+  await expect(page.getByText("On a past route").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Go here now" })).toHaveCount(0);
+});

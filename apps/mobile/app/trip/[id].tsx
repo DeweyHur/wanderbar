@@ -6,7 +6,7 @@ import { FormScroll } from "@/components/FormScroll";
 import { Body, Button, Card, Chip, ErrorText, Field, Loading, Text, useColors } from "@/components/ui";
 import { errorText } from "@/core/errors";
 import { confirm } from "@/core/platform/confirm";
-import { dayLabel } from "@/modules/food/route/dates";
+import { dayLabel, today } from "@/modules/food/route/dates";
 import type { PlaceDetails } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { nights, tripApi, TRANSPORT_ICON, type Hotel, type Trip, type TripEdit } from "@/modules/food/trips/api";
@@ -43,10 +43,35 @@ export default function TripScreen() {
 
   if (!trip) return error ? <ErrorText>{error}</ErrorText> : <Loading />;
   const name = trip.title || t("food:trip.untitled");
+  const now = today();
+  // The day you're on goes on top: during the trip it's the one you open most.
+  const todayIndex = trip.days.findIndex((d) => d.date === now);
+  const DayCard = ({ d, i, highlight }: { d: Trip["days"][number]; i: number; highlight?: boolean }) => (
+    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/plan/[id]", params: { id: d.planId } })}>
+      <Card testID={highlight ? "trip-today" : "trip-day"} highlight={d.date === now}>
+        <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }}>
+          {t("food:trip.dayN", { n: i + 1 })} · {d.date ? dayLabel(t, i18n.language, d.date) : ""}
+          {d.title ? ` · ${d.title}` : ""}
+        </Text>
+        <Body muted>
+          {[
+            t("food:route.progress", { finished: d.finished, total: d.total }),
+            d.hotel ? t("food:trip.endsAt", { name: d.hotel.name }) : i === trip.days.length - 1 ? t("food:trip.headingHome") : t("food:trip.noHotelTonight"),
+          ].join(" · ")}
+        </Body>
+      </Card>
+    </Pressable>
+  );
 
   return (
     <FormScroll testID="trip-screen" style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: `${TRANSPORT_ICON[trip.transport]} ${name}` }} />
+      {todayIndex >= 0 && (
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: c.accent, fontSize: 14, fontWeight: "700" }}>{t("food:route.today")}</Text>
+          <DayCard d={trip.days[todayIndex]} i={todayIndex} highlight />
+        </View>
+      )}
       <Field
         label={t("food:trip.name")}
         value={title}
@@ -71,20 +96,7 @@ export default function TripScreen() {
 
       <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>🗺️ {t("food:trip.days")}</Text>
       {trip.days.map((d, i) => (
-        <Pressable key={d.planId} accessibilityRole="button" onPress={() => router.push({ pathname: "/plan/[id]", params: { id: d.planId } })}>
-          <Card testID="trip-day">
-            <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }}>
-              {t("food:trip.dayN", { n: i + 1 })} · {d.date ? dayLabel(t, i18n.language, d.date) : ""}
-              {d.title ? ` · ${d.title}` : ""}
-            </Text>
-            <Body muted>
-              {[
-                t("food:route.progress", { finished: d.finished, total: d.total }),
-                d.hotel ? t("food:trip.endsAt", { name: d.hotel.name }) : i === trip.days.length - 1 ? t("food:trip.headingHome") : t("food:trip.noHotelTonight"),
-              ].join(" · ")}
-            </Body>
-          </Card>
-        </Pressable>
+        <DayCard key={d.planId} d={d} i={i} />
       ))}
 
       <TripPrompt trip={trip} />

@@ -153,7 +153,16 @@
       "left": "👋 You've left {{name}}. Mark it done?",
       "yes": "Yes",
       "notNow": "Not now"
-    }
+    },
+    "today": "Today",
+    "futureDay": "Planned for {{day}}. Opening hours are for that day.",
+    "pastHint": "Check off where you went to keep a record.",
+    "visited": "Went",
+    "notVisited": "Didn't go",
+    "markVisited": "Went to {{name}}",
+    "futureStop": "On an upcoming route",
+    "markVisitedShort": "We went",
+    "unmarkVisited": "Undo went"
   },
   "hours": {
     "open": "Open · until {{time}}",
@@ -220,12 +229,15 @@
   },
   "visit": {
     "title": "Visits",
-    "none": "No visits yet. Finishing it in a day route records one.",
+    "none": "No visits yet. Finish it on a route, or log one below.",
     "fromRoute": "day route",
     "wentToday": "I went today",
     "added": "Visit added",
     "confirmDelete": "Delete this visit?",
-    "last": "Visited {{date}}"
+    "last": "Visited {{date}}",
+    "changeDay": "Change day",
+    "wentOtherDay": "Went another day",
+    "moved": "Moved the visit"
   },
   "date": {
     "today": "Today",
@@ -353,7 +365,9 @@
       "openChatGPT": "Open in ChatGPT",
       "again": "Make it again"
     },
-    "stopBy": "Stop by {{name}}"
+    "stopBy": "Stop by {{name}}",
+    "thatNight": "That night's hotel · last stop",
+    "stayedAt": "Stayed at {{name}}"
   },
   "place": {
     "type": {
@@ -370,7 +384,7 @@
       "venue": "The venue",
       "stay": "How was the stay?",
       "other": "Ratings",
-      "food": "Ratings"
+      "food": "How was it?"
     },
     "events": "Events here",
     "noEvents": "No events yet. Add what you saw here.",

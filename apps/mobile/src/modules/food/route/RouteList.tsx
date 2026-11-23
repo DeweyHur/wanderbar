@@ -11,8 +11,9 @@ import { tripApi, TRANSPORT_ICON, type TripSummary } from "../trips/api";
 import { rangeLabel } from "../trips/parts";
 
 /**
- * The group's routes: trips (several days with hotels, each day its own route) on top, then day
- * routes: upcoming days first (soonest on top), then past ones. New routes pick a day.
+ * The group's routes: today's routes first (a trip's day too, so the day you're on is one tap away), then
+ * trips (several days with hotels, each day its own route), then day routes: upcoming days first (soonest
+ * on top), then past ones. New routes pick a day.
  */
 export function RouteList({ groupId, plans: all }: { groupId: string; plans: PlanSummary[] }) {
   const { t, i18n } = useTranslation();
@@ -30,7 +31,8 @@ export function RouteList({ groupId, plans: all }: { groupId: string; plans: Pla
   const plans = all.filter((p) => !p.tripId);
   const now = today();
   const day = (p: PlanSummary) => p.date ?? p.createdAt.slice(0, 10);
-  const upcoming = plans.filter((p) => day(p) >= now).sort((a, b) => day(a).localeCompare(day(b)));
+  const todays = all.filter((p) => day(p) === now);
+  const upcoming = plans.filter((p) => day(p) > now).sort((a, b) => day(a).localeCompare(day(b)));
   const past = plans.filter((p) => day(p) < now).sort((a, b) => day(b).localeCompare(day(a)));
 
   const create = async (date: string) => {
@@ -46,15 +48,16 @@ export function RouteList({ groupId, plans: all }: { groupId: string; plans: Pla
     }
   };
 
-  const Item = ({ p }: { p: PlanSummary }) => (
+  const tripOf = (p: PlanSummary) => (p.tripId ? trips.find((tr) => tr.id === p.tripId) : undefined);
+  const Item = ({ p, highlight }: { p: PlanSummary; highlight?: boolean }) => (
     <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/plan/[id]", params: { id: p.id } })}>
-      <Card testID="route-card">
+      <Card testID={highlight ? "today-route" : "route-card"} highlight={highlight}>
         <Text style={{ color: c.text, fontSize: 17, fontWeight: "600" }}>
           {p.atHome ? "🏠 " : ""}
           {planLabel(t, i18n.language, p)}
         </Text>
         <Body muted>
-          {[p.title.trim() && p.date ? dayLabel(t, i18n.language, p.date) : null, t("food:route.progress", { finished: p.finished, total: p.total }), p.currentName ? t("food:route.now", { name: p.currentName }) : null]
+          {[tripOf(p) ? `${TRANSPORT_ICON[tripOf(p)!.transport]} ${tripOf(p)!.title || t("food:trip.untitled")}` : null, p.title.trim() && p.date ? dayLabel(t, i18n.language, p.date) : null, t("food:route.progress", { finished: p.finished, total: p.total }), p.currentName ? t("food:route.now", { name: p.currentName }) : null]
             .filter(Boolean)
             .join(" · ")}
         </Body>
@@ -73,6 +76,10 @@ export function RouteList({ groupId, plans: all }: { groupId: string; plans: Pla
         </View>
       </View>
       <ErrorText>{error}</ErrorText>
+      {todays.length > 0 && <Text style={{ color: c.accent, fontSize: 14, fontWeight: "700" }}>{t("food:route.today")}</Text>}
+      {todays.map((p) => (
+        <Item key={p.id} p={p} highlight />
+      ))}
       {trips.length > 0 && <Text style={{ color: c.muted, fontSize: 14, fontWeight: "700" }}>{t("food:trip.title")}</Text>}
       {trips.map((tr) => (
         <Pressable key={tr.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/trip/[id]", params: { id: tr.id } })}>

@@ -11,7 +11,7 @@ import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Stop } from "@/modules/food/route/api";
 import { useGoogleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
-import { today } from "@/modules/food/route/dates";
+import { planPhase } from "@/modules/food/route/dates";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { RestaurantView } from "@/modules/food/restaurants/RestaurantView";
@@ -26,8 +26,8 @@ export default function StopScreen() {
   const googleAvailable = useGoogleAvailable();
   const [stop, setStop] = useState<Stop | null>(null);
   const [groupId, setGroupId] = useState<string | undefined>();
-  /** The route's day is over: show where it went, not "go here now". */
-  const [past, setPast] = useState(false);
+  /** Past day: a record (went / didn't). Future day: planning, nothing to start yet. Today: live. */
+  const [phase, setPhase] = useState<"past" | "today" | "future">("today");
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });
   const [geo, setGeo] = useState<{ lat: number | null; lng: number | null; googlePlaceId: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -43,7 +43,7 @@ export default function StopScreen() {
         if (!s) return setError(t("errors.not_found"));
         setStop(s);
         setGroupId(p.groupId);
-        setPast(!!p.date && p.date < today());
+        setPhase(planPhase(p.date));
         setForm({ name: s.name, address: s.address, mapsUrl: s.mapsUrl, hoursRaw: s.hoursRaw, memo: s.memo });
       })
       .catch((e) => setError(errorText(t, e)));
@@ -102,11 +102,12 @@ export default function StopScreen() {
               {t("food:route.inRoute", { status: t(`food:route.status.${stop.status}`) })}
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {!past && stop.status === "current" && <Chip label={t("food:route.done")} onPress={() => flow("complete")} />}
-              {!past && stop.status === "current" && <Chip label={t("food:route.skip")} onPress={() => flow("postpone")} />}
-              {!past && stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
-              {!past && (stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
-              {!past && (stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
+              {phase === "today" && stop.status === "current" && <Chip label={t("food:route.done")} onPress={() => flow("complete")} />}
+              {phase === "today" && stop.status === "current" && <Chip label={t("food:route.skip")} onPress={() => flow("postpone")} />}
+              {phase === "today" && stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
+              {phase === "today" && (stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
+              {phase === "today" && (stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
+              {phase === "past" && <Chip label={stop.status === "done" ? t("food:route.unmarkVisited") : t("food:route.markVisitedShort")} selected={stop.status === "done"} onPress={() => flow(stop.status === "done" ? "restore" : "complete")} />}
               <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(stop.name, stop.address, stop.googlePlaceId))} />
               <Chip label={t("food:route.deleteStop")} onPress={removeStop} />
             </View>
@@ -120,11 +121,12 @@ export default function StopScreen() {
   return (
     <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: stop.name }} />
-      <Body muted>{past ? t("food:route.pastStop") : t(`food:route.status.${stop.status}`)}</Body>
+      <Body muted>{phase === "past" ? `${t("food:route.pastStop")} · ${stop.status === "done" ? t("food:route.visited") : t("food:route.notVisited")}` : phase === "future" ? t("food:route.futureStop") : t(`food:route.status.${stop.status}`)}</Body>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {!past && stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
-        {!past && (stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
-        {!past && (stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
+        {phase === "today" && stop.status !== "current" && stop.status !== "done" && <Chip label={t("food:route.goHere")} onPress={() => flow("setCurrent")} />}
+        {phase === "today" && (stop.status === "pending" || stop.status === "current") && <Chip label={t("food:route.drop")} onPress={() => flow("drop")} />}
+        {phase === "today" && (stop.status === "done" || stop.status === "skipped") && <Chip label={t("food:route.restore")} onPress={() => flow("restore")} />}
+        {phase === "past" && <Chip label={stop.status === "done" ? t("food:route.unmarkVisited") : t("food:route.markVisitedShort")} selected={stop.status === "done"} onPress={() => flow(stop.status === "done" ? "restore" : "complete")} />}
         <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address, dest.googlePlaceId))} />
         <Chip label="Google Maps" onPress={() => Linking.openURL(Links.googlePlace(dest.name, dest.address, dest.googlePlaceId, dest.mapsUrl))} />
       </View>

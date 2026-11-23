@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { current, openHome, pickDay, signIn, WEB } from "./helpers";
+import { openHome, pickDay, signIn, WEB } from "./helpers";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const inDays = (n: number) => {
@@ -55,7 +55,9 @@ test("move a route to another day; places show their hours for that day", async 
   if (sat.getMonth() !== new Date().getMonth()) await picker.getByRole("button", { name: "Next month" }).click();
   await picker.getByRole("button", { name: iso(sat), exact: true }).click();
   await expect(page.getByTestId("plan-day").filter({ visible: true })).toContainText("Sat");
-  await expect(current(page)).toContainText("Closed that day");
+  // A later day is planning: no "heading to" card; each stop shows its hours for that day.
+  await expect(page.getByTestId("current-card")).toHaveCount(0);
+  await expect(page.getByTestId("stop-row-0").filter({ visible: true })).toContainText("Closed that day");
   await expect(page.getByTestId("stop-row-1")).toContainText("That day 17:00–23:00");
   expect((await (await page.request.get(`/api/plans/${plan.id}`)).json()).date).toBe(iso(sat));
 });

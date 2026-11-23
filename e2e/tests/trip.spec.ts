@@ -51,7 +51,9 @@ test("trip: flight with a rental car, a hotel stay, each day's route ends at the
   await expect(known).toContainText("Golden Gate Park");
   await expect(known).toContainText("on your routes");
   await known.click();
-  await expect(page.getByTestId("current-card").filter({ visible: true })).toContainText("Golden Gate Park");
+  // Tomorrow is still planning: the park is on the list, nothing is "current" yet.
+  await expect(page.getByTestId("stop-row-0").filter({ visible: true })).toContainText("Golden Gate Park");
+  await expect(page.getByTestId("current-card")).toHaveCount(0);
   // Already on this day's route: not offered again.
   await expect(page.getByTestId("visited-suggestion").filter({ visible: true })).toHaveCount(0);
   await page.goBack();
@@ -62,6 +64,8 @@ test("trip: flight with a rental car, a hotel stay, each day's route ends at the
   await expect(page.getByTestId("trip-card").filter({ visible: true })).toContainText("Bay weekend");
   await expect(page.getByTestId("trip-card").filter({ visible: true })).toContainText("rental car");
   await expect(page.getByTestId("route-card").filter({ visible: true })).toHaveCount(0);
+  // …except today's day, which is on top of the list.
+  await expect(page.getByTestId("today-route").filter({ visible: true })).toContainText("Bay weekend");
 });
 
 test("trip API: overlapping hotel stays are refused", async ({ page }) => {

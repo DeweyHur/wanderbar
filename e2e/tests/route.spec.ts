@@ -101,8 +101,8 @@ test("a route can be named; the name shows in the header and the routes list", a
   await quickAdd(page, "Mochi shop");
   await page.goBack();
   await page.reload();
-  await expect(page.getByTestId("route-card")).toContainText("Saturday in Little Tokyo");
-  await page.getByTestId("route-card").click();
+  await expect(page.getByTestId("today-route")).toContainText("Saturday in Little Tokyo");
+  await page.getByTestId("today-route").click();
   await expect(name).toHaveValue("Saturday in Little Tokyo");
 });
 

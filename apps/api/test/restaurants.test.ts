@@ -13,6 +13,7 @@ import {
   deleteRestaurant,
   addVisit,
   deleteVisit,
+  updateVisit,
   getMenu,
   getRestaurant,
   isFoodPlace,
@@ -373,6 +374,22 @@ describe("route stops become restaurants; visits", () => {
     expect((await deleteVisit(db, mine.visits[0].id, me)).visits).toHaveLength(1);
     expect(await status(addVisit(db, r.id, me, new Date("2099-01-01")))).toBe(400);
     expect(await status(addVisit(db, r.id, outsider))).toBe(404);
+  });
+
+  it("your own visit can move to another day, never into the future or someone else's", async () => {
+    const { restaurant: r } = await createRestaurant(db, groupId, me, { name: "Mariposa" });
+    await addVisit(db, r.id, friend, new Date("2026-10-01T19:00:00Z"));
+    const both = await addVisit(db, r.id, me);
+    const mine = both.visits.find((v) => v.name === "me")!;
+    const theirs = both.visits.find((v) => v.name === "friend")!;
+    const moved = await updateVisit(db, mine.id, me, new Date("2026-09-01T19:00:00Z"));
+    expect(moved.visits.map((v) => [v.name, new Date(v.visitedAt).toISOString()])).toEqual([
+      ["friend", "2026-10-01T19:00:00.000Z"],
+      ["me", "2026-09-01T19:00:00.000Z"],
+    ]);
+    expect(await status(updateVisit(db, theirs.id, me, new Date("2026-09-02")))).toBe(403);
+    expect(await status(updateVisit(db, mine.id, me, new Date("2099-01-01")))).toBe(400);
+    expect(await status(updateVisit(db, mine.id, outsider, new Date("2026-09-02")))).toBe(404);
   });
 
   it("cover photo comes from Google; a Yelp page is found for Google-picked restaurants", async () => {

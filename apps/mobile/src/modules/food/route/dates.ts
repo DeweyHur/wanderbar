@@ -51,3 +51,9 @@ export function parseTime(s: string | null | undefined): Date | null {
   if (isNaN(d.getTime())) d = new Date(s.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
   return isNaN(d.getTime()) ? null : d;
 }
+
+/** Which view a day route gets: a day that's over is a record, today is live, a later day is planning. Undated = today. */
+export function planPhase(date: string | null, now = today()): "past" | "today" | "future" {
+  if (!date || date === now) return "today";
+  return date < now ? "past" : "future";
+}

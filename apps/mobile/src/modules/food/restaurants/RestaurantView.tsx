@@ -22,6 +22,7 @@ import { restaurantApi, type Menu, type Restaurant } from "./api";
 import { RatingBadge } from "./Stars";
 import { EventList, PlaceTypePicker, placeTypeLabel } from "./PlaceParts";
 import { Reviews } from "./Reviews";
+import { VisitList } from "./VisitList";
 import type { PlaceType } from "@wanderbar/route";
 import { FormScroll } from "@/components/FormScroll";
 
@@ -85,7 +86,6 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
     }
   };
 
-  const dateFmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" });
 
   return (
     <FormScroll style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
@@ -139,7 +139,15 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
       </View>
       {panel === "route" && <AddToRoute restaurant={r} />}
 
-      {r.placeType === "food" ? (
+      {/* Every place is rated itself (a restaurant too, menu or not); a restaurant's menus are rated on top. */}
+      <Reviews
+        title={t(`food:place.reviewsTitle.${r.placeType}`)}
+        ratings={r.reviews}
+        me={me}
+        onSave={(stars, review) => run(restaurantApi.ratePlace(r.id, stars, review))}
+        onRemove={() => run(restaurantApi.unratePlace(r.id))}
+      />
+      {r.placeType === "food" && (
         <>
           <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:menu.title")}</Text>
           {r.menus.length === 0 && <Body muted>{t("food:menu.empty")}</Body>}
@@ -148,15 +156,6 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
           ))}
           <NewMenu currency={r.currency} onAdd={(m) => run(restaurantApi.addMenu(r.id, m))} />
         </>
-      ) : (
-        // Sights, hotels, venues and the rest are rated themselves.
-        <Reviews
-          title={t(`food:place.reviewsTitle.${r.placeType}`)}
-          ratings={r.reviews}
-          me={me}
-          onSave={(stars, review) => run(restaurantApi.ratePlace(r.id, stars, review))}
-          onRemove={() => run(restaurantApi.unratePlace(r.id))}
-        />
       )}
       {r.placeType === "venue" && (
         <EventList
@@ -171,26 +170,13 @@ export function RestaurantView({ id, existing, top, refreshKey }: { id: string; 
         />
       )}
 
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", marginTop: 6 }}>{t("food:visit.title")}</Text>
-      {r.visits.length === 0 && <Body muted>{t("food:visit.none")}</Body>}
-      {r.visits.map((v) => (
-        <Pressable
-          key={v.id}
-          testID="visit-row"
-          disabled={v.userId !== me}
-          onPress={async () => {
-            if (await confirm(t("food:visit.confirmDelete"), t("common.delete"), t("common.cancel"))) await run(restaurantApi.deleteVisit(v.id));
-          }}
-        >
-          <Text style={{ color: c.text, fontSize: 15, paddingVertical: 4 }}>
-            {dateFmt.format(new Date(v.visitedAt))} · {v.name}
-            <Text style={{ color: c.muted }}>{v.fromRoute ? ` · ${t("food:visit.fromRoute")}` : ""}</Text>
-          </Text>
-        </Pressable>
-      ))}
-      <View style={{ flexDirection: "row" }}>
-        <Chip label={t("food:visit.wentToday")} onPress={() => run(restaurantApi.addVisit(r.id), t("food:visit.added"))} />
-      </View>
+      <VisitList
+        visits={r.visits}
+        me={me}
+        onAdd={(visitedAt) => run(restaurantApi.addVisit(r.id, visitedAt), t("food:visit.added"))}
+        onMove={(v, visitedAt) => run(restaurantApi.moveVisit(v.id, visitedAt), t("food:visit.moved"))}
+        onDelete={(v) => run(restaurantApi.deleteVisit(v.id))}
+      />
 
       <View style={{ flexDirection: "row", marginTop: 10 }}>
         <Chip label={t("food:restaurant.edit")} selected={panel === "edit"} onPress={() => setPanel(panel === "edit" ? "none" : "edit")} />

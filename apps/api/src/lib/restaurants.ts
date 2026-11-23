@@ -764,6 +764,17 @@ export async function deleteVisit(db: Db, visitId: string, userId: string) {
   return getRestaurant(db, v.itemId, userId);
 }
 
+/** Only your own visits: move one to another day (a visit can't be in the future). */
+export async function updateVisit(db: Db, visitId: string, userId: string, visitedAt: Date) {
+  const [v] = await db.select().from(visits).where(eq(visits.id, visitId));
+  if (!v) throw notFound("visit.not_found");
+  await memberRestaurant(db, v.itemId, userId);
+  if (v.userId !== userId) throw forbidden("visit.not_yours");
+  if (Number.isNaN(visitedAt.getTime()) || visitedAt.getTime() > Date.now() + 86_400_000) throw badRequest("visit.date_invalid");
+  await db.update(visits).set({ visitedAt }).where(eq(visits.id, visitId));
+  return getRestaurant(db, v.itemId, userId);
+}
+
 /** Finishing a restaurant stop records a visit (once per stop); bringing the stop back removes it. */
 export async function recordStopVisit(db: Db, stop: { id: string; itemId: string | null }, groupId: string, userId: string, done: boolean) {
   if (!stop.itemId) return;

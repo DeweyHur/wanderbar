@@ -229,7 +229,7 @@ test("finishing a restaurant stop offers to rate it", async ({ page }) => {
   await expect(page.getByTestId("rate-prompt")).toHaveCount(0);
 });
 
-test("a restaurant picked into a route is saved under restaurants; Done records the visit on its page", async ({ page }) => {
+test("places picked into a route are saved as places; Done records the visit on its page", async ({ page }) => {
   await signIn(page, "Visitor");
   const groupId = await openHome(page);
   await page.getByRole("button", { name: "New route" }).click();
@@ -241,9 +241,10 @@ test("a restaurant picked into a route is saved under restaurants; Done records 
   await page.getByText("Golden Gate Park").first().click();
   await expect(page.getByTestId("stop-row-1")).toContainText("Golden Gate Park");
 
-  // Saved as a restaurant automatically (the park isn't).
-  const { restaurants } = await (await page.request.get(`/api/groups/${groupId}/restaurants`)).json();
-  expect(restaurants.map((r: { name: string }) => r.name)).toEqual(["Mensho Tokyo"]);
+  // Both saved as places automatically: the ramen shop as a restaurant, the park as a sight.
+  const { restaurants: all } = await (await page.request.get(`/api/groups/${groupId}/restaurants`)).json();
+  expect(all.map((r: { name: string; placeType: string }) => [r.name, r.placeType]).sort()).toEqual([["Golden Gate Park", "sight"], ["Mensho Tokyo", "food"]]);
+  const restaurants = all.filter((r: { placeType: string }) => r.placeType === "food");
   expect(restaurants[0]).toMatchObject({ hasPhoto: true, yelpUrl: "https://www.yelp.com/biz/mensho-tokyo-san-francisco" });
 
   // Same page as the restaurant, plus the route widget; Done there records the visit.
@@ -264,7 +265,7 @@ test("a restaurant picked into a route is saved under restaurants; Done records 
   await expect(page.getByTestId("visit-row")).toHaveCount(2);
   await page.goto(`/group/${groupId}`);
   await restaurantsTab(page).click();
-  await expect(page.getByTestId("restaurant-card").filter({ visible: true })).toContainText("Visited ");
+  await expect(page.getByTestId("restaurant-card").filter({ visible: true }).filter({ hasText: "Mensho Tokyo" })).toContainText("Visited ");
 });
 
 test("the photo is served through our API only to members", async ({ page, browser }) => {

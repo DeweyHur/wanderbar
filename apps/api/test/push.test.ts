@@ -7,9 +7,9 @@ import { addMade, createDish, rateDish, updateDish } from "@/lib/dishes";
 import { acceptInvite, createGroup, createInvite } from "@/lib/groups";
 import { addMeal } from "@/lib/meals";
 import { addPhoto } from "@/lib/photos";
-import { createPlan, updatePlan } from "@/lib/plans";
+import { addStops, applyFlow, createPlan, updatePlan, updateStop } from "@/lib/plans";
 import { flushPush, QUIET_MS, registerPushToken, setPushSender, unregisterPushToken, type PushMessage } from "@/lib/push";
-import { dailyPushes, upcomingDays } from "@/lib/reminders";
+import { dailyPushes, upcomingDays, upcomingFixed } from "@/lib/reminders";
 import { addMenu, addVisit, createRestaurant, rateMenu, updateMenu, updateRestaurant } from "@/lib/restaurants";
 import { addShopping } from "@/lib/shopping";
 import { profile, testDb } from "./db";
@@ -183,5 +183,34 @@ describe("reminders the phone schedules", () => {
     expect(await upcomingDays(db, me)).toEqual([
       { planId: home.id, groupId, groupName: "Foodies", date: tomorrow, title: "", atHome: true, stops: 0, firstStop: null, meals: 1, toBuy: 2 },
     ]);
+  });
+
+  it("fixed-time stops still ahead, with the drive from the stop before (for 'time to leave')", async () => {
+    const env = { fake: process.env.E2E_FAKE_GOOGLE, url: process.env.DATABASE_URL };
+    Object.assign(process.env, { E2E_FAKE_GOOGLE: "1", DATABASE_URL: "pglite:memory" }); // Google's stand-in: a 10-minute drive
+    const now = new Date("2026-11-24T15:00:00Z");
+    const plan = await createPlan(db, groupId, me, "", "2026-11-24");
+    const stops = await addStops(db, plan.id, me, [
+      { name: "Bell Rock", lat: 34.79, lng: -111.76 },
+      { name: "Mariposa", lat: 34.86, lng: -111.79 },
+      { name: "Show", lat: null, lng: null },
+      { name: "Brunch", lat: 34.86, lng: -111.76 },
+    ]);
+    await updateStop(db, stops[1].id, me, { fixedAt: "2026-11-24T19:30:00-07:00" });
+    await updateStop(db, stops[2].id, me, { fixedAt: "2026-11-24T21:00:00-07:00" });
+    await updateStop(db, stops[3].id, me, { fixedAt: "2026-11-24T07:00:00-07:00" }); // already gone
+    expect(await upcomingFixed(db, me, now)).toEqual([
+      { stopId: stops[1].id, planId: plan.id, groupId, name: "Mariposa", fixedAt: "2026-11-25T02:30:00.000Z", from: "Bell Rock", travelSeconds: 600 },
+      { stopId: stops[2].id, planId: plan.id, groupId, name: "Show", fixedAt: "2026-11-25T04:00:00.000Z", from: "Mariposa", travelSeconds: null },
+    ]);
+    // Done, cleared or someone else's: not reminded.
+    await applyFlow(db, plan.id, me, { action: "complete", stopId: stops[1].id });
+    await updateStop(db, stops[2].id, me, { fixedAt: null });
+    expect(await upcomingFixed(db, me, now)).toEqual([]);
+    expect(await upcomingFixed(db, friend, now)).toEqual([]);
+    for (const [k, v] of [["E2E_FAKE_GOOGLE", env.fake], ["DATABASE_URL", env.url]] as const) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
   });
 });

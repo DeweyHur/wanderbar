@@ -393,5 +393,24 @@
     "addEvent": "Add event",
     "deleteEvent": "Delete this event",
     "confirmDeleteEvent": "Delete {{name}}?"
+  },
+  "fixed": {
+    "title": "Fixed time (reservation, show)",
+    "none": "None. Set one when you have to be there at a time, like a reservation or a show.",
+    "set": "Set a time",
+    "change": "Change",
+    "clear": "Clear",
+    "time": "Be there at",
+    "hint": "e.g. 19:30 or 7:30pm. We work out the drive and tell you when to leave.",
+    "save": "Save",
+    "leaveBy": "leave by {{time}}",
+    "leaveNow": "leave now",
+    "soonTitle": "Leave in 15 min: {{name}}",
+    "nowTitle": "Time to leave: {{name}}",
+    "body": "{{name}} at {{time}} · {{drive}} from {{from}}",
+    "bodyNoFrom": "{{name}} at {{time}}",
+    "hourTitle": "In an hour: {{name}}",
+    "driveMin_one": "{{count}} min drive",
+    "driveMin_other": "{{count}} min drive"
   }
 }

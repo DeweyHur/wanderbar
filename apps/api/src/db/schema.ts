@@ -369,6 +369,8 @@ export const planStops = pgTable(
     googlePlaceId: text("google_place_id").notNull().default(""),
     /** Whether the place is somewhere to eat ("food") or not ("other"); null = not checked yet. */
     placeKind: text("place_kind"),
+    /** A time you can't move (a reservation, a show): be there by then. Null = whenever. */
+    fixedAt: timestamp("fixed_at", { withTimezone: true }),
     orderIndex: integer("order_index").notNull().default(0),
     status: stopStatus("status").notNull().default("pending"),
     createdAt: createdAt(),

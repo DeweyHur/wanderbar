@@ -13,6 +13,16 @@ export function useNow(): WallTime {
   return now;
 }
 
+/** The current time as a Date, refreshed every 30 s (for "leave by" / "leave now"). */
+export function useClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 /** The Tesla text format saved for this phone platform (address-only until the tester says otherwise). */
 export function useTeslaFormat() {
   const [format, setFormat] = useState<TeslaFormat>(DEFAULT_TESLA_FORMAT);

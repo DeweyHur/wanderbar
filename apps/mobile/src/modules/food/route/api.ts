@@ -18,6 +18,8 @@ export type Stop = {
   itemId: string | null;
   orderIndex: number;
   status: StopStatus;
+  /** A time you have to be there by (a reservation, a show), ISO; null = whenever. */
+  fixedAt: string | null;
 };
 /** A day route. date is the day it's for (YYYY-MM-DD); an empty title means "call it by its date". */
 export type Plan = {
@@ -45,7 +47,7 @@ export type PlanSummary = {
   currentName: string | null;
   tripId?: string | null;
 };
-export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId">>;
+export type StopFields = Partial<Pick<Stop, "name" | "memo" | "address" | "mapsUrl" | "yelpUrl" | "hoursRaw" | "lat" | "lng" | "googlePlaceId" | "itemId" | "fixedAt">>;
 export type FlowAction =
   | { action: "complete" | "postpone" | "drop" | "setCurrent" | "restore"; stopId: string }
   | { action: "move"; from: number; to: number }

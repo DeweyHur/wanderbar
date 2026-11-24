@@ -13,4 +13,6 @@ export const StopFieldsSchema = z.object({
   googlePlaceId: z.string().max(300).optional(),
   /** A saved restaurant of the same group. */
   itemId: z.string().max(100).nullable().optional(),
+  /** A fixed time to be there by (a reservation, a show); null clears it. */
+  fixedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });

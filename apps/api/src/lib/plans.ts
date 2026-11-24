@@ -138,9 +138,11 @@ export async function deletePlan(db: Db, planId: string, userId: string) {
 }
 
 /** Adds stops at the end, in order. The first stop of an empty plan becomes current. */
-export async function addStops(db: Db, planId: string, userId: string, fields: StopFields[]) {
+export async function addStops(db: Db, planId: string, userId: string, fields: (StopFields & { fixedAt?: string | null })[]) {
   const plan = await ownPlan(db, planId, userId);
-  const clean = fields.map((f) => ({ ...f, name: (f.name ?? "").trim() })).filter((f) => f.name);
+  const clean = fields
+    .map(({ fixedAt, ...f }) => ({ ...f, name: (f.name ?? "").trim(), fixedAt: fixedAt ? new Date(fixedAt) : null }))
+    .filter((f) => f.name);
   if (!clean.length) throw badRequest("plan.stop_name_required");
   const itemIds = [...new Set(clean.map((f) => f.itemId).filter((x): x is string => !!x))];
   const ok = await restaurantsInGroup(db, plan.groupId, itemIds);
@@ -158,13 +160,18 @@ export async function addStops(db: Db, planId: string, userId: string, fields: S
   return stops;
 }
 
-export async function updateStop(db: Db, stopId: string, userId: string, fields: StopFields) {
+export async function updateStop(db: Db, stopId: string, userId: string, fields: StopFields & { fixedAt?: string | null }) {
   const { plan } = await ownStop(db, stopId, userId);
   if (fields.itemId && !(await restaurantsInGroup(db, plan.groupId, [fields.itemId])).length) throw notFound("restaurant.not_found");
   if (fields.name !== undefined && !fields.name.trim()) throw badRequest("plan.stop_name_required");
+  const { fixedAt, ...rest } = fields;
   const [stop] = await db
     .update(planStops)
-    .set({ ...fields, ...(fields.name !== undefined ? { name: fields.name.trim() } : {}) })
+    .set({
+      ...rest,
+      ...(fields.name !== undefined ? { name: fields.name.trim() } : {}),
+      ...(fixedAt !== undefined ? { fixedAt: fixedAt ? new Date(fixedAt) : null } : {}),
+    })
     .where(eq(planStops.id, stopId))
     .returning();
   return stop;

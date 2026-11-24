@@ -43,3 +43,50 @@ export function reminderSchedule(days: ReminderDay[], now: Date, limit = 40): Re
   }
   return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, limit);
 }
+
+/** A stop with a time you can't move (a reservation, a show), as /api/me/reminders sends it. */
+export type FixedStop = {
+  stopId: string;
+  planId: string;
+  groupId: string;
+  name: string;
+  /** When to be there (ISO). */
+  fixedAt: string;
+  /** The stop you'd leave from, if the route has one before it. */
+  from: string | null;
+  /** Drive time from there, when known. */
+  travelSeconds: number | null;
+};
+
+/** Minutes of slack on top of the drive (parking, walking in). */
+export const LEAVE_BUFFER_MIN = 10;
+
+/** When to leave to be there on time: the fixed time minus the drive and a little slack. Null when the drive isn't known. */
+export function leaveAt(fixedAt: Date, travelSeconds: number | null | undefined, bufferMin = LEAVE_BUFFER_MIN): Date | null {
+  if (travelSeconds == null) return null;
+  return new Date(fixedAt.getTime() - travelSeconds * 1000 - bufferMin * 60_000);
+}
+
+export type FixedReminderKind = "leaveSoon" | "leaveNow" | "fixedSoon";
+export type FixedReminder = { id: string; at: Date; kind: FixedReminderKind; stopId: string; planId: string; name: string; fixedAt: Date; leaveAt: Date | null; from: string | null };
+
+/**
+ * Reminders for fixed-time stops: 15 minutes before you need to leave, and when it's time to go. When the
+ * drive isn't known (no location, or it's the first stop), one reminder an hour before the time instead.
+ */
+export function fixedReminders(fixed: FixedStop[], now: Date, limit = 20): FixedReminder[] {
+  const out: FixedReminder[] = [];
+  for (const f of fixed) {
+    const fixedAt = new Date(f.fixedAt);
+    const leave = leaveAt(fixedAt, f.travelSeconds);
+    const base = { stopId: f.stopId, planId: f.planId, name: f.name, fixedAt, leaveAt: leave, from: f.from };
+    const add = (kind: FixedReminderKind, when: Date) => {
+      if (when.getTime() > now.getTime()) out.push({ ...base, id: `${kind}-${f.stopId}`, at: when, kind });
+    };
+    if (leave) {
+      add("leaveSoon", new Date(leave.getTime() - 15 * 60_000));
+      add("leaveNow", leave);
+    } else add("fixedSoon", new Date(fixedAt.getTime() - 60 * 60_000));
+  }
+  return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, limit);
+}

@@ -11,7 +11,8 @@ import { HoursBadge } from "@/modules/food/route/HoursBadge";
 import { routeApi, type Stop } from "@/modules/food/route/api";
 import { useGoogleAvailable } from "@/modules/food/route/google";
 import { useNow, useTeslaFormat } from "@/modules/food/route/hooks";
-import { planPhase } from "@/modules/food/route/dates";
+import { planPhase, today } from "@/modules/food/route/dates";
+import { FixedTimeEditor } from "@/modules/food/route/FixedTime";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { RestaurantView } from "@/modules/food/restaurants/RestaurantView";
@@ -28,6 +29,8 @@ export default function StopScreen() {
   const [groupId, setGroupId] = useState<string | undefined>();
   /** Past day: a record (went / didn't). Future day: planning, nothing to start yet. Today: live. */
   const [phase, setPhase] = useState<"past" | "today" | "future">("today");
+  /** The route's day (fixed times are on it). */
+  const [day, setDay] = useState(today());
   const [form, setForm] = useState({ name: "", address: "", mapsUrl: "", hoursRaw: "", memo: "" });
   const [geo, setGeo] = useState<{ lat: number | null; lng: number | null; googlePlaceId: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -44,6 +47,7 @@ export default function StopScreen() {
         setStop(s);
         setGroupId(p.groupId);
         setPhase(planPhase(p.date));
+        setDay(p.date ?? today());
         setForm({ name: s.name, address: s.address, mapsUrl: s.mapsUrl, hoursRaw: s.hoursRaw, memo: s.memo });
       })
       .catch((e) => setError(errorText(t, e)));
@@ -111,6 +115,7 @@ export default function StopScreen() {
               <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(stop.name, stop.address, stop.googlePlaceId))} />
               <Chip label={t("food:route.deleteStop")} onPress={removeStop} />
             </View>
+            <FixedTimeEditor stop={stop} day={day} readOnly={phase === "past"} onSaved={(s) => setStop((old) => (old ? { ...old, fixedAt: s.fixedAt } : old))} />
             <TeslaTester dest={stop} onError={setError} />
             <ErrorText>{error}</ErrorText>
           </Card>
@@ -130,6 +135,7 @@ export default function StopScreen() {
         <Chip label={t("food:route.directions")} onPress={() => Linking.openURL(Links.googleDirections(dest.name, dest.address, dest.googlePlaceId))} />
         <Chip label="Google Maps" onPress={() => Linking.openURL(Links.googlePlace(dest.name, dest.address, dest.googlePlaceId, dest.mapsUrl))} />
       </View>
+      <FixedTimeEditor stop={stop} day={day} readOnly={phase === "past"} onSaved={(s) => setStop((old) => (old ? { ...old, fixedAt: s.fixedAt } : old))} />
 
       {googleAvailable && (
         <PlaceSearch

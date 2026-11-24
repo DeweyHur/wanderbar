@@ -393,5 +393,24 @@
     "addEvent": "이벤트 추가",
     "deleteEvent": "이 이벤트 지우기",
     "confirmDeleteEvent": "{{name}}을(를) 지울까요?"
+  },
+  "fixed": {
+    "title": "정해진 시간 (예약·공연)",
+    "none": "없음 — 예약이나 공연처럼 그 시간에 가야 하면 정해 두세요.",
+    "set": "시간 정하기",
+    "change": "바꾸기",
+    "clear": "지우기",
+    "time": "도착 시간",
+    "hint": "예: 19:30, 7:30pm. 이동 시간을 계산해서 출발할 때를 알려줘요.",
+    "save": "저장",
+    "leaveBy": "{{time}}에 출발",
+    "leaveNow": "지금 출발해야 해요",
+    "soonTitle": "15분 뒤 출발: {{name}}",
+    "nowTitle": "지금 출발하세요: {{name}}",
+    "body": "{{time}} {{name}} · {{from}}에서 {{drive}}",
+    "bodyNoFrom": "{{time}} {{name}}",
+    "hourTitle": "1시간 뒤: {{name}}",
+    "driveMin_one": "{{count}}분",
+    "driveMin_other": "{{count}}분"
   }
 }

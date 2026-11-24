@@ -1,4 +1,4 @@
-import { reminderSchedule, type ReminderDay } from "@wanderbar/route";
+import { fixedReminders, reminderSchedule, type FixedReminder, type FixedStop, type ReminderDay } from "@wanderbar/route";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -66,6 +66,16 @@ const text = (r: ReturnType<typeof reminderSchedule>[number]) => {
   }
 };
 
+const clock = (d: Date) => new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(d);
+const minutes = (sec: number) => i18n.t("food:fixed.driveMin", { count: Math.max(1, Math.round(sec / 60)) });
+/** A fixed-time stop (reservation, show): when to leave. */
+const fixedText = (r: FixedReminder, travelSeconds: number | null) => {
+  const vars = { name: r.name, time: clock(r.fixedAt), from: r.from ?? "", drive: travelSeconds != null ? minutes(travelSeconds) : "" };
+  const body = r.from && travelSeconds != null ? i18n.t("food:fixed.body", vars) : i18n.t("food:fixed.bodyNoFrom", vars);
+  const title = { leaveSoon: "food:fixed.soonTitle", leaveNow: "food:fixed.nowTitle", fixedSoon: "food:fixed.hourTitle" }[r.kind];
+  return { title: i18n.t(title, { name: r.name }), body };
+};
+
 /** Replaces this app's scheduled reminders with ones for my upcoming days. ask: may show the permission prompt. */
 export async function syncReminders(ask = false) {
   if (!notificationsSupported) return;
@@ -73,9 +83,18 @@ export async function syncReminders(ask = false) {
   const old = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(old.filter((n) => n.identifier.startsWith(PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
   if (!(await settings.reminders())) return;
-  const { days } = await api<{ days: ReminderDay[] }>("/api/me/reminders");
+  const { days, fixed = [] } = await api<{ days: ReminderDay[]; fixed?: FixedStop[] }>("/api/me/reminders");
   const plan = reminderSchedule(days, new Date());
-  if (!plan.length || !(await allowed(ask))) return;
+  const leave = fixedReminders(fixed, new Date());
+  if ((!plan.length && !leave.length) || !(await allowed(ask))) return;
+  // When to leave for reservations and shows: these matter most, so they go first.
+  for (const r of leave) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: PREFIX + r.id,
+      content: { ...fixedText(r, fixed.find((f) => f.stopId === r.stopId)?.travelSeconds ?? null), sound: "default", data: { path: `/plan/${r.planId}` } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at, channelId: "reminders" },
+    });
+  }
   for (const r of plan) {
     await Notifications.scheduleNotificationAsync({
       identifier: PREFIX + r.id,

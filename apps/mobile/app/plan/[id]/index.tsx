@@ -12,11 +12,12 @@ import { formatDuration } from "@/modules/food/route/format";
 import { useGoogleAvailable, type PlaceDetails } from "@/modules/food/route/google";
 import { PlaceSearch } from "@/modules/food/route/PlaceSearch";
 import { useRoute } from "@/modules/food/route/useRoute";
-import { useNow } from "@/modules/food/route/hooks";
+import { useClock, useNow } from "@/modules/food/route/hooks";
 import { ShareMenu } from "@/modules/food/route/ShareMenu";
 import { dayLabel, planLabel, planPhase } from "@/modules/food/route/dates";
 import { DayPicker } from "@/modules/food/route/DayPicker";
 import { ArrivalPrompt } from "@/modules/food/route/ArrivalPrompt";
+import { FixedLine } from "@/modules/food/route/FixedTime";
 import { MealPlanner } from "@/modules/food/shopping/MealPlanner";
 import { FormScroll } from "@/components/FormScroll";
 import { carless, TRANSPORT_ICON } from "@/modules/food/trips/api";
@@ -197,7 +198,12 @@ function PastPlan({ plan, setPlan }: ViewProps) {
             name={isHotelStop(s) ? `🏨 ${s.name}` : s.name}
             dim={!done}
             onPress={() => openStop(plan, s)}
-            lines={<Text style={{ color: done ? c.accent : c.muted, fontSize: 13 }}>{done ? t("food:route.visited") : t("food:route.notVisited")}</Text>}
+            lines={
+              <>
+                <Text style={{ color: done ? c.accent : c.muted, fontSize: 13 }}>{done ? t("food:route.visited") : t("food:route.notVisited")}</Text>
+                <FixedLine stop={s} legSeconds={null} now={new Date()} mode="record" />
+              </>
+            }
             controls={
               <Pressable
                 accessibilityRole="checkbox"
@@ -230,6 +236,7 @@ function LivePlan({ plan, setPlan, future }: ViewProps & { future: boolean }) {
   const { t, i18n } = useTranslation();
   const c = useColors();
   const now = useNow();
+  const clock = useClock();
   const googleAvailable = useGoogleAvailable();
   /** A restaurant stop just finished: offer to rate what was eaten there. */
   const [justAte, setJustAte] = useState<Stop | null>(null);
@@ -292,6 +299,7 @@ function LivePlan({ plan, setPlan, future }: ViewProps & { future: boolean }) {
 
   // A future day: hours are shown for that day, and "closed now" warnings don't apply.
   const otherDay = future ? plan.date : null;
+  const nextFixed = future ? undefined : plan.stops.find((s) => s.fixedAt && s.status !== "done" && s.status !== "skipped" && new Date(s.fixedAt).getTime() > clock.getTime() - 30 * 60_000);
   const closedNow = current && hoursStatusFromText(current.hoursRaw, now).kind === "closed";
 
   return (
@@ -305,6 +313,15 @@ function LivePlan({ plan, setPlan, future }: ViewProps & { future: boolean }) {
       ) : (
         <>
           {plan.stops.length > 0 && <ArrivalPrompt plan={plan} onStops={setStops} />}
+          {nextFixed && (
+            // The next thing with a time you can't move: when to leave for it.
+            <Card testID="fixed-next">
+              <Pressable onPress={() => openStop(plan, nextFixed)}>
+                <Text style={{ color: c.text, fontSize: 16, fontWeight: "700" }}>{nextFixed.name}</Text>
+              </Pressable>
+              <FixedLine stop={nextFixed} legSeconds={route.legTo.get(nextFixed.id)?.seconds} now={clock} mode="live" />
+            </Card>
+          )}
           {current ? (
             <Card highlight testID="current-card">
               <Text style={{ color: c.accent, fontSize: 13, fontWeight: "700" }}>{t("food:route.current")}</Text>
@@ -371,6 +388,7 @@ function LivePlan({ plan, setPlan, future }: ViewProps & { future: boolean }) {
               <>
                 {dim ? <Text style={{ color: c.muted, fontSize: 13 }}>{t(`food:route.status.${s.status}`)}</Text> : <HoursBadge hoursRaw={s.hoursRaw} now={now} day={otherDay} />}
                 {!dim && leg && <Text style={{ color: c.muted, fontSize: 13 }}>{t("food:route.legFromPrev", { time: formatDuration(t, leg.seconds) })}</Text>}
+                <FixedLine stop={s} legSeconds={leg?.seconds} now={clock} mode={future ? "plan" : "live"} />
               </>
             }
             controls={

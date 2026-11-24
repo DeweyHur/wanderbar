@@ -1,0 +1,1 @@
+ALTER TABLE "plan_stops" ADD COLUMN "fixed_at" timestamp with time zone;
